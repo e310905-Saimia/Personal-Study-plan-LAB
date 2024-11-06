@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PSP LAB</title>
+    <style>
+        /* Global Styles */
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f4f6f9;
+            color: #333;
+            margin: 0;
+            padding: 20px;
+            line-height: 1.6;
+        }
+
+        /* Container */
+        .accordion-container {
+            max-width: 95%;
+            margin: 20px auto;
+            background-color: #ffffff;
+            border-radius: 12px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+            overflow-x: auto;
+            padding: 20px;
+        }
+
+        /* Table Styling */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 16px;
+            border-radius: 12px;
+            overflow: hidden;
+        }
+
+        thead {
+            background-color: #008000;
+            color: #ffffff;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        thead:hover {
+            background-color: #063a06;
+        }
+
+        thead th {
+            padding: 16px;
+            text-align: left;
+            font-weight: bold;
+            font-size: 16px;
+            position: relative;
+        }
+
+        .arrow {
+            font-size: 18px;
+            margin-right: 8px;
+            transition: transform 0.3s ease;
+        }
+
+        .accordion-header.open .arrow {
+            transform: rotate(90deg);
+        }
+
+        /* Toggle Switch Styling */
+        .toggle-switch {
+            position: relative;
+            display: inline-block;
+            width: 50px;
+            height: 24px;
+            vertical-align: middle;
+        }
+
+        .toggle-switch input {
+            display: none;
+        }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgb(33, 58, 72);
+            transition: 0.4s;
+            border-radius: 24px;
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 20px;
+            width: 20px;
+            left: 2px;
+            bottom: 2px;
+            background-color: white;
+            transition: 0.4s;
+            border-radius: 50%;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+        }
+
+        input:checked + .slider {
+            background-color: red;
+        }
+
+        input:checked + .slider:before {
+            transform: translateX(26px);
+        }
+
+        .toggle-label {
+            display: inline-block;
+            margin-left: 12px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        /* Table Rows */
+        tbody tr {
+            background-color: #ffffff;
+            transition: background-color 0.2s ease, box-shadow 0.2s ease;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+            border-bottom: 1px solid #e1e5ea;
+        }
+
+        tbody tr:hover {
+            background-color: #f5f7fa;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        tbody tr:nth-child(even) {
+            background-color: #fafbfc;
+        }
+
+        /* Button Styling */
+        .edit-button, .delete-button {
+            font-size: 14px;
+            font-weight: 600;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            padding: 8px 18px;
+            color: #fff;
+            transition: background-color 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .edit-button {
+            background-color: #4caf50;
+            box-shadow: 0 4px 12px rgba(76, 175, 80, 0.2);
+        }
+
+        .edit-button:hover {
+            background-color: #388e3c;
+            box-shadow: 0 6px 16px rgba(56, 142, 60, 0.3);
+        }
+
+        .delete-button {
+            background-color: #e53935;
+            box-shadow: 0 4px 12px rgba(230, 57, 53, 0.2);
+        }
+
+        .delete-button:hover {
+            background-color: #c62828;
+            box-shadow: 0 6px 16px rgba(197, 40, 40, 0.3);
+        }
+
+        .add-row-button {
+            background-color: #005a8d;
+            color: #fff;
+            font-size: 16px;
+            padding: 12px 24px;
+            border-radius: 8px;
+            border: none;
+            cursor: pointer;
+            transition: background-color 0.3s ease, box-shadow 0.3s ease;
+            display: inline-block;
+            margin-top: 15px;
+        }
+
+        .add-row-button:hover {
+            background-color: #00416d;
+            box-shadow: 0 6px 16px rgba(0, 77, 64, 0.3);
+        }
+
+        /* Responsive Design for Mobile */
+        @media (max-width: 768px) {
+            .accordion-container {
+                padding: 15px;
+            }
+
+            table, thead th, .add-row-button, .edit-button, .delete-button {
+                font-size: 14px;
+            }
+
+            thead th {
+                padding: 12px;
+            }
+
+            .edit-button, .delete-button {
+                padding: 6px 14px;
+                font-size: 13px;
+            }
+        }
+
+        /* Extra small devices (mobile) */
+        @media (max-width: 480px) {
+            thead th, tbody td {
+                padding: 10px;
+                font-size: 13px;
+            }
+
+            .add-row-button {
+                font-size: 14px;
+                padding: 10px 20px;
+            }
+
+            .edit-button, .delete-button {
+                font-size: 12px;
+                padding: 5px 10px;
+            }
+
+            /* Adjust table display for mobile */
+            table {
+                display: block;
+                overflow-x: auto;
+                white-space: nowrap;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<div class="accordion-container">
+    <table>
+        <thead onclick="toggleAccordion()" class="accordion-header">
+            <tr>
+                <th><span class="arrow">&#8250;</span> Compulsory or Not</th>
+                <th>Topic</th>
+                <th>Learning Outcome</th>
+                <th>Learning Outcome Information</th>
+                <th>Credits</th>
+                <th>Project</th>
+                <th>Confirmed By</th>
+                <th>Date</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        
+        <tbody class="panel" id="data-table">
+            <tr>
+                <td style="padding-left: 45px;">
+                    <label class="toggle-switch">
+                        <input type="checkbox" onchange="toggleCompulsory(this)">
+                        <span class="slider"></span>
+                    </label>
+                    <span class="toggle-label">Not Compulsory</span>
+                </td>
+                <td><input type="text" class="editable-input" value="Welding" disabled></td>
+                <td><textarea class="editable-textarea" oninput="autoResize(this)" disabled>Detection of welding defects</textarea></td>
+                <td><textarea class="editable-textarea" oninput="autoResize(this)" disabled>Identify common welding defects such as porosity, cracks, etc.</textarea></td>
+                <td><input type="number" class="editable-input" value="2" disabled></td>
+                <td><input type="text" class="editable-input" value="Project 1" disabled></td>
+                <td><input type="text" class="editable-input" value="Eero" disabled></td>
+                <td><input type="date" class="editable-input" value="2024-10-29" disabled></td>
+                <td>
+                    <button class="edit-button" onclick="toggleEdit(this)">Edit</button>
+                    <button class="delete-button" onclick="deleteRow(this)">Delete</button>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+    <button class="add-row-button" onclick="addRow()">Add New Row</button>
+</div>
+
+<script>
+    function toggleAccordion() {
+        const panel = document.querySelector('.panel');
+        const arrow = document.querySelector('.arrow');
+
+        if (panel.style.display === "table-row-group") {
+            panel.style.display = "none";
+            arrow.classList.remove('open');
+        } else {
+            panel.style.display = "table-row-group";
+            arrow.classList.add('open');
+        }
+    }
+
+    function toggleCompulsory(checkbox) {
+        const label = checkbox.parentNode.nextElementSibling;
+        label.textContent = checkbox.checked ? "Compulsory" : "Not Compulsory";
+    }
+
+    function addRow() {
+        const table = document.getElementById('data-table');
+        const newRow = document.createElement('tr');
+        
+        newRow.innerHTML = `
+            <td style="padding-left: 45px;">
+                <label class="toggle-switch">
+                    <input type="checkbox" onchange="toggleCompulsory(this)">
+                    <span class="slider"></span>
+                </label>
+                <span class="toggle-label">Not Compulsory</span>
+            </td>
+            <td><input type="text" class="editable-input" value="" disabled></td>
+            <td><textarea class="editable-textarea" oninput="autoResize(this)" disabled></textarea></td>
+            <td><textarea class="editable-textarea" oninput="autoResize(this)" disabled></textarea></td>
+            <td><input type="number" class="editable-input" value="0" disabled></td>
+            <td><input type="text" class="editable-input" value="" disabled></td>
+            <td><input type="text" class="editable-input" placeholder="Enter name" disabled></td>
+            <td><input type="date" class="editable-input" disabled></td>
+            <td>
+                <button class="edit-button" onclick="toggleEdit(this)">Edit</button>
+                <button class="delete-button" onclick="deleteRow(this)">Delete</button>
+            </td>
+        `;
+        
+        table.appendChild(newRow);
+    }
+
+    function deleteRow(button) {
+        const row = button.parentNode.parentNode;
+        row.parentNode.removeChild(row);
+    }
+
+    function toggleEdit(button) {
+        const row = button.parentNode.parentNode;
+        const inputs = row.querySelectorAll('input, textarea');
+        const isEditing = button.textContent === 'Save';
+
+        inputs.forEach(input => input.disabled = isEditing);
+        button.textContent = isEditing ? 'Edit' : 'Save';
+    }
+
+    function autoResize(textarea) {
+        textarea.style.height = 'auto';
+        textarea.style.height = textarea.scrollHeight + 'px';
+    }
+</script>
+
+</body>
+</html>

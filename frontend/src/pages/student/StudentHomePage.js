@@ -1,8 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { Container, Grid, Paper, Typography } from '@mui/material'
 import { useDispatch, useSelector } from 'react-redux';
-import { calculateOverallAttendancePercentage } from '../../components/attendanceCalculator';
-import CustomPieChart from '../../components/CustomPieChart';
 import { getUserDetails } from '../../redux/userRelated/userHandle';
 import styled from 'styled-components';
 import SeeNotice from '../../components/SeeNotice';
@@ -14,12 +12,10 @@ import { getSubjectList } from '../../redux/sclassRelated/sclassHandle';
 const StudentHomePage = () => {
     const dispatch = useDispatch();
 
-    const { userDetails, currentUser, loading, response } = useSelector((state) => state.user);
+    const { currentUser } = useSelector((state) => state.user);
     const { subjectsList } = useSelector((state) => state.sclass);
 
-    const [subjectAttendance, setSubjectAttendance] = useState([]);
-
-    const classID = currentUser.sclassName._id
+    const classID = currentUser.sclassName._id;
 
     useEffect(() => {
         dispatch(getUserDetails(currentUser._id, "Student"));
@@ -28,23 +24,11 @@ const StudentHomePage = () => {
 
     const numberOfSubjects = subjectsList && subjectsList.length;
 
-    useEffect(() => {
-        if (userDetails) {
-            setSubjectAttendance(userDetails.attendance || []);
-        }
-    }, [userDetails])
-
-    const overallAttendancePercentage = calculateOverallAttendancePercentage(subjectAttendance);
-    const overallAbsentPercentage = 100 - overallAttendancePercentage;
-
-    const chartData = [
-        { name: 'Present', value: overallAttendancePercentage },
-        { name: 'Absent', value: overallAbsentPercentage }
-    ];
     return (
         <>
             <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
                 <Grid container spacing={3}>
+                    {/* Subjects Section */}
                     <Grid item xs={12} md={3} lg={3}>
                         <StyledPaper>
                             <img src={Subject} alt="Subjects" />
@@ -54,6 +38,8 @@ const StudentHomePage = () => {
                             <Data start={0} end={numberOfSubjects} duration={2.5} />
                         </StyledPaper>
                     </Grid>
+
+                    {/* Assignments Section */}
                     <Grid item xs={12} md={3} lg={3}>
                         <StyledPaper>
                             <img src={Assignment} alt="Assignments" />
@@ -63,34 +49,8 @@ const StudentHomePage = () => {
                             <Data start={0} end={15} duration={4} />
                         </StyledPaper>
                     </Grid>
-                    <Grid item xs={12} md={4} lg={3}>
-                        <ChartContainer>
-                            {
-                                response ?
-                                    <Typography variant="h6">No Attendance Found</Typography>
-                                    :
-                                    <>
-                                        {loading
-                                            ? (
-                                                <Typography variant="h6">Loading...</Typography>
-                                            )
-                                            :
-                                            <>
-                                                {
-                                                    subjectAttendance && Array.isArray(subjectAttendance) && subjectAttendance.length > 0 ? (
-                                                        <>
-                                                            <CustomPieChart data={chartData} />
-                                                        </>
-                                                    )
-                                                        :
-                                                        <Typography variant="h6">No Attendance Found</Typography>
-                                                }
-                                            </>
-                                        }
-                                    </>
-                            }
-                        </ChartContainer>
-                    </Grid>
+
+                    {/* Notices Section */}
                     <Grid item xs={12}>
                         <Paper sx={{ p: 2, display: 'flex', flexDirection: 'column' }}>
                             <SeeNotice />
@@ -101,16 +61,6 @@ const StudentHomePage = () => {
         </>
     )
 }
-
-const ChartContainer = styled.div`
-  padding: 2px;
-  display: flex;
-  flex-direction: column;
-  height: 240px;
-  justify-content: center;
-  align-items: center;
-  text-align: center;
-`;
 
 const StyledPaper = styled(Paper)`
   padding: 16px;
@@ -131,6 +81,4 @@ const Data = styled(CountUp)`
   color: green;
 `;
 
-
-
-export default StudentHomePage
+export default StudentHomePage;

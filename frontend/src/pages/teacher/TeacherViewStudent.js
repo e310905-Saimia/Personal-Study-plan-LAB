@@ -8,7 +8,7 @@ const TeacherViewStudent = () => {
     const navigate = useNavigate();
     const params = useParams();
     const dispatch = useDispatch();
-    const { currentUser, userDetails, loading } = useSelector((state) => state.user);
+    const {  userDetails, loading } = useSelector((state) => state.user);
 
     const studentID = params.id;
 

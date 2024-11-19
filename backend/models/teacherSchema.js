@@ -32,18 +32,7 @@ const teacherSchema = new mongoose.Schema({
         ref: 'sclass',
         required: true,
     },
-    attendance: [{
-        date: {
-            type: Date,
-            required: true
-        },
-        presentCount: {
-            type: String,
-        },
-        absentCount: {
-            type: String,
-        }
-    }]
+    
 }, { timestamps: true });
 
 module.exports = mongoose.model("teacher", teacherSchema)

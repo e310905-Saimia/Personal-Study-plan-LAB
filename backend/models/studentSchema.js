@@ -39,22 +39,7 @@ const studentSchema = new mongoose.Schema({
             }
         }
     ],
-    attendance: [{
-        date: {
-            type: Date,
-            required: true
-        },
-        status: {
-            type: String,
-            enum: ['Present', 'Absent'],
-            required: true
-        },
-        subName: {
-            type: mongoose.Schema.Types.ObjectId,
-            ref: 'subject',
-            required: true
-        }
-    }]
+    
 });
 
 module.exports = mongoose.model("student", studentSchema);

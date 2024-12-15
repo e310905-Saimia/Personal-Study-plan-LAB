@@ -250,24 +250,27 @@
         
         <tbody class="panel" id="data-table">
             <tr>
-                <td style="padding-left: 45px;">
+                <td class="padded-cell">
                     <label class="toggle-switch">
                         <input type="checkbox" onchange="toggleCompulsory(this)">
                         <span class="slider"></span>
                     </label>
                     <span class="toggle-label">Not Compulsory</span>
                 </td>
-                <td><input type="text" class="editable-input" value="Welding" disabled></td>
-                <td><textarea class="editable-textarea" oninput="autoResize(this)" disabled>Detection of welding defects</textarea></td>
-                <td><textarea class="editable-textarea" oninput="autoResize(this)" disabled>Identify common welding defects such as porosity, cracks, etc.</textarea></td>
-                <td><input type="number" class="editable-input" value="2" disabled></td>
-                <td><input type="text" class="editable-input" value="Project 1" disabled></td>
-                <td><input type="text" class="editable-input" value="Eero" disabled></td>
-                <td><input type="date" class="editable-input" value="2024-10-29" disabled></td>
+                <td><input type="text" class="editable-input" value="Welding" disabled placeholder="Enter Topic"></td>
+                <td><textarea class="editable-textarea" oninput="autoResize(this)" disabled placeholder="Describe learning outcome"></textarea></td>
+                <td><textarea class="editable-textarea" oninput="autoResize(this)" disabled placeholder="Additional information"></textarea></td>
+                <input type="text" class="editable-input" disabled title="Enter text here">
+
+                <td><input type="text" class="editable-input" value="Project 1" disabled placeholder="Project name"></td>
+                <td><input type="text" class="editable-input" value="Eero" disabled placeholder="Confirmed by"></td>
+                <textarea class="editable-textarea" disabled placeholder="Enter additional information"></textarea>
+
                 <td>
                     <button class="edit-button" onclick="toggleEdit(this)">Edit</button>
                     <button class="delete-button" onclick="deleteRow(this)">Delete</button>
                 </td>
+            </tr>
             </tr>
         </tbody>
     </table>

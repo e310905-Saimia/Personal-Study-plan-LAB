@@ -50,6 +50,17 @@ const StudentHomePage = () => {
                         </StyledPaper>
                     </Grid>
 
+                    {/* Credits Section */}
+                    <Grid item xs={12} md={3} lg={3}>
+                        <StyledPaper>
+                            <img src={Assignment} alt="Assignments" />
+                            <Title>
+                                Total Assignments
+                            </Title>
+                            <Data start={0} end={15} duration={4} />
+                        </StyledPaper>
+                    </Grid>
+
                     {/* Notices Section */}
                     <Grid item xs={12}>
                         <Paper sx={{ p: 2, display: 'flex', flexDirection: 'column' }}>

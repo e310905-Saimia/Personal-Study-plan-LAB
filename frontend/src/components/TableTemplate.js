@@ -58,7 +58,7 @@ const TableTemplate = ({ buttonHaver: ButtonHaver, columns, rows }) => {
                 count={rows.length}
                 rowsPerPage={rowsPerPage}
                 page={page}
-                onPageChange={(event, newPage) => setPage(newPage)}
+                onPageChange={( newPage) => setPage(newPage)}
                 onRowsPerPageChange={(event) => {
                     setRowsPerPage(parseInt(event.target.value, 5));
                     setPage(0);

@@ -30,7 +30,7 @@ const TeacherViewStudent = () => {
                         variant="contained"
                         onClick={() => navigate(`/Teacher/class/student/marks/${studentID}`)}
                     >
-                        Add Marks
+                        Add Credits
                     </Button>
                 </div>
             )}

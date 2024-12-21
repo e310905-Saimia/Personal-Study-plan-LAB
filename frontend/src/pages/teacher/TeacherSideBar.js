@@ -5,7 +5,6 @@ import { Link, useLocation } from 'react-router-dom';
 import HomeIcon from '@mui/icons-material/Home';
 import ExitToAppIcon from "@mui/icons-material/ExitToApp";
 import AccountCircleOutlinedIcon from "@mui/icons-material/AccountCircleOutlined";
-import AnnouncementOutlinedIcon from '@mui/icons-material/AnnouncementOutlined';
 import ClassOutlinedIcon from '@mui/icons-material/ClassOutlined';
 import { useSelector } from 'react-redux';
 
@@ -29,12 +28,7 @@ const TeacherSideBar = () => {
                     </ListItemIcon>
                     <ListItemText primary={`Class ${sclassName.sclassName}`} />
                 </ListItemButton>
-                <ListItemButton component={Link} to="/Teacher/complain">
-                    <ListItemIcon>
-                        <AnnouncementOutlinedIcon color={location.pathname.startsWith("/Teacher/complain") ? 'primary' : 'inherit'} />
-                    </ListItemIcon>
-                    <ListItemText primary="Complain" />
-                </ListItemButton>
+                
             </React.Fragment>
             <Divider sx={{ my: 1 }} />
             <React.Fragment>

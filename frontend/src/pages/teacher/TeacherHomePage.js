@@ -1,82 +1,157 @@
-import { Container, Grid, Paper } from '@mui/material'
-import SeeNotice from '../../components/SeeNotice';
-import CountUp from 'react-countup';
-import styled from 'styled-components';
-import Students from "../../assets/img1.png";
-import Lessons from "../../assets/subjects.svg";
+import React, { useEffect, useState } from 'react';
+import { Container, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TextField, Switch, Button } from '@mui/material';
 import { getClassStudents, getSubjectDetails } from '../../redux/sclassRelated/sclassHandle';
 import { useDispatch, useSelector } from 'react-redux';
-import { useEffect } from 'react';
 
 const TeacherHomePage = () => {
     const dispatch = useDispatch();
 
     const { currentUser } = useSelector((state) => state.user);
-    const { subjectDetails, sclassStudents } = useSelector((state) => state.sclass);
+    const { subjectDetails } = useSelector((state) => state.sclass);
 
-    const classID = currentUser.teachSclass?._id
-    const subjectID = currentUser.teachSubject?._id
+    const classID = currentUser.teachSclass?._id;
+    const subjectID = currentUser.teachSubject?._id;
+
+    const [rows, setRows] = useState([]);
 
     useEffect(() => {
-        dispatch(getSubjectDetails(subjectID, "Subject"));
-        dispatch(getClassStudents(classID));
+        if (subjectID) dispatch(getSubjectDetails(subjectID, "Subject"));
+        if (classID) dispatch(getClassStudents(classID));
     }, [dispatch, subjectID, classID]);
 
-    const numberOfStudents = sclassStudents && sclassStudents.length;
-    const numberOfSessions = subjectDetails && subjectDetails.sessions
+    useEffect(() => {
+        if (Array.isArray(subjectDetails)) {
+            setRows(subjectDetails);
+        }
+    }, [subjectDetails]);
+
+    const addRow = () => {
+        const newRow = {
+            id: Date.now(),
+            isCompulsory: false,
+            topic: '',
+            learningOutcome: '',
+            additionalInfo: '',
+            credits: '',
+            project: '',
+            confirmedBy: ''
+        };
+        setRows([...rows, newRow]);
+    };
+
+    const deleteRow = (id) => {
+        setRows(rows.filter((row) => row.id !== id));
+    };
+
+    const handleChange = (id, field, value) => {
+        setRows(rows.map((row) => (row.id === id ? { ...row, [field]: value } : row)));
+    };
 
     return (
-        <>
-            <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
-                <Grid container spacing={3}>
-                    <Grid item xs={12} md={3} lg={3}>
-                        <StyledPaper>
-                            <img src={Students} alt="Students" />
-                            <Title>
-                                Class Students
-                            </Title>
-                            <Data start={0} end={numberOfStudents} duration={2.5} />
-                        </StyledPaper>
-                    </Grid>
-                    <Grid item xs={12} md={3} lg={3}>
-                        <StyledPaper>
-                            <img src={Lessons} alt="Lessons" />
-                            <Title>
-                                Total Lessons
-                            </Title>
-                            <Data start={0} end={numberOfSessions} duration={5} />
-                        </StyledPaper>
-                    </Grid>
-                    
-                    
-                    <Grid item xs={12}>
-                        <Paper sx={{ p: 2, display: 'flex', flexDirection: 'column' }}>
-                            <SeeNotice />
-                        </Paper>
-                    </Grid>
-                </Grid>
-            </Container>
-        </>
-    )
-}
+        <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
+            <Paper sx={{ p: 2, borderRadius: 3, boxShadow: 3 }}>
+                <TableContainer>
+                    <Table>
+                        <TableHead sx={{ backgroundColor: '#008000', borderRadius: '12px' }}>
+                            <TableRow>
+                                <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Compulsory or Not</TableCell>
+                                <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Topic</TableCell>
+                                <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Learning Outcome</TableCell>
+                                <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Learning Outcome Information</TableCell>
+                                <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Credits</TableCell>
+                                <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Project</TableCell>
+                                <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Confirmed By</TableCell>
+                                <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Actions</TableCell>
+                            </TableRow>
+                        </TableHead>
+                        <TableBody>
+                            {Array.isArray(rows) && rows.map((row) => (
+                                <TableRow key={row.id} sx={{ '&:nth-of-type(odd)': { backgroundColor: '#f5f5f5' } }}>
+                                    <TableCell>
+                                        <Switch
+                                            checked={row.isCompulsory}
+                                            onChange={(e) => handleChange(row.id, 'isCompulsory', e.target.checked)}
+                                        />
+                                        {row.isCompulsory ? 'Compulsory' : 'Not Compulsory'}
+                                    </TableCell>
+                                    <TableCell>
+                                        <TextField
+                                            value={row.topic}
+                                            onChange={(e) => handleChange(row.id, 'topic', e.target.value)}
+                                            variant="outlined"
+                                            size="small"
+                                            fullWidth
+                                        />
+                                    </TableCell>
+                                    <TableCell>
+                                        <TextField
+                                            value={row.learningOutcome}
+                                            onChange={(e) => handleChange(row.id, 'learningOutcome', e.target.value)}
+                                            variant="outlined"
+                                            size="small"
+                                            fullWidth
+                                        />
+                                    </TableCell>
+                                    <TableCell>
+                                        <TextField
+                                            value={row.additionalInfo}
+                                            onChange={(e) => handleChange(row.id, 'additionalInfo', e.target.value)}
+                                            variant="outlined"
+                                            size="small"
+                                            fullWidth
+                                        />
+                                    </TableCell>
+                                    <TableCell>
+                                        <TextField
+                                            value={row.credits}
+                                            onChange={(e) => handleChange(row.id, 'credits', e.target.value)}
+                                            variant="outlined"
+                                            size="small"
+                                            fullWidth
+                                        />
+                                    </TableCell>
+                                    <TableCell>
+                                        <TextField
+                                            value={row.project}
+                                            onChange={(e) => handleChange(row.id, 'project', e.target.value)}
+                                            variant="outlined"
+                                            size="small"
+                                            fullWidth
+                                        />
+                                    </TableCell>
+                                    <TableCell>
+                                        <TextField
+                                            value={row.confirmedBy}
+                                            onChange={(e) => handleChange(row.id, 'confirmedBy', e.target.value)}
+                                            variant="outlined"
+                                            size="small"
+                                            fullWidth
+                                        />
+                                    </TableCell>
+                                    <TableCell>
+                                        <Button
+                                            variant="contained"
+                                            color="error"
+                                            onClick={() => deleteRow(row.id)}
+                                        >
+                                            Delete
+                                        </Button>
+                                    </TableCell>
+                                </TableRow>
+                            ))}
+                        </TableBody>
+                    </Table>
+                </TableContainer>
+                <Button
+                    variant="contained"
+                    sx={{ mt: 2, backgroundColor: '#00416d', color: '#fff' }}
+                    onClick={addRow}
+                >
+                    Add New Row
+                </Button>
+            </Paper>
+        </Container>
+    );
+};
 
-const StyledPaper = styled(Paper)`
-  padding: 16px;
-  display: flex;
-  flex-direction: column;
-  height: 200px;
-  justify-content: space-between;
-  align-items: center;
-  text-align: center;
-`;
-
-const Title = styled.p`
-  font-size: 1.25rem;
-`;
-
-const Data = styled(CountUp)`
-  font-size: calc(1.3rem + .6vw);
-  color: green;
-`;
-
-export default TeacherHomePage
+export default TeacherHomePage;

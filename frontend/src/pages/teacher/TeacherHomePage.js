@@ -3,6 +3,7 @@ import { Container, Paper, Table, TableBody, TableCell, TableContainer, TableHea
 import { getClassStudents, getSubjectDetails } from '../../redux/sclassRelated/sclassHandle';
 import { useDispatch, useSelector } from 'react-redux';
 
+
 const TeacherHomePage = () => {
     const dispatch = useDispatch();
 
@@ -61,6 +62,7 @@ const TeacherHomePage = () => {
                                 <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Credits</TableCell>
                                 <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Project</TableCell>
                                 <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Confirmed By</TableCell>
+                                <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Date</TableCell>
                                 <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Actions</TableCell>
                             </TableRow>
                         </TableHead>
@@ -123,6 +125,15 @@ const TeacherHomePage = () => {
                                         <TextField
                                             value={row.confirmedBy}
                                             onChange={(e) => handleChange(row.id, 'confirmedBy', e.target.value)}
+                                            variant="outlined"
+                                            size="small"
+                                            fullWidth
+                                        />
+                                    </TableCell>
+                                    <TableCell>
+                                        <TextField
+                                            value={row.project}
+                                            onChange={(e) => handleChange(row.id, 'Date', e.target.value)}
                                             variant="outlined"
                                             size="small"
                                             fullWidth

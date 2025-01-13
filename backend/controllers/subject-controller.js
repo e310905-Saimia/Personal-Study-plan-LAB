@@ -35,9 +35,9 @@ const subjectCreate = async (req, res) => {
 const allSubjects = async (req, res) => {
     try {
         let subjects = await Subject.find({ school: req.params.id })
-            .populate("sclassName", "sclassName")
+            .populate("sclassName", "sclassName");
         if (subjects.length > 0) {
-            res.send(subjects)
+            res.send(subjects);
         } else {
             res.send({ message: "No subjects found" });
         }
@@ -48,9 +48,9 @@ const allSubjects = async (req, res) => {
 
 const classSubjects = async (req, res) => {
     try {
-        let subjects = await Subject.find({ sclassName: req.params.id })
+        let subjects = await Subject.find({ sclassName: req.params.id });
         if (subjects.length > 0) {
-            res.send(subjects)
+            res.send(subjects);
         } else {
             res.send({ message: "No subjects found" });
         }
@@ -76,17 +76,16 @@ const getSubjectDetail = async (req, res) => {
     try {
         let subject = await Subject.findById(req.params.id);
         if (subject) {
-            subject = await subject.populate("sclassName", "sclassName")
-            subject = await subject.populate("teacher", "name")
+            subject = await subject.populate("sclassName", "sclassName");
+            subject = await subject.populate("teacher", "name");
             res.send(subject);
-        }
-        else {
+        } else {
             res.send({ message: "No subject found" });
         }
     } catch (err) {
         res.status(500).json(err);
     }
-}
+};
 
 const deleteSubject = async (req, res) => {
     try {
@@ -102,12 +101,6 @@ const deleteSubject = async (req, res) => {
         await Student.updateMany(
             {},
             { $pull: { examResult: { subName: deletedSubject._id } } }
-        );
-
-        // Remove the objects containing the deleted subject from students' attendance array
-        await Student.updateMany(
-            {},
-            { $pull: { attendance: { subName: deletedSubject._id } } }
         );
 
         res.send(deletedSubject);
@@ -126,10 +119,10 @@ const deleteSubjects = async (req, res) => {
             { $unset: { teachSubject: "" }, $unset: { teachSubject: null } }
         );
 
-        // Set examResult and attendance to null in all students
+        // Remove the examResult objects referencing deleted subjects in students
         await Student.updateMany(
             {},
-            { $set: { examResult: null, attendance: null } }
+            { $set: { examResult: null } }
         );
 
         res.send(deletedSubjects);
@@ -148,10 +141,10 @@ const deleteSubjectsByClass = async (req, res) => {
             { $unset: { teachSubject: "" }, $unset: { teachSubject: null } }
         );
 
-        // Set examResult and attendance to null in all students
+        // Remove the examResult objects referencing deleted subjects in students
         await Student.updateMany(
             {},
-            { $set: { examResult: null, attendance: null } }
+            { $set: { examResult: null } }
         );
 
         res.send(deletedSubjects);
@@ -159,6 +152,5 @@ const deleteSubjectsByClass = async (req, res) => {
         res.status(500).json(error);
     }
 };
-
 
 module.exports = { subjectCreate, freeSubjectList, classSubjects, getSubjectDetail, deleteSubjectsByClass, deleteSubjects, deleteSubject, allSubjects };

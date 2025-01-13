@@ -32,9 +32,9 @@ const teacherLogIn = async (req, res) => {
         if (teacher) {
             const validated = await bcrypt.compare(req.body.password, teacher.password);
             if (validated) {
-                teacher = await teacher.populate("teachSubject", "subName sessions")
-                teacher = await teacher.populate("school", "schoolName")
-                teacher = await teacher.populate("teachSclass", "sclassName")
+                teacher = await teacher.populate("teachSubject", "subName sessions");
+                teacher = await teacher.populate("school", "schoolName");
+                teacher = await teacher.populate("teachSclass", "sclassName");
                 teacher.password = undefined;
                 res.send(teacher);
             } else {
@@ -71,7 +71,7 @@ const getTeacherDetail = async (req, res) => {
         let teacher = await Teacher.findById(req.params.id)
             .populate("teachSubject", "subName sessions")
             .populate("school", "schoolName")
-            .populate("teachSclass", "sclassName")
+            .populate("teachSclass", "sclassName");
         if (teacher) {
             teacher.password = undefined;
             res.send(teacher);
@@ -82,7 +82,7 @@ const getTeacherDetail = async (req, res) => {
     } catch (err) {
         res.status(500).json(err);
     }
-}
+};
 
 const updateTeacherSubject = async (req, res) => {
     const { teacherId, teachSubject } = req.body;
@@ -164,34 +164,6 @@ const deleteTeachersByClass = async (req, res) => {
     }
 };
 
-const teacherAttendance = async (req, res) => {
-    const { status, date } = req.body;
-
-    try {
-        const teacher = await Teacher.findById(req.params.id);
-
-        if (!teacher) {
-            return res.send({ message: 'Teacher not found' });
-        }
-
-        const existingAttendance = teacher.attendance.find(
-            (a) =>
-                a.date.toDateString() === new Date(date).toDateString()
-        );
-
-        if (existingAttendance) {
-            existingAttendance.status = status;
-        } else {
-            teacher.attendance.push({ date, status });
-        }
-
-        const result = await teacher.save();
-        return res.send(result);
-    } catch (error) {
-        res.status(500).json(error)
-    }
-};
-
 module.exports = {
     teacherRegister,
     teacherLogIn,
@@ -200,6 +172,5 @@ module.exports = {
     updateTeacherSubject,
     deleteTeacher,
     deleteTeachers,
-    deleteTeachersByClass,
-    teacherAttendance
+    deleteTeachersByClass
 };

@@ -84,10 +84,30 @@ export const getUserDetails = (id, address) => async (dispatch) => {
 // }
 
 
+//export const deleteUser = (id, address) => async (dispatch) => {
+//    dispatch(getRequest());
+//    dispatch(getFailed("Sorry the delete function has been disabled for now."));
+//}
+
+
 export const deleteUser = (id, address) => async (dispatch) => {
-    dispatch(getRequest());
-    dispatch(getFailed("Sorry the delete function has been disabled for now."));
-}
+    dispatch(getRequest()); // Indicate the delete operation has started.
+
+    try {
+        const result = await axios.delete(`${process.env.REACT_APP_BASE_URL}/${address}/${id}`);
+        if (result.data.message) {
+            // If the backend sends a message, handle it (e.g., success or failure).
+            dispatch(getFailed(result.data.message));
+        } else {
+            // Dispatch success action if deletion is successful.
+            dispatch(getDeleteSuccess());
+        }
+    } catch (error) {
+        // Handle any errors that occur during the delete request.
+        dispatch(getError(error));
+    }
+};
+
 
 export const updateUser = (fields, id, address) => async (dispatch) => {
     dispatch(getRequest());

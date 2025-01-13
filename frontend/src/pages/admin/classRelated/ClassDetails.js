@@ -47,17 +47,25 @@ const ClassDetails = () => {
     const [message, setMessage] = useState("");
 
     const deleteHandler = (deleteID, address) => {
-        console.log(deleteID);
-        console.log(address);
-        setMessage("Sorry the delete function has been disabled for now.")
-        setShowPopup(true)
-        // dispatch(deleteUser(deleteID, address))
-        //     .then(() => {
-        //         dispatch(getClassStudents(classID));
-        //         dispatch(resetSubjects())
-        //         dispatch(getSubjectList(classID, "ClassSubjects"))
-        //     })
-    }
+        if (window.confirm("Are you sure you want to delete this item?")) {
+            dispatch(deleteUser(deleteID, address))
+                .then(() => {
+                    if (address === "Subject" || address === "SubjectsClass") {
+                        dispatch(resetSubjects());
+                        dispatch(getSubjectList(classID, "ClassSubjects"));
+                    }
+                    if (address === "Student" || address === "StudentsClass") {
+                        dispatch(getClassStudents(classID));
+                    }
+                })
+                .catch((error) => {
+                    console.error("Error deleting:", error);
+                    setMessage("Failed to delete. Please try again.");
+                    setShowPopup(true);
+                });
+        }
+    };
+    
 
     const subjectColumns = [
         { id: 'name', label: 'Subject Name', minWidth: 170 },

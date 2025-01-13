@@ -50,9 +50,8 @@ const userSlice = createSlice({
             state.currentUser = null;
             state.status = 'idle';
             state.error = null;
-            state.currentRole = null
+            state.currentRole = null;
         },
-
         doneSuccess: (state, action) => {
             state.userDetails = action.payload;
             state.loading = false;
@@ -62,9 +61,8 @@ const userSlice = createSlice({
         getDeleteSuccess: (state) => {
             state.loading = false;
             state.error = null;
-            state.response = null;
+            state.response = 'Item successfully deleted.';
         },
-
         getRequest: (state) => {
             state.loading = true;
         },

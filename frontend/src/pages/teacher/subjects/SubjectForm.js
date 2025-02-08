@@ -17,7 +17,7 @@ const SubjectForm = () => {
     const { status, currentUser, response, error } = userState;
 
     const sclassName = params.id
-    const adminID = currentUser._id
+    const teacherID = currentUser._id
     const address = "Subject"
 
     const [showPopup, setShowPopup] = useState(false);
@@ -59,7 +59,7 @@ const SubjectForm = () => {
             subCode: subject.subCode,
             sessions: subject.sessions,
         })),
-        adminID,
+        teacherID,
     };
 
     const submitHandler = (event) => {
@@ -70,7 +70,7 @@ const SubjectForm = () => {
 
     useEffect(() => {
         if (status === 'added') {
-            navigate("/Admin/subjects");
+            navigate("/Teacher/subjects");
             dispatch(underControl())
             setLoader(false)
         }

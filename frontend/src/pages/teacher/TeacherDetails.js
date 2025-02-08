@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { getTeacherDetails } from '../../../redux/teacherRelated/teacherHandle';
+import { getTeacherDetails } from '../../redux/teacherRelated/teacherHandle';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { Button, Container, Typography } from '@mui/material';
@@ -23,7 +23,7 @@ const TeacherDetails = () => {
     const isSubjectNamePresent = teacherDetails?.teachSubject?.subName;
 
     const handleAddSubject = () => {
-        navigate(`/Admin/teachers/choosesubject/${teacherDetails?.teachSclass?._id}/${teacherDetails?._id}`);
+        navigate(`/Teacher/teachers/choosesubject/${teacherDetails?.teachSclass?._id}/${teacherDetails?._id}`);
     };
 
     return (

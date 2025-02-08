@@ -1,99 +1,64 @@
 import axios from 'axios';
-import {
-    getRequest,
-    getSuccess,
-    getFailed,
-    getError,
-    getStudentsSuccess,
-    detailsSuccess,
-    getFailedTwo,
-    getSubjectsSuccess,
-    getSubDetailsSuccess,
-    getSubDetailsRequest
-} from './sclassSlice';
+import { getRequest, getSuccess, getFailed } from './sclassSlice';
 
-export const getAllSclasses = (id, address) => async (dispatch) => {
+export const fetchClasses = () => async (dispatch) => {
+    try {
+        const response = await axios.get("/api/classes");
+        dispatch({ type: "FETCH_CLASSES_SUCCESS", payload: response.data });
+    } catch (error) {
+        dispatch({ type: "FETCH_CLASSES_ERROR", payload: error.message });
+    }
+};
+
+
+export const getSubjectList = () => async (dispatch) => {
     dispatch(getRequest());
-
     try {
-        const result = await axios.get(`${process.env.REACT_APP_BASE_URL}/${address}List/${id}`);
-        if (result.data.message) {
-            dispatch(getFailedTwo(result.data.message));
-        } else {
-            dispatch(getSuccess(result.data));
-        }
+        const response = await axios.get(`${process.env.REACT_APP_BASE_URL}/subjects`);
+        dispatch(getSuccess(response.data));  // Make sure this exists in `sclassSlice.js`
     } catch (error) {
-        dispatch(getError(error));
+        dispatch(getFailed(error.response?.data?.message || "Failed to fetch subjects"));
     }
-}
+};
 
-export const getClassStudents = (id) => async (dispatch) => {
-    dispatch(getRequest());
-
+export const getClassDetails = (classID) => async (dispatch) => {
     try {
-        const result = await axios.get(`${process.env.REACT_APP_BASE_URL}/Sclass/Students/${id}`);
-        if (result.data.message) {
-            dispatch(getFailedTwo(result.data.message));
-        } else {
-            dispatch(getStudentsSuccess(result.data));
-        }
+        const response = await axios.get(`${process.env.REACT_APP_BASE_URL}/classes/${classID}`);
+        return response.data;
     } catch (error) {
-        dispatch(getError(error));
+        console.error("Error fetching class details:", error.response?.data?.message || "Failed to fetch class details");
+        throw error;
     }
-}
+};
 
-export const getClassDetails = (id, address) => async (dispatch) => {
-    dispatch(getRequest());
-
+export const getClassStudents = (classID) => async (dispatch) => {
     try {
-        const result = await axios.get(`${process.env.REACT_APP_BASE_URL}/${address}/${id}`);
-        if (result.data) {
-            dispatch(detailsSuccess(result.data));
-        }
+        const response = await axios.get(`${process.env.REACT_APP_BASE_URL}/classes/${classID}/students`);
+        return response.data;
     } catch (error) {
-        dispatch(getError(error));
+        console.error("Error fetching class students:", error.response?.data?.message || "Failed to fetch class students");
+        throw error;
     }
-}
+};
 
-export const getSubjectList = (id, address) => async (dispatch) => {
-    dispatch(getRequest());
-
+export const getAllSclasses = (teacherID) => async (dispatch) => {
     try {
-        const result = await axios.get(`${process.env.REACT_APP_BASE_URL}/${address}/${id}`);
-        if (result.data.message) {
-            dispatch(getFailed(result.data.message));
-        } else {
-            dispatch(getSubjectsSuccess(result.data));
-        }
+        const response = await axios.get(`${process.env.REACT_APP_BASE_URL}/sclasses`, {
+            params: { teacherID }
+        });
+        dispatch(fetchClasses(response.data)); // Dispatch existing action
     } catch (error) {
-        dispatch(getError(error));
+        console.error("Error fetching classes:", error.response?.data?.message || "Failed to fetch classes");
+        throw error;
     }
-}
+};
 
-export const getTeacherFreeClassSubjects = (id) => async (dispatch) => {
-    dispatch(getRequest());
-
+export const getSubjectDetails = (subjectID) => async () => {
     try {
-        const result = await axios.get(`${process.env.REACT_APP_BASE_URL}/FreeSubjectList/${id}`);
-        if (result.data.message) {
-            dispatch(getFailed(result.data.message));
-        } else {
-            dispatch(getSubjectsSuccess(result.data));
-        }
+        const response = await axios.get(`${process.env.REACT_APP_BASE_URL}/subjects/${subjectID}`);
+        return response.data;
     } catch (error) {
-        dispatch(getError(error));
+        console.error("Error fetching subject details:", error.response?.data?.message || "Failed to fetch subject details");
+        throw error;
     }
-}
-
-export const getSubjectDetails = (id, address) => async (dispatch) => {
-    dispatch(getSubDetailsRequest());
-
-    try {
-        const result = await axios.get(`${process.env.REACT_APP_BASE_URL}/${address}/${id}`);
-        if (result.data) {
-            dispatch(getSubDetailsSuccess(result.data));
-        }
-    } catch (error) {
-        dispatch(getError(error));
-    }
-}
+};

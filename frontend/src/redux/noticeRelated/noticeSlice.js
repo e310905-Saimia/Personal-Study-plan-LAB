@@ -1,42 +1,31 @@
-import { createSlice } from "@reduxjs/toolkit";
+import { createSlice } from '@reduxjs/toolkit';
 
 const initialState = {
-    noticesList: [],
-    loading: false,
-    error: null,
-    response: null,
+    notices: [],
+    status: null,
+    error: null
 };
 
 const noticeSlice = createSlice({
-    name: 'notice',
+    name: "notice",
     initialState,
     reducers: {
         getRequest: (state) => {
-            state.loading = true;
+            state.status = "loading";
         },
         getSuccess: (state, action) => {
-            state.noticesList = action.payload;
-            state.loading = false;
-            state.error = null;
-            state.response = null;
+            state.status = "success";
+            state.notices = action.payload;
         },
         getFailed: (state, action) => {
-            state.response = action.payload;
-            state.loading = false;
-            state.error = null;
+            state.status = "failed";
+            state.error = action.payload;
         },
         getError: (state, action) => {
-            state.loading = false;
             state.error = action.payload;
-        }
-    },
+        },
+    }
 });
 
-export const {
-    getRequest,
-    getSuccess,
-    getFailed,
-    getError
-} = noticeSlice.actions;
-
-export const noticeReducer = noticeSlice.reducer;
+export const { getRequest, getSuccess, getFailed, getError } = noticeSlice.actions;
+export default noticeSlice.reducer;

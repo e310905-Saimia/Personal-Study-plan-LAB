@@ -3,7 +3,7 @@ import { IconButton, Box, Menu, MenuItem, ListItemIcon, Tooltip } from '@mui/mat
 import DeleteIcon from "@mui/icons-material/Delete";
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
-import { deleteUser } from '../../../redux/userRelated/userHandle';
+// import { deleteUser } from '../../../redux/userRelated/userHandle';
 import { getAllSclasses } from '../../../redux/sclassRelated/sclassHandle';
 import { BlueButton, GreenButton } from '../../../components/buttonStyles';
 import TableTemplate from '../../../components/TableTemplate';
@@ -23,11 +23,11 @@ const ShowClasses = () => {
   const { sclassesList, loading, error, getresponse } = useSelector((state) => state.sclass);
   const { currentUser } = useSelector(state => state.user)
 
-  const adminID = currentUser._id
+  const teacherID = currentUser._id
 
   useEffect(() => {
-    dispatch(getAllSclasses(adminID, "Sclass"));
-  }, [adminID, dispatch]);
+    dispatch(getAllSclasses(teacherID, "Sclass"));
+  }, [teacherID, dispatch]);
 
   if (error) {
     console.log(error)
@@ -43,7 +43,7 @@ const ShowClasses = () => {
     setShowPopup(true)
     // dispatch(deleteUser(deleteID, address))
     //   .then(() => {
-    //     dispatch(getAllSclasses(adminID, "Sclass"));
+    //     dispatch(getAllSclasses(teacherID, "Sclass"));
     //   })
   }
 
@@ -60,8 +60,8 @@ const ShowClasses = () => {
 
   const SclassButtonHaver = ({ row }) => {
     const actions = [
-      { icon: <PostAddIcon />, name: 'Add Subjects', action: () => navigate("/Admin/addsubject/" + row.id) },
-      { icon: <PersonAddAlt1Icon />, name: 'Add Student', action: () => navigate("/Admin/class/addstudents/" + row.id) },
+      { icon: <PostAddIcon />, name: 'Add Subjects', action: () => navigate("/Teacher/addsubject/" + row.id) },
+      { icon: <PersonAddAlt1Icon />, name: 'Add Student', action: () => navigate("/Teacher/class/addstudents/" + row.id) },
     ];
     return (
       <ButtonContainer>
@@ -69,7 +69,7 @@ const ShowClasses = () => {
           <DeleteIcon color="error" />
         </IconButton>
         <BlueButton variant="contained"
-          onClick={() => navigate("/Admin/classes/class/" + row.id)}>
+          onClick={() => navigate("/Teacher/classes/class/" + row.id)}>
           View
         </BlueButton>
         <ActionMenu actions={actions} />
@@ -134,11 +134,11 @@ const ShowClasses = () => {
   const actions = [
     {
       icon: <AddCardIcon color="primary" />, name: 'Add New Class',
-      action: () => navigate("/Admin/addclass")
+      action: () => navigate("/Teacher/addclass")
     },
     {
       icon: <DeleteIcon color="error" />, name: 'Delete All Classes',
-      action: () => deleteHandler(adminID, "Sclasses")
+      action: () => deleteHandler(teacherID, "Sclasses")
     },
   ];
 
@@ -150,7 +150,7 @@ const ShowClasses = () => {
         <>
           {getresponse ?
             <Box sx={{ display: 'flex', justifyContent: 'flex-end', marginTop: '16px' }}>
-              <GreenButton variant="contained" onClick={() => navigate("/Admin/addclass")}>
+              <GreenButton variant="contained" onClick={() => navigate("/Teacher/addclass")}>
                 Add Class
               </GreenButton>
             </Box>

@@ -28,7 +28,7 @@ const ViewStudent = () => {
                     <Typography>School: {userDetails?.school?.schoolName}</Typography>
                     <Button
                         variant="contained"
-                        onClick={() => navigate(`/Admin/students/student/marks/${studentID}`)}
+                        onClick={() => navigate(`/Teacher/students/student/marks/${studentID}`)}
                     >
                         Add Marks
                     </Button>

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   CssBaseline,
   Box,
@@ -10,93 +10,113 @@ import {
 } from "@mui/material";
 import MenuIcon from "@mui/icons-material/Menu";
 import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
-import TeacherSideBar from "./TeacherSideBar";
-import { Navigate, Route, Routes } from "react-router-dom";
-import Logout from "../Logout";
-import AccountMenu from "../../components/AccountMenu";
+import { Navigate, Route, Routes, useNavigate } from "react-router-dom";
+import { useSelector } from "react-redux";
 import { AppBar, Drawer } from "../../components/styles";
-
-import TeacherClassDetails from "./TeacherClassDetails";
-
-import TeacherHomePage from "./TeacherHomePage";
+import Logout from "../Logout";
+import SideBar from "./SideBar";
 import TeacherProfile from "./TeacherProfile";
-import TeacherViewStudent from "./TeacherViewStudent";
-import StudentExamMarks from "../admin/studentRelated/StudentExamMarks";
+
+import AddStudent from "./students/AddStudent";
+import ShowStudents from "./students/ShowStudents";
+import ViewStudent from "./students/ViewStudent";
+import AddNotice from "./notices/AddNotice";
+import ShowNotices from "./notices/ShowNotices";
+import ShowSubjects from "./subjects/ShowSubjects";
+import SubjectForm from "./subjects/SubjectForm";
+import ChooseClass from "./ChooseClass";
+import AddClass from "./classes/AddClass";
+import ClassDetails from "./classes/ClassDetails";
+import ShowClasses from "./classes/ShowClasses";
+import AccountMenu from "../../components/AccountMenu";
 
 const TeacherDashboard = () => {
-  const [open, setOpen] = useState(true);
+  const [open, setOpen] = useState(false);
+  const { currentRole } = useSelector((state) => state.user);
+  const navigate = useNavigate();
+
+  // Check for authorization
+  useEffect(() => {
+    if (currentRole !== "Teacher") {
+      navigate("/Teacherlogin"); // Redirect to login if not authorized
+    }
+  }, [currentRole, navigate]);
+
   const toggleDrawer = () => {
     setOpen(!open);
   };
 
   return (
-    <>
-      <Box sx={{ display: "flex" }}>
-        <CssBaseline />
-        <AppBar open={open} position="absolute">
-          <Toolbar sx={{ pr: "24px" }}>
-            <IconButton
-              edge="start"
-              color="inherit"
-              aria-label="open drawer"
-              onClick={toggleDrawer}
-              sx={{
-                marginRight: "36px",
-                ...(open && { display: "none" }),
-              }}
-            >
-              <MenuIcon />
-            </IconButton>
-            <Typography
-              component="h1"
-              variant="h6"
-              color="inherit"
-              noWrap
-              sx={{ flexGrow: 1 }}
-            >
-              Teacher Dashboard
-            </Typography>
-            <AccountMenu />
-          </Toolbar>
-        </AppBar>
-        <Drawer
-          variant="permanent"
-          open={open}
-          sx={open ? styles.drawerStyled : styles.hideDrawer}
-        >
-          <Toolbar sx={styles.toolBarStyled}>
-            <IconButton onClick={toggleDrawer}>
-              <ChevronLeftIcon />
-            </IconButton>
-          </Toolbar>
-          <Divider />
-          <List component="nav">
-            <TeacherSideBar />
-          </List>
-        </Drawer>
-        <Box component="main" sx={styles.boxStyled}>
-          <Toolbar />
-          <Routes>
-            <Route path="/" element={<TeacherHomePage />} />
-            <Route path="*" element={<Navigate to="/" />} />
-            <Route path="/Teacher/dashboard" element={<TeacherHomePage />} />
-            <Route path="/Teacher/profile" element={<TeacherProfile />} />
-            <Route path="/Teacher/class" element={<TeacherClassDetails />} />
-            <Route
-              path="/Teacher/class/student/:id"
-              element={<TeacherViewStudent />}
-            />
+    <Box sx={{ display: "flex" }}>
+      <CssBaseline />
+      <AppBar open={open} position="absolute">
+        <Toolbar sx={{ pr: "24px" }}>
+          <IconButton
+            edge="start"
+            color="inherit"
+            aria-label="open drawer"
+            onClick={toggleDrawer}
+            sx={{
+              marginRight: "36px",
+              ...(open && { display: "none" }),
+            }}
+          >
+            <MenuIcon />
+          </IconButton>
+          <Typography
+            component="h1"
+            variant="h6"
+            color="inherit"
+            noWrap
+            sx={{ flexGrow: 1 }}
+          >
+            Teacher Dashboard 
+          </Typography>
+          <AccountMenu />
+        </Toolbar>
+      </AppBar>
+      <Drawer variant="permanent" open={open}>
+        <Toolbar>
+          <IconButton onClick={toggleDrawer}>
+            <ChevronLeftIcon />
+          </IconButton>
+        </Toolbar>
+        <Divider />
+        <List component="nav">
+          <SideBar />
+        </List>
+      </Drawer>
+      <Box component="main" sx={styles.boxStyled}>
+        <Toolbar />
+        <Routes>
+          <Route path="/" element={<TeacherProfile />} />
+          <Route path="/profile" element={<TeacherProfile />} />
 
-            <Route
-              path="/Teacher/class/student/marks/:studentID/:subjectID"
-              element={<StudentExamMarks situation="Subject" />}
-            />
+          {/* Student Management */}
+          <Route path="/addstudents" element={<AddStudent situation="Student" />} />
+          <Route path="/students" element={<ShowStudents />} />
+          <Route path="/students/student/:id" element={<ViewStudent />} />
 
-            <Route path="/logout" element={<Logout />} />
-          </Routes>
-        </Box>
+          {/* Notices */}
+          <Route path="/addnotice" element={<AddNotice />} />
+          <Route path="/notices" element={<ShowNotices />} />
+
+          {/* Subjects */}
+          <Route path="/subjects" element={<ShowSubjects />} />
+          <Route path="/subjects/chooseclass" element={<ChooseClass situation="Subject" />} />
+          <Route path="/addsubject/:id" element={<SubjectForm />} />
+
+          {/* Classes */}
+          <Route path="/addclass" element={<AddClass />} />
+          <Route path="/classes" element={<ShowClasses />} />
+          <Route path="/classes/class/:id" element={<ClassDetails />} />
+
+          {/* Logout */}
+          <Route path="/logout" element={<Logout />} />
+          <Route path="*" element={<Navigate to="/" />} />
+        </Routes>
       </Box>
-    </>
+    </Box>
   );
 };
 
@@ -122,7 +142,7 @@ const styles = {
     display: "flex",
   },
   hideDrawer: {
-    display: "flex",
+    display: "none",
     "@media (max-width: 600px)": {
       display: "none",
     },

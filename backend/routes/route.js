@@ -1,91 +1,46 @@
-const router = require('express').Router();
-const { adminRegister, adminLogIn, getAdminDetail } = require('../controllers/admin-controller.js');
+const express = require('express');
+const router = express.Router();
 
-const { sclassCreate, sclassList, deleteSclass, deleteSclasses, getSclassDetail, getSclassStudents } = require('../controllers/class-controller.js');
-const { noticeCreate, noticeList, deleteNotices, deleteNotice, updateNotice } = require('../controllers/notice-controller.js');
-const {
-    studentRegister,
-    studentLogIn,
-    getStudents,
-    getStudentDetail,
-    deleteStudents,
-    deleteStudent,
-    updateStudent,
-    deleteStudentsByClass,
-    updateExamResult,
-} = require('../controllers/student_controller.js');
-const {
-    subjectCreate,
-    classSubjects,
-    deleteSubjectsByClass,
-    getSubjectDetail,
-    deleteSubject,
-    freeSubjectList,
-    allSubjects,
-    deleteSubjects
-} = require('../controllers/subject-controller.js');
-const {
-    teacherRegister,
-    teacherLogIn,
-    getTeachers,
-    getTeacherDetail,
-    deleteTeachers,
-    deleteTeachersByClass,
-    deleteTeacher,
-    updateTeacherSubject
-} = require('../controllers/teacher-controller.js');
+// Import Controllers
+const studentController = require('../controllers/student_controller');
+const subjectController = require('../controllers/subject-controller');
+const classController = require('../controllers/class-controller');
+const noticeController = require('../controllers/notice-controller');
 
-// Admin
-router.post('/AdminReg', adminRegister);
-router.post('/AdminLogin', adminLogIn);
-router.get("/Admin/:id", getAdminDetail);
-// router.delete("/Admin/:id", deleteAdmin);
-// router.put("/Admin/:id", updateAdmin);
+// ✅ STUDENT ROUTES
+router.post('/StudentRegister', studentController.studentRegister);
+router.post('/StudentLogin', studentController.studentLogIn);
+router.get('/Students/:id', studentController.getStudents);
+router.get('/Student/:id', studentController.getStudentDetail);
+router.delete('/Students/:id', studentController.deleteStudents);
+router.delete('/StudentsClass/:id', studentController.deleteStudentsByClass);
+router.delete('/Student/:id', studentController.deleteStudent);
+router.put('/Student/:id', studentController.updateStudent);
+router.put('/UpdateExamResult/:id', studentController.updateExamResult);
 
-// Student
-router.post('/StudentReg', studentRegister);
-router.post('/StudentLogin', studentLogIn);
-router.get("/Students/:id", getStudents);
-router.get("/Student/:id", getStudentDetail);
-router.delete("/Students/:id", deleteStudents);
-router.delete("/StudentsClass/:id", deleteStudentsByClass);
-router.delete("/Student/:id", deleteStudent);
-router.put("/Student/:id", updateStudent);
-router.put('/UpdateExamResult/:id', updateExamResult);
+// ✅ SUBJECT ROUTES
+router.post('/SubjectCreate', subjectController.subjectCreate);
+router.get('/FreeSubjectList/:id', subjectController.freeSubjectList);
+router.get('/ClassSubjects/:id', subjectController.classSubjects);
+router.get('/Subject/:id', subjectController.getSubjectDetail);
+router.delete('/SubjectsClass/:id', subjectController.deleteSubjectsByClass);
+router.delete('/Subjects/:id', subjectController.deleteSubjects);
+router.delete('/Subject/:id', subjectController.deleteSubject);
+router.get('/AllSubjects', subjectController.allSubjects);
 
-// Teacher
-router.post('/TeacherReg', teacherRegister);
-router.post('/TeacherLogin', teacherLogIn);
-router.get("/Teachers/:id", getTeachers);
-router.get("/Teacher/:id", getTeacherDetail);
-router.delete("/Teachers/:id", deleteTeachers);
-router.delete("/TeachersClass/:id", deleteTeachersByClass);
-router.delete("/Teacher/:id", deleteTeacher);
-router.put("/TeacherSubject", updateTeacherSubject);
+// ✅ CLASS ROUTES
+router.post('/SclassCreate', classController.sclassCreate);
+router.get('/SclassList/:id', classController.sclassList);
+router.get('/Sclass/:id', classController.getSclassDetail);
+router.get('/SclassStudents/:id', classController.getSclassStudents);
+router.delete('/Sclasses/:id', classController.deleteSclasses);
+router.delete('/Sclass/:id', classController.deleteSclass);
 
-// Notice
-router.post('/NoticeCreate', noticeCreate);
-router.get('/NoticeList/:id', noticeList);
-router.delete("/Notices/:id", deleteNotices);
-router.delete("/Notice/:id", deleteNotice);
-router.put("/Notice/:id", updateNotice);
-
-// Sclass
-router.post('/SclassCreate', sclassCreate);
-router.get('/SclassList/:id', sclassList);
-router.get("/Sclass/:id", getSclassDetail);
-router.get("/Sclass/Students/:id", getSclassStudents);
-router.delete("/Sclasses/:id", deleteSclasses);
-router.delete("/Sclass/:id", deleteSclass);
-
-// Subject
-router.post('/SubjectCreate', subjectCreate);
-router.get('/AllSubjects/:id', allSubjects);
-router.get('/ClassSubjects/:id', classSubjects);
-router.get('/FreeSubjectList/:id', freeSubjectList);
-router.get("/Subject/:id", getSubjectDetail);
-router.delete("/Subject/:id", deleteSubject);
-router.delete("/Subjects/:id", deleteSubjects);
-router.delete("/SubjectsClass/:id", deleteSubjectsByClass);
+// ✅ NOTICE ROUTES
+router.post('/NoticeCreate', noticeController.noticeCreate);
+router.get('/NoticeList/:id', noticeController.noticeList);
+router.delete('/Notices/:id', noticeController.deleteNotices);
+router.delete('/Notice/:id', noticeController.deleteNotice);
+router.put('/Notice/:id', noticeController.updateNotice);
 
 module.exports = router;

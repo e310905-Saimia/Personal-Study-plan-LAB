@@ -22,7 +22,7 @@ const AddStudent = ({ situation }) => {
     const [className, setClassName] = useState('')
     const [sclassName, setSclassName] = useState('')
 
-    const adminID = currentUser._id
+    const teacherID = currentUser._id
     const role = "Student"
     const attendance = []
 
@@ -37,8 +37,8 @@ const AddStudent = ({ situation }) => {
     const [loader, setLoader] = useState(false)
 
     useEffect(() => {
-        dispatch(getAllSclasses(adminID, "Sclass"));
-    }, [adminID, dispatch]);
+        dispatch(getAllSclasses(teacherID, "Sclass"));
+    }, [teacherID, dispatch]);
 
     const changeHandler = (event) => {
         if (event.target.value === 'Select Class') {
@@ -53,7 +53,7 @@ const AddStudent = ({ situation }) => {
         }
     }
 
-    const fields = { name, rollNum, password, sclassName, adminID, role, attendance }
+    const fields = { name, rollNum, password, sclassName, teacherID, role, attendance }
 
     const submitHandler = (event) => {
         event.preventDefault()

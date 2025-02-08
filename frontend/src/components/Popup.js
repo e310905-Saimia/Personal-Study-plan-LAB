@@ -1,12 +1,12 @@
 import * as React from 'react';
-import { useDispatch } from 'react-redux';
-import { underControl } from '../redux/userRelated/userSlice';
-import { underStudentControl } from '../redux/studentRelated/studentSlice';
+// import { useDispatch } from 'react-redux';
+// import { underControl } from '../redux/userRelated/userSlice';
+// import { underStudentControl } from '../redux/studentRelated/studentSlice';
 import MuiAlert from '@mui/material/Alert';
 import { Snackbar } from '@mui/material';
 
 const Popup = ({ message, setShowPopup, showPopup }) => {
-    const dispatch = useDispatch();
+    // const dispatch = useDispatch();
 
     const vertical = "top"
     const horizontal = "right"
@@ -16,8 +16,8 @@ const Popup = ({ message, setShowPopup, showPopup }) => {
             return;
         }
         setShowPopup(false);
-        dispatch(underControl())
-        dispatch(underStudentControl())
+        // dispatch(underControl())
+        // dispatch(underStudentControl())
     };
 
     return (

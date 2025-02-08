@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate, useParams } from 'react-router-dom'
-import { getClassDetails, getClassStudents, getSubjectList } from "../../../redux/sclassRelated/sclassHandle";
+import { getClassDetails, getClassStudents } from "../../../redux/sclassRelated/sclassHandle";
 import { deleteUser } from '../../../redux/userRelated/userHandle';
 import {
     Box, Container, Typography, Tab, IconButton
@@ -29,7 +29,6 @@ const ClassDetails = () => {
 
     useEffect(() => {
         dispatch(getClassDetails(classID, "Sclass"));
-        dispatch(getSubjectList(classID, "ClassSubjects"))
         dispatch(getClassStudents(classID));
     }, [dispatch, classID])
 
@@ -52,7 +51,6 @@ const ClassDetails = () => {
                 .then(() => {
                     if (address === "Subject" || address === "SubjectsClass") {
                         dispatch(resetSubjects());
-                        dispatch(getSubjectList(classID, "ClassSubjects"));
                     }
                     if (address === "Student" || address === "StudentsClass") {
                         dispatch(getClassStudents(classID));
@@ -89,7 +87,7 @@ const ClassDetails = () => {
                 <BlueButton
                     variant="contained"
                     onClick={() => {
-                        navigate(`/Admin/class/subject/${classID}/${row.id}`)
+                        navigate(`/Teacher/class/subject/${classID}/${row.id}`)
                     }}
                 >
                     View
@@ -101,7 +99,7 @@ const ClassDetails = () => {
     const subjectActions = [
         {
             icon: <PostAddIcon color="primary" />, name: 'Add New Subject',
-            action: () => navigate("/Admin/addsubject/" + classID)
+            action: () => navigate("/Teacher/addsubject/" + classID)
         },
         {
             icon: <DeleteIcon color="error" />, name: 'Delete All Subjects',
@@ -116,7 +114,7 @@ const ClassDetails = () => {
                     <Box sx={{ display: 'flex', justifyContent: 'flex-end', marginTop: '16px' }}>
                         <GreenButton
                             variant="contained"
-                            onClick={() => navigate("/Admin/addsubject/" + classID)}
+                            onClick={() => navigate("/Teacher/addsubject/" + classID)}
                         >
                             Add Subjects
                         </GreenButton>
@@ -156,14 +154,14 @@ const ClassDetails = () => {
                 </IconButton>
                 <BlueButton
                     variant="contained"
-                    onClick={() => navigate("/Admin/students/student/" + row.id)}
+                    onClick={() => navigate("/Teacher/students/student/" + row.id)}
                 >
                     View
                 </BlueButton>
                 <PurpleButton
                     variant="contained"
                     onClick={() =>
-                        navigate("/Admin/students/student/attendance/" + row.id)
+                        navigate("/Teacher/students/student/attendance/" + row.id)
                     }
                 >
                     Attendance
@@ -175,7 +173,7 @@ const ClassDetails = () => {
     const studentActions = [
         {
             icon: <PersonAddAlt1Icon color="primary" />, name: 'Add New Student',
-            action: () => navigate("/Admin/class/addstudents/" + classID)
+            action: () => navigate("/Teacher/class/addstudents/" + classID)
         },
         {
             icon: <PersonRemoveIcon color="error" />, name: 'Delete All Students',
@@ -191,7 +189,7 @@ const ClassDetails = () => {
                         <Box sx={{ display: 'flex', justifyContent: 'flex-end', marginTop: '16px' }}>
                             <GreenButton
                                 variant="contained"
-                                onClick={() => navigate("/Admin/class/addstudents/" + classID)}
+                                onClick={() => navigate("/Teacher/class/addstudents/" + classID)}
                             >
                                 Add Students
                             </GreenButton>
@@ -240,7 +238,7 @@ const ClassDetails = () => {
                 {getresponse &&
                     <GreenButton
                         variant="contained"
-                        onClick={() => navigate("/Admin/class/addstudents/" + classID)}
+                        onClick={() => navigate("/Teacher/class/addstudents/" + classID)}
                     >
                         Add Students
                     </GreenButton>
@@ -248,7 +246,7 @@ const ClassDetails = () => {
                 {response &&
                     <GreenButton
                         variant="contained"
-                        onClick={() => navigate("/Admin/addsubject/" + classID)}
+                        onClick={() => navigate("/Teacher/addsubject/" + classID)}
                     >
                         Add Subjects
                     </GreenButton>

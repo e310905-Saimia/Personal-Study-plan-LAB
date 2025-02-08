@@ -20,7 +20,7 @@ const subjectSchema = new mongoose.Schema({
     },
     school: {
         type: mongoose.Schema.Types.ObjectId,
-        ref: 'admin'
+        ref: 'teacher'
     },
     teacher: {
         type: mongoose.Schema.Types.ObjectId,

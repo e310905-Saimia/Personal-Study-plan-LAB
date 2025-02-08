@@ -1,56 +1,46 @@
-import { createSlice } from "@reduxjs/toolkit";
+import { createSlice } from '@reduxjs/toolkit';
 
 const initialState = {
-    teachersList: [],
-    teacherDetails: [],
-    loading: false,
-    error: null,
-    response: null,
+    teachers: [],
+    status: null,
+    error: null
 };
 
 const teacherSlice = createSlice({
-    name: 'teacher',
+    name: "teacher",
     initialState,
     reducers: {
-        getRequest: (state) => {
-            state.loading = true;
+        postDone: (state) => {
+            state.status = "done";
         },
-        doneSuccess: (state, action) => {
-            state.teacherDetails = action.payload;
-            state.loading = false;
-            state.error = null;
-            state.response = null;
+        
+        getTeachersRequest: (state) => {
+            state.status = "loading";
         },
-        getSuccess: (state, action) => {
-            state.teachersList = action.payload;
-            state.loading = false;
-            state.error = null;
-            state.response = null;
+        getTeachersSuccess: (state, action) => {
+            state.status = "success";
+            state.teachers = action.payload;
         },
-        getFailed: (state, action) => {
-            state.response = action.payload;
-            state.loading = false;
-            state.error = null;
-        },
-        getError: (state, action) => {
-            state.loading = false;
+        getTeachersFailure: (state, action) => {
+            state.status = "failed";
             state.error = action.payload;
         },
-        postDone: (state) => {
-            state.loading = false;
-            state.error = null;
-            state.response = null;
+        addTeacherSuccess: (state, action) => {
+            state.teachers.push(action.payload);
+        },
+        deleteTeacherSuccess: (state, action) => {
+            state.teachers = state.teachers.filter(teacher => teacher.id !== action.payload);
         }
-    },
+    }
 });
 
 export const {
-    getRequest,
-    getSuccess,
-    getFailed,
-    getError,
-    doneSuccess,
-    postDone
+    getTeachersRequest,
+    getTeachersSuccess,
+    getTeachersFailure,
+    addTeacherSuccess,
+    deleteTeacherSuccess,
+    postDone,
 } = teacherSlice.actions;
 
-export const teacherReducer = teacherSlice.reducer;
+export default teacherSlice.reducer;

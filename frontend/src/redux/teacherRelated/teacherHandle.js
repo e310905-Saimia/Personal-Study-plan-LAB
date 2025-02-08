@@ -1,27 +1,35 @@
 import axios from 'axios';
 import {
     getRequest,
-    getSuccess,
-    getFailed,
     getError,
     postDone,
     doneSuccess
 } from './teacherSlice';
 
-export const getAllTeachers = (id) => async (dispatch) => {
-    dispatch(getRequest());
+// export const getAllTeachers = (id) => async (dispatch) => {
+//     dispatch(getRequest());
 
+//     try {
+//         const result = await axios.get(`${process.env.REACT_APP_BASE_URL}/Teachers/${id}`);
+//         if (result.data.message) {
+//             dispatch(getFailed(result.data.message));
+//         } else {
+//             dispatch(getSuccess(result.data));
+//         }
+//     } catch (error) {
+//         dispatch(getError(error));
+//     }
+// }
+
+export const getAllTeachers = () => async (dispatch) => {
     try {
-        const result = await axios.get(`${process.env.REACT_APP_BASE_URL}/Teachers/${id}`);
-        if (result.data.message) {
-            dispatch(getFailed(result.data.message));
-        } else {
-            dispatch(getSuccess(result.data));
-        }
+        const response = await axios.get("/api/teachers");
+        dispatch({ type: "FETCH_TEACHERS_SUCCESS", payload: response.data });
     } catch (error) {
-        dispatch(getError(error));
+        dispatch({ type: "FETCH_TEACHERS_ERROR", payload: error.message });
     }
-}
+};
+
 
 export const getTeacherDetails = (id) => async (dispatch) => {
     dispatch(getRequest());

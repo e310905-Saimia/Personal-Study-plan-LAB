@@ -1,146 +1,81 @@
-import axios from 'axios';
+import axios from "axios";
 import {
-    authRequest,
-    stuffAdded,
-    authSuccess,
-    authFailed,
-    authError,
-    authLogout,
-    doneSuccess,
-    getDeleteSuccess,
-    getRequest,
-    getFailed,
-    getError,
-} from './userSlice';
+  loginRequest,
+  loginSuccess,
+  loginFailure,
+  logout,
+  registerSuccess,
+  registerFailure,
+  setUserDetails,
+} from "./userSlice";
+
+//  Define the base URL for the API
+const BASE_URL = "http://localhost:5000/api";
+
+
 
 export const loginUser = (fields, role) => async (dispatch) => {
-    dispatch(authRequest());
-
-    try {
-        const result = await axios.post(`${process.env.REACT_APP_BASE_URL}/${role}Login`, fields, {
-            headers: { 'Content-Type': 'application/json' },
-        });
-        if (result.data.role) {
-            dispatch(authSuccess(result.data));
-        } else {
-            dispatch(authFailed(result.data.message));
-        }
-    } catch (error) {
-        dispatch(authError(error));
-    }
+  dispatch(loginRequest());
+  console.log("Dispatched loginRequest");
+  try {
+    const endpoint = role === "Teacher" ? "/teachers/TeacherLogin" : "/student-login";
+    const result = await axios.post(`${BASE_URL}${endpoint}`, fields, {
+      headers: { "Content-Type": "application/json" },
+    });
+    console.log("Login success:", result.data);
+    dispatch(loginSuccess(result.data));
+  } catch (error) {
+    console.error("Login failed:", error.response?.data?.message || "Unknown error");
+    dispatch(loginFailure(error.response?.data?.message || "Login failed"));
+  }
 };
-
-export const registerUser = (fields, role) => async (dispatch) => {
-    dispatch(authRequest());
-
-    try {
-        const result = await axios.post(`${process.env.REACT_APP_BASE_URL}/${role}Reg`, fields, {
-            headers: { 'Content-Type': 'application/json' },
-        });
-        if (result.data.schoolName) {
-            dispatch(authSuccess(result.data));
-        }
-        else if (result.data.school) {
-            dispatch(stuffAdded());
-        }
-        else {
-            dispatch(authFailed(result.data.message));
-        }
-    } catch (error) {
-        dispatch(authError(error));
-    }
+export const registerUser = (fields) => async (dispatch) => {
+  try {
+    const result = await axios.post(`${BASE_URL}/teachers/register`, fields, {
+      headers: { "Content-Type": "application/json" },
+    });
+    dispatch(registerSuccess(result.data));
+  } catch (error) {
+    dispatch(registerFailure(error.response?.data?.message || "Registration failed"));
+  }
 };
-
+// Logout User
 export const logoutUser = () => (dispatch) => {
-    dispatch(authLogout());
+  dispatch(logout());
 };
 
-export const getUserDetails = (id, address) => async (dispatch) => {
-    dispatch(getRequest());
-
-    try {
-        const result = await axios.get(`${process.env.REACT_APP_BASE_URL}/${address}/${id}`);
-        if (result.data) {
-            dispatch(doneSuccess(result.data));
-        }
-    } catch (error) {
-        dispatch(getError(error));
-    }
-}
-
-// export const deleteUser = (id, address) => async (dispatch) => {
-//     dispatch(getRequest());
-
-//     try {
-//         const result = await axios.delete(`${process.env.REACT_APP_BASE_URL}/${address}/${id}`);
-//         if (result.data.message) {
-//             dispatch(getFailed(result.data.message));
-//         } else {
-//             dispatch(getDeleteSuccess());
-//         }
-//     } catch (error) {
-//         dispatch(getError(error));
-//     }
-// }
-
-
-//export const deleteUser = (id, address) => async (dispatch) => {
-//    dispatch(getRequest());
-//    dispatch(getFailed("Sorry the delete function has been disabled for now."));
-//}
-
-
-export const deleteUser = (id, address) => async (dispatch) => {
-    dispatch(getRequest()); // Indicate the delete operation has started.
-
-    try {
-        const result = await axios.delete(`${process.env.REACT_APP_BASE_URL}/${address}/${id}`);
-        if (result.data.message) {
-            // If the backend sends a message, handle it (e.g., success or failure).
-            dispatch(getFailed(result.data.message));
-        } else {
-            // Dispatch success action if deletion is successful.
-            dispatch(getDeleteSuccess());
-        }
-    } catch (error) {
-        // Handle any errors that occur during the delete request.
-        dispatch(getError(error));
-    }
+// Get User Details
+export const getUserDetails = (userId) => async (dispatch) => {
+  try {
+    const result = await axios.get(`${BASE_URL}/users/${userId}`);
+    dispatch(setUserDetails(result.data));
+  } catch (error) {
+    dispatch(loginFailure("Failed to fetch user details"));
+  }
 };
 
-
-export const updateUser = (fields, id, address) => async (dispatch) => {
-    dispatch(getRequest());
-
-    try {
-        const result = await axios.put(`${process.env.REACT_APP_BASE_URL}/${address}/${id}`, fields, {
-            headers: { 'Content-Type': 'application/json' },
-        });
-        if (result.data.schoolName) {
-            dispatch(authSuccess(result.data));
-        }
-        else {
-            dispatch(doneSuccess(result.data));
-        }
-    } catch (error) {
-        dispatch(getError(error));
-    }
-}
-
-export const addStuff = (fields, address) => async (dispatch) => {
-    dispatch(authRequest());
-
-    try {
-        const result = await axios.post(`${process.env.REACT_APP_BASE_URL}/${address}Create`, fields, {
-            headers: { 'Content-Type': 'application/json' },
-        });
-
-        if (result.data.message) {
-            dispatch(authFailed(result.data.message));
-        } else {
-            dispatch(stuffAdded(result.data));
-        }
-    } catch (error) {
-        dispatch(authError(error));
-    }
+//  Add Stuff (Optional)
+export const addStuff = (fields) => async () => {
+  try {
+    const result = await axios.post(`${BASE_URL}/stuff/add`, fields);
+    return result.data;
+  } catch (error) {
+    console.error(
+      "Error adding stuff:",
+      error.response?.data?.message || "Failed to add stuff"
+    );
+    throw error;
+  }
 };
+
+//  Delete User
+export const deleteUser = (userID) => async () => {
+  try {
+    const response = await axios.delete(`${BASE_URL}/users/${userID}`);
+    return response.data;
+  } catch (error) {
+    console.error("Error deleting user:", error.response?.data?.message || "Failed to delete user");
+    throw error;
+  }
+};
+

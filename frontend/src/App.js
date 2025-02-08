@@ -1,53 +1,86 @@
-import React from 'react'
-import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
-import { useSelector } from 'react-redux';
-import Homepage from './pages/Homepage';
-import AdminDashboard from './pages/admin/AdminDashboard';
-import StudentDashboard from './pages/student/StudentDashboard';
-import TeacherDashboard from './pages/teacher/TeacherDashboard';
-import LoginPage from './pages/LoginPage';
-import AdminRegisterPage from './pages/admin/AdminRegisterPage';
-import ChooseUser from './pages/ChooseUser';
+// import React from "react";
+// import { Routes, Route, Navigate } from "react-router-dom";
+// import { useSelector } from "react-redux";
+// import Homepage from "./pages/Homepage";
+// import TeacherDashboard from "./pages/Teacher/TeacherDashboard";
+// import StudentDashboard from "./pages/student/StudentDashboard";
+// import LoginPage from "./pages/LoginPage";
+// import ChooseUser from "./pages/ChooseUser";
+// import TeacherRegisterPage from "./pages/Teacher/TeacherRegister";
+
+// const App = () => {
+//   const { currentRole } = useSelector((state) => state.user);
+
+//   return (
+//     <Routes>
+//       {/* Homepage and Choose User */}
+//       <Route path="/" element={<Homepage />} />
+//       <Route path="/choose" element={<ChooseUser />} />
+
+//       {/* Teacher Login and Registration */}
+//       <Route path="/Teacherlogin" element={<LoginPage role="Teacher" />} />
+//       <Route path="/Teacher/register" element={<TeacherRegisterPage />} />
+
+//       {/* Student Login */}
+//       <Route path="/Studentlogin" element={<LoginPage role="Student" />} />
+
+//       {/* Dashboards */}
+//       {currentRole === "Teacher" && (
+//         <Route path="/Teacher/dashboard" element={<TeacherDashboard />} />
+//       )}
+//       {currentRole === "Student" && (
+//         <Route path="/Student/dashboard" element={<StudentDashboard />} />
+//       )}
+
+     
+
+//       {/* Redirect invalid routes */}
+//       <Route path="*" element={<Navigate to="/" />} />
+//     </Routes>
+//   );
+// };
+
+// export default App;
+
+
+import React from "react";
+import { Routes, Route, Navigate } from "react-router-dom";
+import { useSelector } from "react-redux";
+import Homepage from "./pages/Homepage";
+import TeacherDashboard from "./pages/Teacher/TeacherDashboard";
+import StudentDashboard from "./pages/student/StudentDashboard";
+import LoginPage from "./pages/LoginPage";
+import ChooseUser from "./pages/ChooseUser";
+import TeacherRegisterPage from "./pages/Teacher/TeacherRegister";
 
 const App = () => {
-  const { currentRole } = useSelector(state => state.user);
+  const { currentRole } = useSelector((state) => state.user);
 
   return (
-    <Router>
-      {currentRole === null &&
-        <Routes>
-          <Route path="/" element={<Homepage />} />
-          <Route path="/choose" element={<ChooseUser visitor="normal" />} />
-          <Route path="/chooseasguest" element={<ChooseUser visitor="guest" />} />
+    <Routes>
+      {/* Homepage and Choose User */}
+      <Route path="/" element={<Homepage />} />
+      <Route path="/choose" element={<ChooseUser />} />
 
-          <Route path="/Adminlogin" element={<LoginPage role="Admin" />} />
-          <Route path="/Studentlogin" element={<LoginPage role="Student" />} />
-          <Route path="/Teacherlogin" element={<LoginPage role="Teacher" />} />
+      {/* Teacher Login and Registration */}
+      <Route path="/Teacherlogin" element={<LoginPage role="Teacher" />} />
+      <Route path="/Teacher/register" element={<TeacherRegisterPage />} />
 
-          <Route path="/Adminregister" element={<AdminRegisterPage />} />
+      {/* Student Login */}
+      <Route path="/Studentlogin" element={<LoginPage role="Student" />} />
 
-          <Route path='*' element={<Navigate to="/" />} />
-        </Routes>}
+      {/* Role-based Dashboards */}
+      {currentRole === "Teacher" && (
+        <Route path="/Teacher/dashboard" element={<TeacherDashboard />} />
+      )}
+      {currentRole === "Student" && (
+        <Route path="/Student/dashboard" element={<StudentDashboard />} />
+      )}
 
-      {currentRole === "Admin" &&
-        <>
-          <AdminDashboard />
-        </>
-      }
+      {/* Redirect invalid routes */}
+      <Route path="*" element={<Navigate to="/" />} />
+    </Routes>
+  );
+};
 
-      {currentRole === "Student" &&
-        <>
-          <StudentDashboard />
-        </>
-      }
-
-      {currentRole === "Teacher" &&
-        <>
-          <TeacherDashboard />
-        </>
-      }
-    </Router>
-  )
-}
-
-export default App
+export default App;

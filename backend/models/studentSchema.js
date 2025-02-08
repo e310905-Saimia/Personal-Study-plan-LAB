@@ -20,7 +20,7 @@ const studentSchema = new mongoose.Schema({
     },
     school: {
         type: mongoose.Schema.Types.ObjectId,
-        ref: 'admin',
+        ref: 'teacher',
         required: true,
     },
     role: {

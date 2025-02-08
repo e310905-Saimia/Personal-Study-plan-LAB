@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate } from "react-router-dom";
 import { getSubjectList } from '../../../redux/sclassRelated/sclassHandle';
-import { deleteUser } from '../../../redux/userRelated/userHandle';
+// import { deleteUser } from '../../../redux/userRelated/userHandle';
 import PostAddIcon from '@mui/icons-material/PostAdd';
 import {
     Paper, Box, IconButton,
@@ -65,7 +65,7 @@ const ShowSubjects = () => {
                     <DeleteIcon color="error" />
                 </IconButton>
                 <BlueButton variant="contained"
-                    onClick={() => navigate(`/Admin/subjects/subject/${row.sclassID}/${row.id}`)}>
+                    onClick={() => navigate(`/Teacher/subjects/subject/${row.sclassID}/${row.id}`)}>
                     View
                 </BlueButton>
             </>
@@ -75,7 +75,7 @@ const ShowSubjects = () => {
     const actions = [
         {
             icon: <PostAddIcon color="primary" />, name: 'Add New Subject',
-            action: () => navigate("/Admin/subjects/chooseclass")
+            action: () => navigate("/Teacher/subjects/chooseclass")
         },
         {
             icon: <DeleteIcon color="error" />, name: 'Delete All Subjects',
@@ -92,7 +92,7 @@ const ShowSubjects = () => {
                     {response ?
                         <Box sx={{ display: 'flex', justifyContent: 'flex-end', marginTop: '16px' }}>
                             <GreenButton variant="contained"
-                                onClick={() => navigate("/Admin/subjects/chooseclass")}>
+                                onClick={() => navigate("/Teacher/subjects/chooseclass")}>
                                 Add Subjects
                             </GreenButton>
                         </Box>

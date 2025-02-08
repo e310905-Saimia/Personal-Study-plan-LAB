@@ -18,7 +18,7 @@ const AddClass = () => {
     const userState = useSelector(state => state.user);
     const { status, currentUser, response, error, tempDetails } = userState;
 
-    const adminID = currentUser._id
+    const teacherID = currentUser._id
     const address = "Sclass"
 
     const [loader, setLoader] = useState(false)
@@ -27,7 +27,7 @@ const AddClass = () => {
 
     const fields = {
         sclassName,
-        adminID,
+        teacherID,
     };
 
     const submitHandler = (event) => {
@@ -100,7 +100,7 @@ const AddClass = () => {
     )
 }
 
-export default AddClass
+export default AddClass;
 
 const StyledContainer = styled(Box)`
   flex: 1 1 auto;

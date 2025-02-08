@@ -64,7 +64,7 @@ const ShowNotices = () => {
     const actions = [
         {
             icon: <NoteAddIcon color="primary" />, name: 'Add New Notice',
-            action: () => navigate("/Admin/addnotice")
+            action: () => navigate("/Teacher/addnotice")
         },
         {
             icon: <DeleteIcon color="error" />, name: 'Delete All Notices',
@@ -81,7 +81,7 @@ const ShowNotices = () => {
                     {response ?
                         <Box sx={{ display: 'flex', justifyContent: 'flex-end', marginTop: '16px' }}>
                             <GreenButton variant="contained"
-                                onClick={() => navigate("/Admin/addnotice")}>
+                                onClick={() => navigate("/Teacher/addnotice")}>
                                 Add Notice
                             </GreenButton>
                         </Box>

@@ -13,7 +13,7 @@ const SeeNotice = () => {
     useEffect(() => {
         if (!currentUser) return; // Prevent fetching if currentUser is undefined
 
-        if (currentRole === "Admin") {
+        if (currentRole === "Teacher") {
             if (currentUser?._id) {
                 dispatch(getAllNotices(currentUser._id, "Notice"));
             }

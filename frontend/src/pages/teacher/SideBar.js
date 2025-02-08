@@ -18,50 +18,49 @@ const SideBar = () => {
             <React.Fragment>
                 <ListItemButton component={Link} to="/">
                     <ListItemIcon>
-                        <HomeIcon color={location.pathname === ("/" || "/Admin/dashboard") ? 'primary' : 'inherit'} />
+                        <HomeIcon color={location.pathname === ("/" || "/Teacher/dashboard") ? 'primary' : 'inherit'} />
                     </ListItemIcon>
                     <ListItemText primary="Home" />
                 </ListItemButton>
-                <ListItemButton component={Link} to="/Admin/classes">
+                <ListItemButton component={Link} to="/Teacher/classes">
                     <ListItemIcon>
-                        <ClassOutlinedIcon color={location.pathname.startsWith('/Admin/classes') ? 'primary' : 'inherit'} />
+                        <ClassOutlinedIcon color={location.pathname.startsWith('/Teacher/classes') ? 'primary' : 'inherit'} />
                     </ListItemIcon>
                     <ListItemText primary="Classes" />
                 </ListItemButton>
-                <ListItemButton component={Link} to="/Admin/subjects">
+                <ListItemButton component={Link} to="/Teacher/subjects">
                     <ListItemIcon>
-                        <AssignmentIcon color={location.pathname.startsWith("/Admin/subjects") ? 'primary' : 'inherit'} />
+                        <AssignmentIcon color={location.pathname.startsWith("/Teacher/subjects") ? 'primary' : 'inherit'} />
                     </ListItemIcon>
                     <ListItemText primary="Subjects" />
                 </ListItemButton>
-                <ListItemButton component={Link} to="/Admin/teachers">
+                <ListItemButton component={Link} to="/Teacher/teachers">
                     <ListItemIcon>
-                        <SupervisorAccountOutlinedIcon color={location.pathname.startsWith("/Admin/teachers") ? 'primary' : 'inherit'} />
+                        <SupervisorAccountOutlinedIcon color={location.pathname.startsWith("/Teacher/teachers") ? 'primary' : 'inherit'} />
                     </ListItemIcon>
                     <ListItemText primary="Teachers" />
                 </ListItemButton>
-                <ListItemButton component={Link} to="/Admin/students">
+                <ListItemButton component={Link} to="/Teacher/students">
                     <ListItemIcon>
-                        <PersonOutlineIcon color={location.pathname.startsWith("/Admin/students") ? 'primary' : 'inherit'} />
+                        <PersonOutlineIcon color={location.pathname.startsWith("/Teacher/students") ? 'primary' : 'inherit'} />
                     </ListItemIcon>
                     <ListItemText primary="Students" />
                 </ListItemButton>
-                <ListItemButton component={Link} to="/Admin/notices">
+                <ListItemButton component={Link} to="/Teacher/notices">
                     <ListItemIcon>
-                        <AnnouncementOutlinedIcon color={location.pathname.startsWith("/Admin/notices") ? 'primary' : 'inherit'} />
+                        <AnnouncementOutlinedIcon color={location.pathname.startsWith("/Teacher/notices") ? 'primary' : 'inherit'} />
                     </ListItemIcon>
                     <ListItemText primary="Notices" />
                 </ListItemButton>
-                
             </React.Fragment>
             <Divider sx={{ my: 1 }} />
             <React.Fragment>
                 <ListSubheader component="div" inset>
                     User
                 </ListSubheader>
-                <ListItemButton component={Link} to="/Admin/profile">
+                <ListItemButton component={Link} to="/Teacher/profile">
                     <ListItemIcon>
-                        <AccountCircleOutlinedIcon color={location.pathname.startsWith("/Admin/profile") ? 'primary' : 'inherit'} />
+                        <AccountCircleOutlinedIcon color={location.pathname.startsWith("/Teacher/profile") ? 'primary' : 'inherit'} />
                     </ListItemIcon>
                     <ListItemText primary="Profile" />
                 </ListItemButton>
@@ -76,4 +75,4 @@ const SideBar = () => {
     )
 }
 
-export default SideBar
+export default SideBar;

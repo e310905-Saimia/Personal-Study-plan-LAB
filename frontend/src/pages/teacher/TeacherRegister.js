@@ -16,22 +16,22 @@ import {
 } from "@mui/material";
 import { createTheme, ThemeProvider } from "@mui/material/styles";
 import { Visibility, VisibilityOff } from "@mui/icons-material";
-import bgpic from "../assets/designlogin.jpg";
-import { LightPurpleButton } from "../components/buttonStyles";
+import bgpic from "../../assets/designlogin.jpg";
+import { LightPurpleButton } from "../../components/buttonStyles";
+import { registerUser } from "../../redux/userRelated/userHandle";
 import styled from "styled-components";
-import { loginUser } from "../redux/userRelated/userHandle";
-import Popup from "../components/Popup";
+import Popup from "../../components/Popup";
 
 const defaultTheme = createTheme();
 
-const LoginPage = ({ role }) => {
+const TeacherRegisterPage = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
 
-  const { status, currentUser, currentRole, error } = useSelector(
-    (state) => state.user
-  );
+  // Redux state for user authentication
+  const { status, response } = useSelector((state) => state.user);
 
+  // Local states
   const [toggle, setToggle] = useState(false);
   const [loader, setLoader] = useState(false);
   const [showPopup, setShowPopup] = useState(false);
@@ -39,51 +39,54 @@ const LoginPage = ({ role }) => {
 
   const [emailError, setEmailError] = useState(false);
   const [passwordError, setPasswordError] = useState(false);
+  const [teacherNameError, setTeacherNameError] = useState(false);
 
+  // Handle form submission
   const handleSubmit = (event) => {
     event.preventDefault();
 
+    const name = event.target.teacherName.value.trim();
     const email = event.target.email.value.trim();
     const password = event.target.password.value.trim();
 
-    if (!email || !password) {
+    if (!name || !email || !password) {
+      if (!name) setTeacherNameError(true);
       if (!email) setEmailError(true);
       if (!password) setPasswordError(true);
       return;
     }
 
-    const fields = { email, password };
+    const fields = { name, email, password };
+
     setLoader(true);
-    dispatch(loginUser(fields, role));
+    dispatch(registerUser(fields));
   };
 
+  // Handle input changes and reset errors
   const handleInputChange = (event) => {
     const { name } = event.target;
     if (name === "email") setEmailError(false);
     if (name === "password") setPasswordError(false);
+    if (name === "teacherName") setTeacherNameError(false);
   };
+
+  // Handle navigation and popup messages
   useEffect(() => {
-    console.log("🔹 Redux State Updated:");
-    console.log("🔹 Status:", status);
-    console.log("🔹 Current User:", currentUser);
-    console.log("🔹 Current Role:", currentRole);
-  
-    if (status === "success" && currentUser) {
-      if (currentRole === "Teacher") {
-        console.log("Redirecting to Teacher Dashboard...");
-        navigate("/Teacher/dashboard");
-      } else if (currentRole === "Student") {
-        console.log("Redirecting to Student Dashboard...");
-        navigate("/Student/dashboard");
-      }
+    if (status === "success") {
       setLoader(false);
-    } else if (status === "failed") {
-      setMessage(error || "Invalid credentials");
+      setMessage("Registration successful! Redirecting to login...");
       setShowPopup(true);
+
+      // Redirect to login page after successful registration
+      setTimeout(() => {
+        navigate("/Teacherlogin");
+      }, 2000);
+    } else if (status === "failed") {
       setLoader(false);
+      setMessage(response || "Registration failed. Please try again.");
+      setShowPopup(true);
     }
-  }, [status, currentUser, currentRole, navigate, error]);
-  
+  }, [status, response, navigate]);
 
   return (
     <ThemeProvider theme={defaultTheme}>
@@ -100,10 +103,10 @@ const LoginPage = ({ role }) => {
             }}
           >
             <Typography variant="h4" sx={{ mb: 2, color: "#2c2143" }}>
-              {role} Login
+              Teacher Registration
             </Typography>
-            <Typography variant="body2">
-              Welcome back! Please enter your details
+            <Typography variant="body1" sx={{ mb: 3 }}>
+              Register as a teacher to manage your school system.
             </Typography>
             <Box
               component="form"
@@ -115,11 +118,23 @@ const LoginPage = ({ role }) => {
                 margin="normal"
                 required
                 fullWidth
+                id="teacherName"
+                label="Enter your name"
+                name="teacherName"
+                autoComplete="name"
+                autoFocus
+                error={teacherNameError}
+                helperText={teacherNameError && "Name is required"}
+                onChange={handleInputChange}
+              />
+              <TextField
+                margin="normal"
+                required
+                fullWidth
                 id="email"
                 label="Enter your email"
                 name="email"
                 autoComplete="email"
-                autoFocus
                 error={emailError}
                 helperText={emailError && "Email is required"}
                 onChange={handleInputChange}
@@ -154,31 +169,23 @@ const LoginPage = ({ role }) => {
                   control={<Checkbox value="remember" color="primary" />}
                   label="Remember me"
                 />
-                <StyledLink href="#">Forgot password?</StyledLink>
               </Grid>
               <LightPurpleButton
                 type="submit"
                 fullWidth
                 variant="contained"
-                sx={{ mt: 3 }}
+                sx={{ mt: 3, mb: 2 }}
               >
-                {loader ? (
-                  <CircularProgress size={24} color="inherit" />
-                ) : (
-                  "Login"
-                )}
+                {loader ? <CircularProgress size={24} color="inherit" /> : "Register"}
               </LightPurpleButton>
-
-              {role === "Teacher" && (
-                <Box sx={{ mt: 2 }}>
-                  <Typography variant="body2">
-                    New here?{" "}
-                    <StyledLink to="/Teacher/register">
-                      Register as a Teacher
-                    </StyledLink>
-                  </Typography>
-                </Box>
-              )}
+              <Grid container>
+                <Grid>
+                  Already have an account?
+                </Grid>
+                <Grid item sx={{ ml: 2 }}>
+                  <StyledLink to="/Teacherlogin">Log in</StyledLink>
+                </Grid>
+              </Grid>
             </Box>
           </Box>
         </Grid>
@@ -190,6 +197,8 @@ const LoginPage = ({ role }) => {
           sx={{
             backgroundImage: `url(${bgpic})`,
             backgroundRepeat: "no-repeat",
+            backgroundColor: (t) =>
+              t.palette.mode === "light" ? t.palette.grey[50] : t.palette.grey[900],
             backgroundSize: "cover",
             backgroundPosition: "center",
           }}
@@ -200,9 +209,10 @@ const LoginPage = ({ role }) => {
   );
 };
 
-export default LoginPage;
+export default TeacherRegisterPage;
 
 const StyledLink = styled(Link)`
+  margin-top: 9px;
   text-decoration: none;
   color: #7f56da;
 `;

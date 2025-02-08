@@ -1,168 +1,93 @@
-import React, { useEffect, useState } from 'react';
-import { Container, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TextField, Switch, Button } from '@mui/material';
-import { getClassStudents, getSubjectDetails } from '../../redux/sclassRelated/sclassHandle';
-import { useDispatch, useSelector } from 'react-redux';
+import { Container, Grid, Paper } from '@mui/material';
+import SeeNotice from '../../components/SeeNotice';
+import Students from "../../assets/img1.png";
+import Classes from "../../assets/img2.png";
+import Teachers from "../../assets/img3.png";
 
+import styled from 'styled-components';
+import CountUp from 'react-countup';
+import { useDispatch, useSelector } from 'react-redux';
+import { useEffect } from 'react';
+
+// ✅ FIXED: Import unique action names and corrected functions
+import { fetchClasses as fetchSclasses } from '../../redux/sclassRelated/sclassHandle';
+import { getAllStudents } from '../../redux/studentRelated/studentHandle';
+import { getAllTeachers } from '../../redux/teacherRelated/teacherHandle';
 
 const TeacherHomePage = () => {
     const dispatch = useDispatch();
+    const { studentsList } = useSelector((state) => state.student);
+    const { classes } = useSelector((state) => state.sclass); // ✅ Corrected property name to `classes`
+    const { teachersList } = useSelector((state) => state.teacher);
 
-    const { currentUser } = useSelector((state) => state.user);
-    const { subjectDetails } = useSelector((state) => state.sclass);
+    const { currentUser } = useSelector(state => state.user);
+    const teacherID = currentUser?._id || ""; // ✅ Added null-safe check for `currentUser`
 
-    const classID = currentUser.teachSclass?._id;
-    const subjectID = currentUser.teachSubject?._id;
-
-    const [rows, setRows] = useState([]);
-
+    // ✅ Corrected dispatch functions and ensured unique actions
     useEffect(() => {
-        if (subjectID) dispatch(getSubjectDetails(subjectID, "Subject"));
-        if (classID) dispatch(getClassStudents(classID));
-    }, [dispatch, subjectID, classID]);
-
-    useEffect(() => {
-        if (Array.isArray(subjectDetails)) {
-            setRows(subjectDetails);
+        if (teacherID) {
+            dispatch(getAllStudents(teacherID));   // Fetch students
+            dispatch(fetchSclasses(teacherID));   // Fetch classes
+            dispatch(getAllTeachers(teacherID));  // Fetch teachers
         }
-    }, [subjectDetails]);
+    }, [teacherID, dispatch]);
 
-    const addRow = () => {
-        const newRow = {
-            id: Date.now(),
-            isCompulsory: false,
-            topic: '',
-            learningOutcome: '',
-            additionalInfo: '',
-            credits: '',
-            project: '',
-            confirmedBy: ''
-        };
-        setRows([...rows, newRow]);
-    };
-
-    const deleteRow = (id) => {
-        setRows(rows.filter((row) => row.id !== id));
-    };
-
-    const handleChange = (id, field, value) => {
-        setRows(rows.map((row) => (row.id === id ? { ...row, [field]: value } : row)));
-    };
+    const numberOfStudents = studentsList?.length || 0; // ✅ Added fallback for length
+    const numberOfClasses = classes?.length || 0; // ✅ Updated to match `classes` from state
+    const numberOfTeachers = teachersList?.length || 0; // ✅ Added fallback for length
 
     return (
         <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
-            <Paper sx={{ p: 2, borderRadius: 3, boxShadow: 3 }}>
-                <TableContainer>
-                    <Table>
-                        <TableHead sx={{ backgroundColor: '#008000', borderRadius: '12px' }}>
-                            <TableRow>
-                                <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Compulsory or Not</TableCell>
-                                <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Topic</TableCell>
-                                <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Learning Outcome</TableCell>
-                                <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Learning Outcome Information</TableCell>
-                                <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Credits</TableCell>
-                                <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Project</TableCell>
-                                <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Confirmed By</TableCell>
-                                <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Date</TableCell>
-                                <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Actions</TableCell>
-                            </TableRow>
-                        </TableHead>
-                        <TableBody>
-                            {Array.isArray(rows) && rows.map((row) => (
-                                <TableRow key={row.id} sx={{ '&:nth-of-type(odd)': { backgroundColor: '#f5f5f5' } }}>
-                                    <TableCell>
-                                        <Switch
-                                            checked={row.isCompulsory}
-                                            onChange={(e) => handleChange(row.id, 'isCompulsory', e.target.checked)}
-                                        />
-                                        {row.isCompulsory ? 'Compulsory' : 'Not Compulsory'}
-                                    </TableCell>
-                                    <TableCell>
-                                        <TextField
-                                            value={row.topic}
-                                            onChange={(e) => handleChange(row.id, 'topic', e.target.value)}
-                                            variant="outlined"
-                                            size="small"
-                                            fullWidth
-                                        />
-                                    </TableCell>
-                                    <TableCell>
-                                        <TextField
-                                            value={row.learningOutcome}
-                                            onChange={(e) => handleChange(row.id, 'learningOutcome', e.target.value)}
-                                            variant="outlined"
-                                            size="small"
-                                            fullWidth
-                                        />
-                                    </TableCell>
-                                    <TableCell>
-                                        <TextField
-                                            value={row.additionalInfo}
-                                            onChange={(e) => handleChange(row.id, 'additionalInfo', e.target.value)}
-                                            variant="outlined"
-                                            size="small"
-                                            fullWidth
-                                        />
-                                    </TableCell>
-                                    <TableCell>
-                                        <TextField
-                                            value={row.credits}
-                                            onChange={(e) => handleChange(row.id, 'credits', e.target.value)}
-                                            variant="outlined"
-                                            size="small"
-                                            fullWidth
-                                        />
-                                    </TableCell>
-                                    <TableCell>
-                                        <TextField
-                                            value={row.project}
-                                            onChange={(e) => handleChange(row.id, 'project', e.target.value)}
-                                            variant="outlined"
-                                            size="small"
-                                            fullWidth
-                                        />
-                                    </TableCell>
-                                    <TableCell>
-                                        <TextField
-                                            value={row.confirmedBy}
-                                            onChange={(e) => handleChange(row.id, 'confirmedBy', e.target.value)}
-                                            variant="outlined"
-                                            size="small"
-                                            fullWidth
-                                        />
-                                    </TableCell>
-                                    <TableCell>
-                                        <TextField
-                                            value={row.project}
-                                            onChange={(e) => handleChange(row.id, 'Date', e.target.value)}
-                                            variant="outlined"
-                                            size="small"
-                                            fullWidth
-                                        />
-                                    </TableCell>
-                                    <TableCell>
-                                        <Button
-                                            variant="contained"
-                                            color="error"
-                                            onClick={() => deleteRow(row.id)}
-                                        >
-                                            Delete
-                                        </Button>
-                                    </TableCell>
-                                </TableRow>
-                            ))}
-                        </TableBody>
-                    </Table>
-                </TableContainer>
-                <Button
-                    variant="contained"
-                    sx={{ mt: 2, backgroundColor: '#00416d', color: '#fff' }}
-                    onClick={addRow}
-                >
-                    Add New Row
-                </Button>
-            </Paper>
+            <Grid container spacing={3}>
+                <Grid item xs={12} md={4} lg={4}>
+                    <StyledPaper>
+                        <img src={Students} alt="Students" />
+                        <Title>Total Students</Title>
+                        <Data start={0} end={numberOfStudents} duration={2.5} />
+                    </StyledPaper>
+                </Grid>
+                <Grid item xs={12} md={4} lg={4}>
+                    <StyledPaper>
+                        <img src={Classes} alt="Classes" />
+                        <Title>Total Classes</Title>
+                        <Data start={0} end={numberOfClasses} duration={5} />
+                    </StyledPaper>
+                </Grid>
+                <Grid item xs={12} md={4} lg={4}>
+                    <StyledPaper>
+                        <img src={Teachers} alt="Teachers" />
+                        <Title>Total Teachers</Title>
+                        <Data start={0} end={numberOfTeachers} duration={2.5} />
+                    </StyledPaper>
+                </Grid>
+                <Grid item xs={12} md={12} lg={12}>
+                    <Paper sx={{ p: 2, display: 'flex', flexDirection: 'column' }}>
+                        <SeeNotice />
+                    </Paper>
+                </Grid>
+            </Grid>
         </Container>
     );
 };
+
+// Styled Components
+const StyledPaper = styled(Paper)`
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  height: 200px;
+  justify-content: space-between;
+  align-items: center;
+  text-align: center;
+`;
+
+const Title = styled.p`
+  font-size: 1.25rem;
+`;
+
+const Data = styled(CountUp)`
+  font-size: calc(1.3rem + .6vw);
+  color: green;
+`;
 
 export default TeacherHomePage;

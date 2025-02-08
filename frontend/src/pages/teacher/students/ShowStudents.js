@@ -2,7 +2,7 @@ import { useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate } from "react-router-dom";
 import { getAllStudents } from '../../../redux/studentRelated/studentHandle';
-import { deleteUser } from '../../../redux/userRelated/userHandle';
+// import { deleteUser } from '../../../redux/userRelated/userHandle';
 import {
     Paper, Box, IconButton
 } from '@mui/material';
@@ -86,10 +86,10 @@ const ShowStudents = () => {
         };
 
         const handleAttendance = () => {
-            navigate("/Admin/students/student/attendance/" + row.id)
+            navigate("/Teacher/students/student/attendance/" + row.id)
         }
         const handleMarks = () => {
-            navigate("/Admin/students/student/marks/" + row.id)
+            navigate("/Teacher/students/student/marks/" + row.id)
         };
 
         const handleMenuItemClick = (event, index) => {
@@ -114,7 +114,7 @@ const ShowStudents = () => {
                     <PersonRemoveIcon color="error" />
                 </IconButton>
                 <BlueButton variant="contained"
-                    onClick={() => navigate("/Admin/students/student/" + row.id)}>
+                    onClick={() => navigate("/Teacher/students/student/" + row.id)}>
                     View
                 </BlueButton>
                 <React.Fragment>
@@ -176,7 +176,7 @@ const ShowStudents = () => {
     const actions = [
         {
             icon: <PersonAddAlt1Icon color="primary" />, name: 'Add New Student',
-            action: () => navigate("/Admin/addstudents")
+            action: () => navigate("/Teacher/addstudents")
         },
         {
             icon: <PersonRemoveIcon color="error" />, name: 'Delete All Students',
@@ -192,7 +192,7 @@ const ShowStudents = () => {
                 <>
                     {response ?
                         <Box sx={{ display: 'flex', justifyContent: 'flex-end', marginTop: '16px' }}>
-                            <GreenButton variant="contained" onClick={() => navigate("/Admin/addstudents")}>
+                            <GreenButton variant="contained" onClick={() => navigate("/Teacher/addstudents")}>
                                 Add Students
                             </GreenButton>
                         </Box>

@@ -15,13 +15,13 @@ const AddNotice = () => {
   const [title, setTitle] = useState('');
   const [details, setDetails] = useState('');
   const [date, setDate] = useState('');
-  const adminID = currentUser._id
+  const teacherID = currentUser._id
 
   const [loader, setLoader] = useState(false);
   const [showPopup, setShowPopup] = useState(false);
   const [message, setMessage] = useState("");
 
-  const fields = { title, details, date, adminID };
+  const fields = { title, details, date, teacherID };
   const address = "Notice"
 
   const submitHandler = (event) => {
@@ -32,7 +32,7 @@ const AddNotice = () => {
 
   useEffect(() => {
     if (status === 'added') {
-      navigate('/Admin/notices');
+      navigate('/Teacher/notices');
       dispatch(underControl())
     } else if (status === 'error') {
       setMessage("Network Error")

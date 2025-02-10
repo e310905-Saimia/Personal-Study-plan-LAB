@@ -17,13 +17,13 @@ import { getAllTeachers } from '../../redux/teacherRelated/teacherHandle';
 const TeacherHomePage = () => {
     const dispatch = useDispatch();
     const { studentsList } = useSelector((state) => state.student);
-    const { classes } = useSelector((state) => state.sclass); // ✅ Corrected property name to `classes`
+    const { classes } = useSelector((state) => state.sclass); // 
     const { teachersList } = useSelector((state) => state.teacher);
 
     const { currentUser } = useSelector(state => state.user);
-    const teacherID = currentUser?._id || ""; // ✅ Added null-safe check for `currentUser`
+    const teacherID = currentUser?._id || ""; 
 
-    // ✅ Corrected dispatch functions and ensured unique actions
+
     useEffect(() => {
         if (teacherID) {
             dispatch(getAllStudents(teacherID));   // Fetch students

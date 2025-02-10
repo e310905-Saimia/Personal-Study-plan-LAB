@@ -16,13 +16,19 @@ import Popup from '../../../components/Popup';
 const ShowSubjects = () => {
     const navigate = useNavigate()
     const dispatch = useDispatch();
-    const { subjectsList, loading, error, response } = useSelector((state) => state.sclass);
+    const { subjectsList = [], loading, error, response } = useSelector((state) => state.sclass);
     const { currentUser } = useSelector(state => state.user)
 
-    useEffect(() => {
-        dispatch(getSubjectList(currentUser._id, "AllSubjects"));
-    }, [currentUser._id, dispatch]);
+    // useEffect(() => {
+    //     dispatch(getSubjectList(currentUser._id, "AllSubjects"));
+    // }, [currentUser._id, dispatch]);
 
+    useEffect(() => {
+        if (currentUser?._id) {  
+            dispatch(getSubjectList(currentUser._id, "AllSubjects"));
+        }
+    }, [currentUser?._id, dispatch]);
+    
     if (error) {
         console.log(error);
     }

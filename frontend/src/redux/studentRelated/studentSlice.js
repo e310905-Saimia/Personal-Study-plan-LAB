@@ -1,7 +1,7 @@
 import { createSlice } from '@reduxjs/toolkit';
 
 const initialState = {
-    students: [],
+    studentsList: [],
     status: null,
     error: null
 };
@@ -20,7 +20,7 @@ const studentSlice = createSlice({
         },
         getSuccess: (state, action) => {
             state.status = "success";
-            state.students = action.payload;
+            state.studentsList = action.payload; 
         },
         getFailed: (state, action) => {
             state.status = "failed";

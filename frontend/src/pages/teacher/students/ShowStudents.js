@@ -3,7 +3,6 @@ import { useDispatch, useSelector } from "react-redux";
 import {
   Paper,
   Box,
-  IconButton,
   Dialog,
   DialogTitle,
   DialogContent,
@@ -16,8 +15,9 @@ import {
   TableContainer,
   TableHead,
   TableRow,
+  Fab, // ✅ Floating Action Button
 } from "@mui/material";
-import PersonAddAlt1Icon from "@mui/icons-material/PersonAddAlt1";
+import AddIcon from "@mui/icons-material/Add"; // ✅ Import Add Icon
 import { getAllStudents } from "../../../redux/studentRelated/studentHandle";
 import { registerUser } from "../../../redux/userRelated/userHandle";
 import Popup from "../../../components/Popup";
@@ -26,6 +26,10 @@ const ShowStudents = () => {
   const dispatch = useDispatch();
   const { studentsList, loading } = useSelector((state) => state.student);
   const { currentUser } = useSelector((state) => state.user);
+  
+  useEffect(() => {
+    dispatch(getAllStudents()); // ✅ Fetch all students
+  }, [dispatch]);
 
   const [open, setOpen] = useState(false);
   const [email, setEmail] = useState("");
@@ -33,17 +37,11 @@ const ShowStudents = () => {
   const [showPopup, setShowPopup] = useState(false);
   const [message, setMessage] = useState("");
 
-  useEffect(() => {
-    if (currentUser?._id) {
-      dispatch(getAllStudents(currentUser._id));
-    }
-  }, [currentUser?._id, dispatch]);
-
-  // Extract name from email
+  // Extract name from email if no name is stored in DB
   const formatNameFromEmail = (email) => {
     if (!email) return "Unknown";
-    const namePart = email.split("@")[0]; // Extract part before '@'
-    const words = namePart.split("."); // Split by '.'
+    const namePart = email.split("@")[0]; 
+    const words = namePart.split("."); 
     return words.map((word) => word.charAt(0).toUpperCase() + word.slice(1)).join(" ");
   };
 
@@ -70,6 +68,7 @@ const ShowStudents = () => {
       password,
       role: "Student",
       teacherID: currentUser._id,
+
     };
 
     dispatch(registerUser(studentData, "Student"))
@@ -77,7 +76,7 @@ const ShowStudents = () => {
         setMessage("Student added successfully!");
         setShowPopup(true);
         handleClose();
-        dispatch(getAllStudents(currentUser._id)); // Refresh student list
+        dispatch(getAllStudents()); // ✅ Fetch updated student list
       })
       .catch(() => {
         setMessage("Failed to add student. Please try again.");
@@ -86,13 +85,7 @@ const ShowStudents = () => {
   };
 
   return (
-    <Box>
-      <Box sx={{ display: "flex", justifyContent: "flex-end", mb: 2 }}>
-        <IconButton color="primary" onClick={handleOpen} title="Add New Student">
-          <PersonAddAlt1Icon />
-        </IconButton>
-      </Box>
-
+    <Box>  
       <Paper>
         {loading ? (
           <p>Loading...</p>
@@ -101,11 +94,12 @@ const ShowStudents = () => {
             <Table>
               <TableHead>
                 <TableRow>
-                  <TableCell>Name</TableCell>
+                  <TableCell>Name</TableCell> {/* ✅ Removed ID Column */}
                   <TableCell>Email</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
+                {console.log("🔹 Rendering Students:", studentsList)} 
                 {Array.isArray(studentsList) && studentsList.length > 0 ? (
                   studentsList.map((student) => (
                     <TableRow key={student._id}>
@@ -125,6 +119,15 @@ const ShowStudents = () => {
           </TableContainer>
         )}
       </Paper>
+
+      {/* ✅ Floating Add Student Button */}
+      <Fab 
+        color="primary" 
+        sx={styles.fabButton} 
+        onClick={handleOpen}
+      >
+        <AddIcon />
+      </Fab>
 
       {/* Modal for adding new student */}
       <Dialog open={open} onClose={handleClose}>
@@ -161,8 +164,17 @@ const ShowStudents = () => {
 
       {/* Popup for success or failure messages */}
       <Popup message={message} setShowPopup={setShowPopup} showPopup={showPopup} />
-    </Box>
+    </Box>  
   );
 };
 
 export default ShowStudents;
+
+// ✅ Floating Button Styles
+const styles = {
+  fabButton: {
+    position: "fixed",
+    bottom: 20,
+    right: 20,
+  },
+};

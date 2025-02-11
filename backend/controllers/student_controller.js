@@ -1,143 +1,102 @@
-// const bcrypt = require('bcrypt');
-// const Student = require('../models/studentSchema.js');
-
-// const studentLogIn = async (req, res) => {
-//     try {
-//         const { email, password } = req.body;
-
-//         let student = await Student.findOne({ email });
-//         if (!student) {
-//             return res.status(404).json({ message: "Student not found!" });
-//         }
-
-//         const isMatch = await bcrypt.compare(password, student.password);
-//         if (!isMatch) {
-//             return res.status(400).json({ message: "Invalid password!" });
-//         }
-
-//         student.password = undefined;
-//         res.status(200).json(student);
-//     } catch (err) {
-//         res.status(500).json({ message: "Internal Server Error", error: err.message });
-//     }
-// };
-
-// const studentRegister = async (req, res) => {
-//     try {
-//         const salt = await bcrypt.genSalt(10);
-//         const hashedPass = await bcrypt.hash(req.body.password, salt);
-
-//         const existingStudent = await Student.findOne({ email: req.body.email });
-
-//         if (existingStudent) {
-//             return res.status(400).json({ message: 'Email already exists' });
-//         }
-
-//         const student = new Student({
-//             ...req.body,
-//             school: req.body.teacherID,
-//             password: hashedPass
-//         });
-
-//         let result = await student.save();
-
-//         result.password = undefined;
-//         res.send(result);
-//     } catch (err) {
-//         res.status(500).json(err);
-//     }
-// };
-
-
 const bcrypt = require('bcrypt');
-const Student = require('../models/studentSchema.js');
-
-// const studentRegister = async (req, res) => {
-//     try {
-//         const salt = await bcrypt.genSalt(10);
-//         const hashedPass = await bcrypt.hash(req.body.password, salt);
-
-//         const existingStudent = await Student.findOne({ email: req.body.email });
-
-//         if (existingStudent) {
-//             return res.status(400).json({ message: 'Email already exists' });
-//         }
-
-//         const student = new Student({
-//             ...req.body,
-//             password: hashedPass,
-//         });
-
-//         const result = await student.save();
-//         result.password = undefined;
-//         res.status(201).json(result);
-//     } catch (err) {
-//         res.status(500).json({ message: "Internal Server Error", error: err.message });
-//     }
-// };
+const mongoose = require('mongoose');
 const jwt = require('jsonwebtoken');
+const Student = require('../models/studentSchema.js');
 
 const studentRegister = async (req, res) => {
     try {
-        const { email, password } = req.body;
-        if (!email || !password) {
+        console.log("🟢 Received Student Data:", req.body); // ✅ Log received data
+
+        const { email, password, teacherID } = req.body;
+        if (!email || !password) {  
             return res.status(400).json({ message: "Email and password are required" });
         }
 
         const existingStudent = await Student.findOne({ email });
         if (existingStudent) {
-            return res.status(400).json({ message: 'Email already exists' });
+            console.log("🔴 Student Already Exists:", email);
+            return res.status(400).json({ message: "Email already exists" });
         }
 
         const hashedPass = await bcrypt.hash(password, 10);
-        const student = new Student({ email, password: hashedPass });
+        const student = new Student({ email, password: hashedPass, teacherID });
 
         const result = await student.save();
-        result.password = undefined; // Hide password in response
+        console.log("🟢 Student Saved Successfully:", result);
+
         res.status(201).json(result);
     } catch (err) {
+        console.error("🔴 Error in Student Register:", err);
         res.status(500).json({ message: "Internal Server Error", error: err.message });
     }
 };
+
+
 // Student Login
 const studentLogIn = async (req, res) => {
     try {
         const { email, password } = req.body;
 
-        console.log("🔹 Login Attempt:", email, password);
+        console.log("🔹 Login Attempt:", { email, password });  // ✅ Log input data
 
         const student = await Student.findOne({ email });
-        console.log("🔹 Found Student in DB:", student);
+        console.log("🔹 Found Student in DB:", student);  // ✅ Log found student
 
         if (!student) {
+            console.log("❌ Student not found!");
             return res.status(404).json({ message: "Student not found!" });
         }
 
         const isPasswordValid = await bcrypt.compare(password, student.password);
+        console.log("🔹 Password Valid:", isPasswordValid);  // ✅ Log password comparison
+
         if (!isPasswordValid) {
+            console.log("❌ Invalid password!");
             return res.status(401).json({ message: "Invalid credentials!" });
         }
 
         const token = jwt.sign({ id: student._id, role: "Student" }, process.env.JWT_SECRET, { expiresIn: "1d" });
         student.password = undefined; // Hide password from response
 
+        console.log("✅ Student login successful!");
         res.status(200).json({ token, student });
+
     } catch (err) {
-        console.error("Error in studentLogIn:", err);
+        console.error("❌ Error in studentLogIn:", err);
         res.status(500).json({ message: "Internal server error", error: err.message });
     }
 };
 
 
+
+// const getStudents = async (req, res) => {
+//     try {
+//         console.log("Fetching students for school:", req.params.id);
+//         let students = await Student.find({ school: req.params.id }).populate("sclassName", "sclassName");
+//         console.log("Students Fetched:", students);
+//         res.send(students);
+//     } catch (err) {
+//         console.error("Error fetching students:", err);
+//         res.status(500).json(err);
+//     }
+// };
+
 const getStudents = async (req, res) => {
     try {
-        console.log("Fetching students for school:", req.params.id);
-        let students = await Student.find({ school: req.params.id }).populate("sclassName", "sclassName");
-        console.log("Students Fetched:", students);
-        res.send(students);
+        console.log("🔹 Fetching all students...");
+
+        let students = await Student.find(); 
+
+        console.log("🔹 Students Found:", students);
+
+        if (students.length === 0) {
+            return res.status(404).json({ message: "No students found" });
+        }
+
+        res.status(200).json(students); 
     } catch (err) {
-        console.error("Error fetching students:", err);
-        res.status(500).json(err);
+        console.error("❌ Error fetching students:", err);
+        res.status(500).json({ message: "Internal Server Error", error: err.message });
     }
 };
 

@@ -4,7 +4,8 @@ const cors = require('cors');
 const dotenv = require('dotenv');
 const bodyParser = require('body-parser');
 const teacherRoutes = require('./routes/teacherRoutes');
-const studentRoutes = require('./routes/studentRoutes'); // ✅ Import the new route
+const studentRoutes = require('./routes/studentRoutes');
+const subjectRoutes = require('./routes/route'); // ✅ Import subject routes
 
 dotenv.config();
 
@@ -26,7 +27,8 @@ mongoose.connect(process.env.MONGO_URL, {
 
 // ✅ Register Routes
 app.use('/api/teachers', teacherRoutes);
-app.use('/api/students', studentRoutes); // ✅ Add student routes
+app.use('/api/students', studentRoutes);
+app.use('/api', subjectRoutes); // ✅ Register subject routes
 
 // Root Route
 app.get('/', (req, res) => {

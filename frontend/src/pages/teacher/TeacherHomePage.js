@@ -3,7 +3,16 @@ import SeeNotice from '../../components/SeeNotice';
 import Students from "../../assets/img1.png";
 import Classes from "../../assets/img2.png";
 import Teachers from "../../assets/img3.png";
-
+// Recharts imports
+// import {
+//     BarChart,
+//     Bar,
+//     XAxis,
+//     YAxis,
+//     Tooltip,
+//     Legend,
+//     ResponsiveContainer,
+//   } from "recharts";
 import styled from 'styled-components';
 import CountUp from 'react-countup';
 import { useDispatch, useSelector } from 'react-redux';

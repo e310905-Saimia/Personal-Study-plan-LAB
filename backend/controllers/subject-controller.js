@@ -1,58 +1,33 @@
 const Subject = require('../models/subjectSchema.js');
-const Teacher = require('../models/teacherSchema.js');
-const Student = require('../models/studentSchema.js');
 
-// ✅ Create Subjects
+// ✅ Create a Subject (Only Name & Credits)
 const subjectCreate = async (req, res) => {
     try {
-        const subjects = req.body.subjects.map((subject) => ({
-            subName: subject.subName,
-            subCode: subject.subCode,
-            sessions: subject.sessions,
-        }));
+        let { name, credits } = req.body;
 
-        const existingSubjectBySubCode = await Subject.findOne({
-            subCode: subjects[0].subCode,
-            school: req.body.teacherID,
-        });
-
-        if (existingSubjectBySubCode) {
-            return res.status(400).json({ message: '❌ Sorry, this subcode already exists' });
+        if (!name || !credits) {
+            return res.status(400).json({ message: "Name and credits are required" });
         }
 
-        const newSubjects = subjects.map((subject) => ({
-            ...subject,
-            sclassName: req.body.sclassName,
-            school: req.body.teacherID,
-        }));
+        // ✅ Create and save the subject
+        const newSubject = new Subject({ name, credits });
+        await newSubject.save();
 
-        const result = await Subject.insertMany(newSubjects);
-        res.status(201).json(result);
-    } catch (err) {
-        console.error("❌ Error in subjectCreate:", err);
-        res.status(500).json({ error: err.message });
+        res.status(201).json({ message: "Subject added successfully!", subject: newSubject });
+    } catch (error) {
+        console.error("❌ Error in subjectCreate:", error);
+        res.status(500).json({ error: error.message });
     }
 };
 
-// ✅ Get Free Subjects
-const freeSubjectList = async (req, res) => {
+// ✅ Get All Subjects
+const allSubjects = async (req, res) => {
     try {
-        const freeSubjects = await Subject.find({ teacher: null });
-        res.status(200).json(freeSubjects);
-    } catch (err) {
-        console.error("❌ Error in freeSubjectList:", err);
-        res.status(500).json({ error: err.message });
-    }
-};
-
-// ✅ Get Subjects by Class
-const classSubjects = async (req, res) => {
-    try {
-        const subjects = await Subject.find({ sclassName: req.params.id });
+        const subjects = await Subject.find();
         res.status(200).json(subjects);
-    } catch (err) {
-        console.error("❌ Error in classSubjects:", err);
-        res.status(500).json({ error: err.message });
+    } catch (error) {
+        console.error("❌ Error in allSubjects:", error);
+        res.status(500).json({ error: error.message });
     }
 };
 
@@ -64,35 +39,34 @@ const getSubjectDetail = async (req, res) => {
             return res.status(404).json({ message: 'Subject not found' });
         }
         res.status(200).json(subject);
-    } catch (err) {
-        console.error("❌ Error in getSubjectDetail:", err);
-        res.status(500).json({ error: err.message });
+    } catch (error) {
+        console.error("❌ Error in getSubjectDetail:", error);
+        res.status(500).json({ error: error.message });
     }
 };
 
-// ✅ Delete Subjects by Class
-const deleteSubjectsByClass = async (req, res) => {
+const updateSubject = async (req, res) => {
     try {
-        const result = await Subject.deleteMany({ sclassName: req.params.id });
-        res.status(200).json({ message: `${result.deletedCount} subjects deleted successfully` });
-    } catch (err) {
-        console.error("❌ Error in deleteSubjectsByClass:", err);
-        res.status(500).json({ error: err.message });
+        const { name, credits } = req.body;
+
+        const updatedSubject = await Subject.findByIdAndUpdate(
+            req.params.id,
+            { name, credits },
+            { new: true, runValidators: true }
+        );
+
+        if (!updatedSubject) {
+            return res.status(404).json({ message: 'Subject not found' });
+        }
+
+        res.status(200).json({ message: 'Subject updated successfully', subject: updatedSubject });
+    } catch (error) {
+        console.error("❌ Error in updateSubject:", error);
+        res.status(500).json({ error: error.message });
     }
 };
 
-// ✅ Delete All Subjects
-const deleteSubjects = async (req, res) => {
-    try {
-        const result = await Subject.deleteMany({});
-        res.status(200).json({ message: `${result.deletedCount} subjects deleted successfully` });
-    } catch (err) {
-        console.error("❌ Error in deleteSubjects:", err);
-        res.status(500).json({ error: err.message });
-    }
-};
-
-// ✅ Delete a Single Subject
+// ✅ Delete Subject
 const deleteSubject = async (req, res) => {
     try {
         const subject = await Subject.findByIdAndDelete(req.params.id);
@@ -100,30 +74,11 @@ const deleteSubject = async (req, res) => {
             return res.status(404).json({ message: 'Subject not found' });
         }
         res.status(200).json({ message: 'Subject deleted successfully' });
-    } catch (err) {
-        console.error("❌ Error in deleteSubject:", err);
-        res.status(500).json({ error: err.message });
+    } catch (error) {
+        console.error("❌ Error in deleteSubject:", error);
+        res.status(500).json({ error: error.message });
     }
 };
 
-// ✅ Get All Subjects
-const allSubjects = async (req, res) => {
-    try {
-        const subjects = await Subject.find();
-        res.status(200).json(subjects);
-    } catch (err) {
-        console.error("❌ Error in allSubjects:", err);
-        res.status(500).json({ error: err.message });
-    }
-};
 
-module.exports = {
-    subjectCreate,
-    freeSubjectList,
-    classSubjects,
-    getSubjectDetail,
-    deleteSubjectsByClass,
-    deleteSubjects,
-    deleteSubject,
-    allSubjects,
-};
+module.exports = { subjectCreate, allSubjects, getSubjectDetail,updateSubject, deleteSubject, };

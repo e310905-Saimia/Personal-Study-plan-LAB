@@ -1,119 +1,122 @@
 import React, { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate } from "react-router-dom";
-import { getSubjectList } from '../../../redux/sclassRelated/sclassHandle';
-// import { deleteUser } from '../../../redux/userRelated/userHandle';
-import PostAddIcon from '@mui/icons-material/PostAdd';
+import { getSubjectList, updateSubject, deleteSubject } from '../../../redux/subjectrelated/subjectHandle';
 import {
-    Paper, Box, IconButton,
+    Paper, Box, Button, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TextField, Dialog, DialogActions, DialogContent, DialogTitle
 } from '@mui/material';
-import DeleteIcon from "@mui/icons-material/Delete";
-import TableTemplate from '../../../components/TableTemplate';
-import { BlueButton, GreenButton } from '../../../components/buttonStyles';
-import SpeedDialTemplate from '../../../components/SpeedDialTemplate';
-import Popup from '../../../components/Popup';
 
 const ShowSubjects = () => {
-    const navigate = useNavigate()
+    const navigate = useNavigate();
     const dispatch = useDispatch();
-    const { subjectsList = [], loading, error, response } = useSelector((state) => state.sclass);
-    const { currentUser } = useSelector(state => state.user)
-
-    // useEffect(() => {
-    //     dispatch(getSubjectList(currentUser._id, "AllSubjects"));
-    // }, [currentUser._id, dispatch]);
+    const { subjects = [], loading } = useSelector((state) => state.subject);
 
     useEffect(() => {
-        if (currentUser?._id) {  
-            dispatch(getSubjectList(currentUser._id, "AllSubjects"));
-        }
-    }, [currentUser?._id, dispatch]);
-    
-    if (error) {
-        console.log(error);
-    }
+        dispatch(getSubjectList());
+    }, [dispatch]);
 
-    const [showPopup, setShowPopup] = useState(false);
-    const [message, setMessage] = useState("");
+    // ✅ State for Editing
+    const [open, setOpen] = useState(false);
+    const [editSubject, setEditSubject] = useState({ id: "", name: "", credits: "" });
 
-    const deleteHandler = (deleteID, address) => {
-        console.log(deleteID);
-        console.log(address);
-        setMessage("Sorry the delete function has been disabled for now.")
-        setShowPopup(true)
-
-        // dispatch(deleteUser(deleteID, address))
-        //     .then(() => {
-        //         dispatch(getSubjectList(currentUser._id, "AllSubjects"));
-        //     })
-    }
-
-    const subjectColumns = [
-        { id: 'subName', label: 'Sub Name', minWidth: 170 },
-        { id: 'sessions', label: 'Sessions', minWidth: 170 },
-        { id: 'sclassName', label: 'Class', minWidth: 170 },
-    ]
-
-    const subjectRows = subjectsList.map((subject) => {
-        return {
-            subName: subject.subName,
-            sessions: subject.sessions,
-            sclassName: subject.sclassName.sclassName,
-            sclassID: subject.sclassName._id,
-            id: subject._id,
-        };
-    })
-
-    const SubjectsButtonHaver = ({ row }) => {
-        return (
-            <>
-                <IconButton onClick={() => deleteHandler(row.id, "Subject")}>
-                    <DeleteIcon color="error" />
-                </IconButton>
-                <BlueButton variant="contained"
-                    onClick={() => navigate(`/Teacher/subjects/subject/${row.sclassID}/${row.id}`)}>
-                    View
-                </BlueButton>
-            </>
-        );
+    // ✅ Open Edit Dialog
+    const handleEdit = (subject) => {
+        setEditSubject({ id: subject._id, name: subject.name, credits: subject.credits });
+        setOpen(true);
     };
 
-    const actions = [
-        {
-            icon: <PostAddIcon color="primary" />, name: 'Add New Subject',
-            action: () => navigate("/Teacher/subjects/chooseclass")
-        },
-        {
-            icon: <DeleteIcon color="error" />, name: 'Delete All Subjects',
-            action: () => deleteHandler(currentUser._id, "Subjects")
+    // ✅ Close Edit Dialog
+    const handleClose = () => {
+        setOpen(false);
+    };
+
+    // ✅ Submit Edit
+    const handleSubmitEdit = () => {
+        dispatch(updateSubject(editSubject.id, { name: editSubject.name, credits: editSubject.credits }));
+        setOpen(false);
+    };
+
+    // ✅ Handle Delete
+    const handleDelete = (subjectID) => {
+        if (window.confirm("Are you sure you want to delete this subject?")) {
+            dispatch(deleteSubject(subjectID));
         }
-    ];
+    };
 
     return (
         <>
-            {loading ?
-                <div>Loading...</div>
-                :
+            {loading ? <div>Loading...</div> : (
                 <>
-                    {response ?
-                        <Box sx={{ display: 'flex', justifyContent: 'flex-end', marginTop: '16px' }}>
-                            <GreenButton variant="contained"
-                                onClick={() => navigate("/Teacher/subjects/chooseclass")}>
-                                Add Subjects
-                            </GreenButton>
-                        </Box>
-                        :
-                        <Paper sx={{ width: '100%', overflow: 'hidden' }}>
-                            {Array.isArray(subjectsList) && subjectsList.length > 0 &&
-                                <TableTemplate buttonHaver={SubjectsButtonHaver} columns={subjectColumns} rows={subjectRows} />
-                            }
-                            <SpeedDialTemplate actions={actions} />
-                        </Paper>
-                    }
-                </>
-            }
-            <Popup message={message} setShowPopup={setShowPopup} showPopup={showPopup} />
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', marginBottom: 2 }}>
+                        <Button variant="contained" onClick={() => navigate("/Teacher/subjects/add")}>
+                            Add Subject
+                        </Button>
+                    </Box>
 
+                    <Paper sx={{ width: '100%', overflow: 'hidden' }}>
+                        <TableContainer>
+                            <Table>
+                                <TableHead>
+                                    <TableRow>
+                                        <TableCell>Topic</TableCell>
+                                        <TableCell align="right">Credits</TableCell>
+                                        <TableCell align="right">Actions</TableCell>
+                                    </TableRow>
+                                </TableHead>
+                                <TableBody>
+                                    {subjects.length > 0 ? subjects.map((subject) => (
+                                        <TableRow key={subject._id}>
+                                            <TableCell>
+                                                {subject.name}
+                                            </TableCell>
+                                            <TableCell align="right">{subject.credits}</TableCell>
+                                            <TableCell align="right">
+                                                {/* ✅ Edit Button */}
+                                                <Button variant="outlined" onClick={() => handleEdit(subject)}>Edit</Button>
+                                                &nbsp;
+                                                {/* ✅ Delete Button */}
+                                                <Button variant="outlined" color="error" onClick={() => handleDelete(subject._id)}>Delete</Button>
+                                            </TableCell>
+                                        </TableRow>
+                                    )) : (
+                                        <TableRow>
+                                            <TableCell colSpan={3} align="center">
+                                                No subjects found.
+                                            </TableCell>
+                                        </TableRow>
+                                    )}
+                                </TableBody>
+                            </Table>
+                        </TableContainer>
+                    </Paper>
+                </>
+            )}
+
+            {/* ✅ Edit Dialog */}
+            <Dialog open={open} onClose={handleClose}>
+                <DialogTitle>Edit Subject</DialogTitle>
+                <DialogContent>
+                    <TextField
+                        fullWidth
+                        label="Subject Name"
+                        margin="dense"
+                        value={editSubject.name}
+                        onChange={(e) => setEditSubject({ ...editSubject, name: e.target.value })}
+                    />
+                    <TextField
+                        fullWidth
+                        label="Credits"
+                        margin="dense"
+                        type="number"
+                        value={editSubject.credits}
+                        onChange={(e) => setEditSubject({ ...editSubject, credits: e.target.value })}
+                    />
+                </DialogContent>
+                <DialogActions>
+                    <Button onClick={handleClose}>Cancel</Button>
+                    <Button onClick={handleSubmitEdit} color="primary">Save</Button>
+                </DialogActions>
+            </Dialog>
         </>
     );
 };

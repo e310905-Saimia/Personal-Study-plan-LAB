@@ -1,6 +1,6 @@
 import React, { useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { getSubjectList } from "../../redux/sclassRelated/sclassHandle"; // ✅ Ensure correct import
+import { getSubjectList } from "../../redux/subjectrelated/subjectHandle"; // ✅ Ensure correct import
 
 const StudentSubjects = () => {
     const dispatch = useDispatch();

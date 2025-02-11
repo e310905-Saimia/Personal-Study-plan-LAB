@@ -1,183 +1,59 @@
-import React, { useEffect, useState } from "react";
-import { Button, TextField, Grid, Box, Typography, CircularProgress } from "@mui/material";
-import { useNavigate, useParams } from 'react-router-dom';
-import { useDispatch, useSelector } from 'react-redux';
-import { addStuff } from '../../../redux/userRelated/userHandle';
-import { underControl } from '../../../redux/userRelated/userSlice';
-import Popup from '../../../components/Popup';
+import React, { useState } from 'react';
+import { useDispatch } from 'react-redux';
+import { addSubject } from '../../../redux/subjectrelated/subjectHandle';
+import { useNavigate } from 'react-router-dom';
+import { Button, TextField, Box, Paper, Typography } from '@mui/material';
 
 const SubjectForm = () => {
-    const [subjects, setSubjects] = useState([{ subName: "", subCode: "", sessions: "" }]);
+    const dispatch = useDispatch();
+    const navigate = useNavigate();
+    const [subjectName, setSubjectName] = useState('');
+    const [credits, setCredits] = useState('');
 
-    const dispatch = useDispatch()
-    const navigate = useNavigate()
-    const params = useParams()
-
-    const userState = useSelector(state => state.user);
-    const { status, currentUser, response, error } = userState;
-
-    const sclassName = params.id
-    const teacherID = currentUser._id
-    const address = "Subject"
-
-    const [showPopup, setShowPopup] = useState(false);
-    const [message, setMessage] = useState("");
-    const [loader, setLoader] = useState(false)
-
-    const handleSubjectNameChange = (index) => (event) => {
-        const newSubjects = [...subjects];
-        newSubjects[index].subName = event.target.value;
-        setSubjects(newSubjects);
-    };
-
-    const handleSubjectCodeChange = (index) => (event) => {
-        const newSubjects = [...subjects];
-        newSubjects[index].subCode = event.target.value;
-        setSubjects(newSubjects);
-    };
-
-    const handleSessionsChange = (index) => (event) => {
-        const newSubjects = [...subjects];
-        newSubjects[index].sessions = event.target.value || 0;
-        setSubjects(newSubjects);
-    };
-
-    const handleAddSubject = () => {
-        setSubjects([...subjects, { subName: "", subCode: "" }]);
-    };
-
-    const handleRemoveSubject = (index) => () => {
-        const newSubjects = [...subjects];
-        newSubjects.splice(index, 1);
-        setSubjects(newSubjects);
-    };
-
-    const fields = {
-        sclassName,
-        subjects: subjects.map((subject) => ({
-            subName: subject.subName,
-            subCode: subject.subCode,
-            sessions: subject.sessions,
-        })),
-        teacherID,
-    };
-
-    const submitHandler = (event) => {
+    const handleSubmit = (event) => {
         event.preventDefault();
-        setLoader(true)
-        dispatch(addStuff(fields, address))
-    };
+        if (!subjectName || !credits) {
+            alert('Please enter subject name and credits.');
+            return;
+        }
 
-    useEffect(() => {
-        if (status === 'added') {
-            navigate("/Teacher/subjects");
-            dispatch(underControl())
-            setLoader(false)
-        }
-        else if (status === 'failed') {
-            setMessage(response)
-            setShowPopup(true)
-            setLoader(false)
-        }
-        else if (status === 'error') {
-            setMessage("Network Error")
-            setShowPopup(true)
-            setLoader(false)
-        }
-    }, [status, navigate, error, response, dispatch]);
+        const newSubject = { name: subjectName, credits: parseInt(credits, 10) };
+        dispatch(addSubject(newSubject))
+            .then(() => navigate('/Teacher/dashboard/subjects')) // Redirect after adding
+            .catch((error) => console.error('Error adding subject:', error));
+    };
 
     return (
-        <form onSubmit={submitHandler}>
-            <Box mb={2}>
-                <Typography variant="h6" >Add Subjects</Typography>
-            </Box>
-            <Grid container spacing={2}>
-                {subjects.map((subject, index) => (
-                    <React.Fragment key={index}>
-                        <Grid item xs={6}>
-                            <TextField
-                                fullWidth
-                                label="Subject Name"
-                                variant="outlined"
-                                value={subject.subName}
-                                onChange={handleSubjectNameChange(index)}
-                                sx={styles.inputField}
-                                required
-                            />
-                        </Grid>
-                        <Grid item xs={4}>
-                            <TextField
-                                fullWidth
-                                label="Subject Code"
-                                variant="outlined"
-                                value={subject.subCode}
-                                onChange={handleSubjectCodeChange(index)}
-                                sx={styles.inputField}
-                                required
-                            />
-                        </Grid>
-                        <Grid item xs={4}>
-                            <TextField
-                                fullWidth
-                                label="Sessions"
-                                variant="outlined"
-                                type="number"
-                                inputProps={{ min: 0 }}
-                                value={subject.sessions}
-                                onChange={handleSessionsChange(index)}
-                                sx={styles.inputField}
-                                required
-                            />
-                        </Grid>
-                        <Grid item xs={6}>
-                            <Box display="flex" alignItems="flex-end">
-                                {index === 0 ? (
-                                    <Button
-                                        variant="outlined"
-                                        color="primary"
-                                        onClick={handleAddSubject}
-                                    >
-                                        Add Subject
-                                    </Button>
-                                ) : (
-                                    <Button
-                                        variant="outlined"
-                                        color="error"
-                                        onClick={handleRemoveSubject(index)}
-                                    >
-                                        Remove
-                                    </Button>
-                                )}
-                            </Box>
-                        </Grid>
-                    </React.Fragment>
-                ))}
-                <Grid item xs={12}>
-                    <Box display="flex" justifyContent="flex-end">
-                        <Button variant="contained" color="primary" type="submit" disabled={loader}>
-                            {loader ? (
-                                <CircularProgress size={24} color="inherit" />
-                            ) : (
-                                'Save'
-                            )}
-                        </Button>
-                    </Box>
-                </Grid>
-                <Popup message={message} setShowPopup={setShowPopup} showPopup={showPopup} />
-            </Grid>
-        </form>
+        <Paper sx={{ padding: 3, maxWidth: 500, margin: 'auto', marginTop: 5 }}>
+            <Typography variant="h5" gutterBottom>Add Subject</Typography>
+            <form onSubmit={handleSubmit}>
+                <TextField
+                    label="Subject Name"
+                    variant="outlined"
+                    fullWidth
+                    value={subjectName}
+                    onChange={(e) => setSubjectName(e.target.value)}
+                    margin="normal"
+                    required
+                />
+                <TextField
+                    label="Credits"
+                    type="number"
+                    variant="outlined"
+                    fullWidth
+                    value={credits}
+                    onChange={(e) => setCredits(e.target.value)}
+                    margin="normal"
+                    required
+                />
+                <Box sx={{ display: 'flex', justifyContent: 'flex-end', marginTop: 2 }}>
+                    <Button variant="contained" color="primary" type="submit">
+                        Save
+                    </Button>
+                </Box>
+            </form>
+        </Paper>
     );
-}
-
-export default SubjectForm
-
-const styles = {
-    inputField: {
-        '& .MuiInputLabel-root': {
-            color: '#838080',
-        },
-        '& .MuiOutlinedInput-notchedOutline': {
-            borderColor: '#838080',
-        },
-    },
 };
+
+export default SubjectForm;

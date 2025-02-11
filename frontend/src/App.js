@@ -8,6 +8,7 @@ import LoginPage from './pages/LoginPage';
 import ChooseUser from './pages/ChooseUser';
 import TeacherRegisterPage from './pages/Teacher/TeacherRegister';
 import Logout from './pages/Logout';
+import SubjectForm from './pages/Teacher/subjects/SubjectForm'; // ✅ Import SubjectForm
 
 const App = () => {
   const { currentRole } = useSelector((state) => state.user);
@@ -27,7 +28,10 @@ const App = () => {
 
       {/* Role-based Dashboards */}
       {currentRole === 'Teacher' && (
-        <Route path="/Teacher/dashboard/*" element={<TeacherDashboard />} />
+        <>
+          <Route path="/Teacher/dashboard/*" element={<TeacherDashboard />} />
+          <Route path="/Teacher/subjects/add" element={<SubjectForm />} /> {/* ✅ Add this */}
+        </>
       )}
       {currentRole === 'Student' && (
         <Route path="/Student/dashboard" element={<StudentDashboard />} />
@@ -43,6 +47,3 @@ const App = () => {
 };
 
 export default App;
-
-
-

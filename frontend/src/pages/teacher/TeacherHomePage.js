@@ -1,85 +1,89 @@
-import { Container, Grid, Paper } from '@mui/material';
-import SeeNotice from '../../components/SeeNotice';
-import Students from "../../assets/img1.png";
-import Classes from "../../assets/img2.png";
-import Teachers from "../../assets/img3.png";
-// Recharts imports
-// import {
-//     BarChart,
-//     Bar,
-//     XAxis,
-//     YAxis,
-//     Tooltip,
-//     Legend,
-//     ResponsiveContainer,
-//   } from "recharts";
-import styled from 'styled-components';
-import CountUp from 'react-countup';
-import { useDispatch, useSelector } from 'react-redux';
-import { useEffect } from 'react';
+import { Container, Grid, Paper, Typography } from "@mui/material";
+import styled from "styled-components";
+import CountUp from "react-countup";
+import { useDispatch, useSelector } from "react-redux";
+import { useEffect } from "react";
 
-// ✅ FIXED: Import unique action names and corrected functions
-import { fetchClasses as fetchSclasses } from '../../redux/sclassRelated/sclassHandle';
-import { getAllStudents } from '../../redux/studentRelated/studentHandle';
-import { getAllTeachers } from '../../redux/teacherRelated/teacherHandle';
+// ✅ Recharts imports for graph
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
+} from "recharts";
+
+import { getSubjectList } from "../../redux/subjectrelated/subjectHandle";
+import { getAllStudents } from "../../redux/studentRelated/studentHandle";
 
 const TeacherHomePage = () => {
-    const dispatch = useDispatch();
-    const { studentsList } = useSelector((state) => state.student);
-    const { classes } = useSelector((state) => state.sclass); // 
-    const { teachersList } = useSelector((state) => state.teacher);
+  const dispatch = useDispatch();
+  const studentsList = useSelector((state) => state.student?.studentsList || []); // ✅ Fixed
+  const subjectsList = useSelector((state) => state.subject?.subjectsList || []); // ✅ Fixed
 
-    const { currentUser } = useSelector(state => state.user);
-    const teacherID = currentUser?._id || ""; 
+  const { currentUser } = useSelector((state) => state.user);
+  const teacherID = currentUser?._id || "";
 
+  useEffect(() => {
+    if (teacherID) {
+      dispatch(getAllStudents(teacherID)); // Fetch students
+      dispatch(getSubjectList(teacherID)); // Fetch subjects correctly
+    }
+  }, [teacherID, dispatch]);
 
-    useEffect(() => {
-        if (teacherID) {
-            dispatch(getAllStudents(teacherID));   // Fetch students
-            dispatch(fetchSclasses(teacherID));   // Fetch classes
-            dispatch(getAllTeachers(teacherID));  // Fetch teachers
-        }
-    }, [teacherID, dispatch]);
+  const numberOfStudents = studentsList?.length || 0;
+  const numberOfSubjects = subjectsList?.length || 0;
 
-    const numberOfStudents = studentsList?.length || 0; // ✅ Added fallback for length
-    const numberOfClasses = classes?.length || 0; // ✅ Updated to match `classes` from state
-    const numberOfTeachers = teachersList?.length || 0; // ✅ Added fallback for length
+  // ✅ Chart data
+  const data = [
+    { name: "Students", count: numberOfStudents },
+    { name: "Subjects", count: numberOfSubjects },
+  ];
 
-    return (
-        <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
-            <Grid container spacing={3}>
-                <Grid item xs={12} md={4} lg={4}>
-                    <StyledPaper>
-                        <img src={Students} alt="Students" />
-                        <Title>Total Students</Title>
-                        <Data start={0} end={numberOfStudents} duration={2.5} />
-                    </StyledPaper>
-                </Grid>
-                <Grid item xs={12} md={4} lg={4}>
-                    <StyledPaper>
-                        <img src={Classes} alt="Classes" />
-                        <Title>Total Classes</Title>
-                        <Data start={0} end={numberOfClasses} duration={5} />
-                    </StyledPaper>
-                </Grid>
-                <Grid item xs={12} md={4} lg={4}>
-                    <StyledPaper>
-                        <img src={Teachers} alt="Teachers" />
-                        <Title>Total Teachers</Title>
-                        <Data start={0} end={numberOfTeachers} duration={2.5} />
-                    </StyledPaper>
-                </Grid>
-                <Grid item xs={12} md={12} lg={12}>
-                    <Paper sx={{ p: 2, display: 'flex', flexDirection: 'column' }}>
-                        <SeeNotice />
-                    </Paper>
-                </Grid>
-            </Grid>
-        </Container>
-    );
+  return (
+    <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
+      <Grid container spacing={3}>
+        {/* ✅ Summary Cards */}
+        <Grid item xs={12} md={4} lg={4}>
+          <StyledPaper>
+            <Title>Total Students</Title>
+            <Data start={0} end={numberOfStudents} duration={2.5} />
+          </StyledPaper>
+        </Grid>
+        <Grid item xs={12} md={4} lg={4}>
+          <StyledPaper>
+            <Title>Total Subjects</Title>
+            <Data start={0} end={numberOfSubjects} duration={5} />
+          </StyledPaper>
+        </Grid>
+
+        {/* ✅ Bar Chart */}
+        <Grid item xs={12} md={12} lg={12}>
+          <Paper sx={{ p: 2, display: "flex", flexDirection: "column" }}>
+            <Typography variant="h6" align="center">
+              Overview
+            </Typography>
+            <ResponsiveContainer width="100%" height={300}>
+              <BarChart data={data}>
+                <XAxis dataKey="name" />
+                <YAxis />
+                <Tooltip />
+                <Legend />
+                <Bar dataKey="count" fill="#8884d8" />
+              </BarChart>
+            </ResponsiveContainer>
+          </Paper>
+        </Grid>
+
+        
+      </Grid>
+    </Container>
+  );
 };
 
-// Styled Components
+// ✅ Styled Components
 const StyledPaper = styled(Paper)`
   padding: 16px;
   display: flex;
@@ -95,8 +99,9 @@ const Title = styled.p`
 `;
 
 const Data = styled(CountUp)`
-  font-size: calc(1.3rem + .6vw);
+  font-size: calc(1.3rem + 0.6vw);
   color: green;
 `;
 
 export default TeacherHomePage;
+

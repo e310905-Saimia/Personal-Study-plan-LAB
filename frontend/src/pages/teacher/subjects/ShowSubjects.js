@@ -1,10 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate } from "react-router-dom";
-import { getSubjectList, updateSubject, deleteSubject } from '../../../redux/subjectrelated/subjectHandle';
+import { getSubjectList, updateSubject, deleteSubject, addOutcome } from '../../../redux/subjectrelated/subjectHandle';
 import {
-    Paper, Box, Button, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TextField, Dialog, DialogActions, DialogContent, DialogTitle
+    Paper, Box, Button, Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
+    TextField, Dialog, DialogActions, DialogContent, DialogTitle, Collapse, IconButton
 } from '@mui/material';
+import { ExpandMore, ExpandLess } from '@mui/icons-material';
 
 const ShowSubjects = () => {
     const navigate = useNavigate();
@@ -15,31 +17,63 @@ const ShowSubjects = () => {
         dispatch(getSubjectList());
     }, [dispatch]);
 
-    // ✅ State for Editing
-    const [open, setOpen] = useState(false);
+    // ✅ State for Expanding Outcomes
+    const [expandedSubject, setExpandedSubject] = useState(null);
+
+    // ✅ Toggle Expansion
+    const toggleExpand = (subjectID) => {
+        setExpandedSubject(expandedSubject === subjectID ? null : subjectID);
+    };
+
+    // ✅ State for Editing Subjects
+    const [openEdit, setOpenEdit] = useState(false);
     const [editSubject, setEditSubject] = useState({ id: "", name: "", credits: "" });
+
+    // ✅ State for Adding Outcomes
+    const [openOutcome, setOpenOutcome] = useState(false);
+    const [selectedSubjectID, setSelectedSubjectID] = useState(null);
+    const [newOutcome, setNewOutcome] = useState({ topic: "", project: "", credits: "" });
 
     // ✅ Open Edit Dialog
     const handleEdit = (subject) => {
         setEditSubject({ id: subject._id, name: subject.name, credits: subject.credits });
-        setOpen(true);
+        setOpenEdit(true);
     };
 
-    // ✅ Close Edit Dialog
-    const handleClose = () => {
-        setOpen(false);
+    // ✅ Open Add Outcome Dialog
+    const handleAddOutcome = (subjectID) => {
+        setSelectedSubjectID(subjectID);
+        setOpenOutcome(true);
     };
 
-    // ✅ Submit Edit
+    // ✅ Close Dialogs
+    const handleCloseEdit = () => setOpenEdit(false);
+    const handleCloseOutcome = () => setOpenOutcome(false);
+
+    // ✅ Submit Subject Edit
     const handleSubmitEdit = () => {
         dispatch(updateSubject(editSubject.id, { name: editSubject.name, credits: editSubject.credits }));
-        setOpen(false);
+        setOpenEdit(false);
+    };
+
+    // ✅ Submit New Outcome
+    const handleSubmitOutcome = () => {
+        if (!newOutcome.topic || !newOutcome.project || !newOutcome.credits) {
+            alert("Please fill all fields!");
+            return;
+        }
+
+        dispatch(addOutcome(selectedSubjectID, newOutcome))
+            .then(() => dispatch(getSubjectList())); // Refresh subjects after adding an outcome
+        setOpenOutcome(false);
+        setNewOutcome({ topic: "", project: "", credits: "" }); // Reset input fields
     };
 
     // ✅ Handle Delete
     const handleDelete = (subjectID) => {
         if (window.confirm("Are you sure you want to delete this subject?")) {
-            dispatch(deleteSubject(subjectID));
+            dispatch(deleteSubject(subjectID))
+                .then(() => dispatch(getSubjectList())); // Refresh subjects after delete
         }
     };
 
@@ -58,6 +92,7 @@ const ShowSubjects = () => {
                             <Table>
                                 <TableHead>
                                     <TableRow>
+                                        <TableCell> </TableCell> {/* Left-side toggle button */}
                                         <TableCell>Topic</TableCell>
                                         <TableCell align="right">Credits</TableCell>
                                         <TableCell align="right">Actions</TableCell>
@@ -65,22 +100,71 @@ const ShowSubjects = () => {
                                 </TableHead>
                                 <TableBody>
                                     {subjects.length > 0 ? subjects.map((subject) => (
-                                        <TableRow key={subject._id}>
-                                            <TableCell>
-                                                {subject.name}
-                                            </TableCell>
-                                            <TableCell align="right">{subject.credits}</TableCell>
-                                            <TableCell align="right">
-                                                {/* ✅ Edit Button */}
-                                                <Button variant="outlined" onClick={() => handleEdit(subject)}>Edit</Button>
-                                                &nbsp;
-                                                {/* ✅ Delete Button */}
-                                                <Button variant="outlined" color="error" onClick={() => handleDelete(subject._id)}>Delete</Button>
-                                            </TableCell>
-                                        </TableRow>
+                                        <React.Fragment key={subject._id}>
+                                            {/* ✅ Subject Row */}
+                                            <TableRow>
+                                                <TableCell>
+                                                    <IconButton onClick={() => toggleExpand(subject._id)}>
+                                                        {expandedSubject === subject._id ? <ExpandLess /> : <ExpandMore />}
+                                                    </IconButton>
+                                                </TableCell>
+                                                <TableCell 
+                                                    sx={{ textDecoration: 'underline', color: 'blue', cursor: 'pointer' }}
+                                                    onClick={() => toggleExpand(subject._id)}
+                                                >
+                                                    {subject.name}
+                                                </TableCell>
+                                                <TableCell align="right">{subject.credits}</TableCell>
+                                                <TableCell align="right">
+                                                    <Button variant="outlined" onClick={() => handleEdit(subject)}>EDIT</Button>
+                                                    &nbsp;
+                                                    <Button variant="outlined" color="error" onClick={() => handleDelete(subject._id)}>DELETE</Button>
+                                                </TableCell>
+                                            </TableRow>
+
+                                            {/* ✅ Collapsible Outcomes Section */}
+                                            <TableRow>
+                                                <TableCell colSpan={4} sx={{ padding: 0, border: "none" }}>
+                                                    <Collapse in={expandedSubject === subject._id} timeout="auto" unmountOnExit>
+                                                        <Box sx={{ margin: 2, padding: 2, background: "#f5f5f5", borderRadius: 2 }}>
+                                                            <strong>Outcomes:</strong>
+                                                            <Button
+                                                                variant="contained"
+                                                                size="small"
+                                                                sx={{ marginLeft: 2, marginBottom: 1 }}
+                                                                onClick={() => handleAddOutcome(subject._id)}
+                                                            >
+                                                                + Add Outcome
+                                                            </Button>
+                                                            <TableContainer>
+                                                                <Table>
+                                                                    <TableHead>
+                                                                        <TableRow>
+                                                                            <TableCell>Topic</TableCell>
+                                                                            <TableCell>Projects</TableCell>
+                                                                            <TableCell>Credits</TableCell>
+                                                                        </TableRow>
+                                                                    </TableHead>
+                                                                    <TableBody>
+                                                                        {subject.outcomes.map((outcome, index) => (
+                                                                            <TableRow key={index}>
+                                                                                <TableCell>{outcome.topic}</TableCell>
+                                                                                <TableCell>{outcome.project}</TableCell>
+                                                                                <TableCell>{outcome.credits}</TableCell>
+                                                                                
+                                                                            </TableRow>
+                                                                        ))}
+                                                                    </TableBody>
+                                                                </Table>
+                                                            </TableContainer>
+                                                        </Box>
+                                                    </Collapse>
+                                                </TableCell>
+                                            </TableRow>
+                                        </React.Fragment>
                                     )) : (
                                         <TableRow>
-                                            <TableCell colSpan={3} align="center">
+                                            <TableCell colSpan={4} align="center">
                                                 No subjects found.
                                             </TableCell>
                                         </TableRow>
@@ -93,7 +177,7 @@ const ShowSubjects = () => {
             )}
 
             {/* ✅ Edit Dialog */}
-            <Dialog open={open} onClose={handleClose}>
+            <Dialog open={openEdit} onClose={handleCloseEdit}>
                 <DialogTitle>Edit Subject</DialogTitle>
                 <DialogContent>
                     <TextField
@@ -113,8 +197,22 @@ const ShowSubjects = () => {
                     />
                 </DialogContent>
                 <DialogActions>
-                    <Button onClick={handleClose}>Cancel</Button>
+                    <Button onClick={handleCloseEdit}>Cancel</Button>
                     <Button onClick={handleSubmitEdit} color="primary">Save</Button>
+                </DialogActions>
+            </Dialog>
+
+            {/* ✅ Add Outcome Dialog */}
+            <Dialog open={openOutcome} onClose={handleCloseOutcome}>
+                <DialogTitle>Add Outcome</DialogTitle>
+                <DialogContent>
+                    <TextField label="Topic" fullWidth margin="dense" onChange={(e) => setNewOutcome({ ...newOutcome, topic: e.target.value })} />
+                    <TextField label="Project" fullWidth margin="dense" onChange={(e) => setNewOutcome({ ...newOutcome, project: e.target.value })} />
+                    <TextField label="Credits" type="number" fullWidth margin="dense" onChange={(e) => setNewOutcome({ ...newOutcome, credits: e.target.value })} />
+                </DialogContent>
+                <DialogActions>
+                    <Button onClick={handleCloseOutcome}>Cancel</Button>
+                    <Button onClick={handleSubmitOutcome} color="primary">Save</Button>
                 </DialogActions>
             </Dialog>
         </>
@@ -122,3 +220,4 @@ const ShowSubjects = () => {
 };
 
 export default ShowSubjects;
+

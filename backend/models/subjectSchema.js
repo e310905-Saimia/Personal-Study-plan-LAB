@@ -1,14 +1,21 @@
 const mongoose = require('mongoose');
 
+const outcomeSchema = new mongoose.Schema({
+    topic: String,
+    project: String,
+    credits: Number,
+});
+
 const subjectSchema = new mongoose.Schema({
-    name: { 
+    name: {
         type: String,
-        required: true,
+        required: true
     },
     credits: {
         type: Number,
-        required: true,
-    }
+        required: true
+    },
+    outcomes: [outcomeSchema]  
 });
 
 module.exports = mongoose.model("Subject", subjectSchema);

@@ -39,6 +39,7 @@ import { getSubjectList } from "../../redux/subjectrelated/subjectHandle";
 
 import { getAllStudents } from "../../redux/studentRelated/studentHandle";
 import { getAllTeachers } from "../../redux/teacherRelated/teacherHandle";
+import TeacherHomePage from "./TeacherHomepage";
 
 const TeacherDashboard = () => {
   const [open, setOpen] = useState(false);
@@ -73,7 +74,7 @@ const TeacherDashboard = () => {
   // Chart data
   const data = [
     { name: "Students", count: studentsList?.length || 0 },
-    { name: "Classes", count: classes?.length || 0 },
+    { name: "Subjects", count: classes?.length || 0 },
     // { name: "Teachers", count: teachersList?.length || 0 },
   ];
 
@@ -101,7 +102,7 @@ const TeacherDashboard = () => {
             noWrap
             sx={{ flexGrow: 1 }}
           >
-            Teacher Dashboard
+            Teacher
           </Typography>
           <AccountMenu />
         </Toolbar>
@@ -145,7 +146,7 @@ const TeacherDashboard = () => {
             }
           />
           <Route path="profile" element={<TeacherProfile />} />
-          <Route path="home" element={<TeacherProfile />} />
+          <Route path="home" element={<TeacherHomePage />} />
           <Route path="addstudents" element={<AddStudent />} />
           <Route path="students" element={<ShowStudents />} />
           <Route path="addnotice" element={<AddNotice />} />
@@ -172,3 +173,4 @@ const styles = {
     padding: "16px",
   },
 };
+

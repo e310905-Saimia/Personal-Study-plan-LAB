@@ -38,10 +38,20 @@ export const importSubjects = (formData) => async (dispatch) => {
     }
 };
 
+// export const getSubjectList = () => async (dispatch) => {
+//     dispatch(getRequest());
+//     try {
+//         const response = await axios.get(API_BASE_URL);
+//         dispatch(getSuccess(response.data));
+//     } catch (error) {
+//         dispatch(getFailed(error.response?.data?.message || "Failed to fetch subjects"));
+//     }
+// };
+
 export const getSubjectList = () => async (dispatch) => {
     dispatch(getRequest());
     try {
-        const response = await axios.get(API_BASE_URL);
+        const response = await axios.get("http://localhost:5000/api/subjects");
         dispatch(getSuccess(response.data));
     } catch (error) {
         dispatch(getFailed(error.response?.data?.message || "Failed to fetch subjects"));
@@ -66,6 +76,37 @@ export const deleteSubject = (subjectID) => async (dispatch) => {
         dispatch(getSubjectList()); // Refresh list
     } catch (error) {
         console.error("Error deleting subject:", error);
+        dispatch(getFailed(error.message));
+    }
+};
+
+export const addOutcome = (subjectID, outcomeData) => async (dispatch) => {
+    try {
+        const response = await axios.post(`http://localhost:5000/api/subjects/${subjectID}/outcomes`, outcomeData);
+        dispatch(getSubjectList()); 
+        return response.data;
+    } catch (error) {
+        console.error("Error adding outcome:", error);
+        dispatch(getFailed(error.message));
+    }
+};
+
+export const updateOutcome = (subjectID, outcomeID, updatedOutcome) => async (dispatch) => {
+    try {
+        await axios.put(`${API_BASE_URL}/${subjectID}/outcomes/${outcomeID}`, updatedOutcome);
+        dispatch(getSubjectList());
+    } catch (error) {
+        console.error("Error updating outcome:", error);
+        dispatch(getFailed(error.message));
+    }
+};
+
+export const deleteOutcome = (subjectID, outcomeID) => async (dispatch) => {
+    try {
+        await axios.delete(`${API_BASE_URL}/${subjectID}/outcomes/${outcomeID}`);
+        dispatch(getSubjectList());
+    } catch (error) {
+        console.error("Error deleting outcome:", error);
         dispatch(getFailed(error.message));
     }
 };

@@ -80,5 +80,56 @@ const deleteSubject = async (req, res) => {
     }
 };
 
+const addOutcome = async (req, res) => {
+    try {
+        const { topic, project, credits } = req.body;
+        const subject = await Subject.findById(req.params.id);
+        if (!subject) return res.status(404).json({ message: "Subject not found" });
 
-module.exports = { subjectCreate, allSubjects, getSubjectDetail,updateSubject, deleteSubject, };
+        subject.outcomes.push({ topic, project, credits });
+        await subject.save();
+        res.status(201).json({ message: "Outcome added successfully", subject });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+};
+
+// ✅ Update an outcome
+const updateOutcome = async (req, res) => {
+    try {
+        const { topic, project, credits } = req.body;
+        const subject = await Subject.findById(req.params.subjectID);
+        if (!subject) return res.status(404).json({ message: "Subject not found" });
+
+        const outcome = subject.outcomes.id(req.params.outcomeID);
+        if (!outcome) return res.status(404).json({ message: "Outcome not found" });
+
+        outcome.topic = topic;
+        outcome.project = project;
+        outcome.credits = credits;
+        await subject.save();
+
+        res.status(200).json({ message: "Outcome updated successfully", subject });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+};
+
+// ✅ Delete an outcome
+const deleteOutcome = async (req, res) => {
+    try {
+        const subject = await Subject.findById(req.params.subjectID);
+        if (!subject) return res.status(404).json({ message: "Subject not found" });
+
+        subject.outcomes = subject.outcomes.filter(outcome => outcome._id.toString() !== req.params.outcomeID);
+        await subject.save();
+
+        res.status(200).json({ message: "Outcome deleted successfully", subject });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+};
+
+
+
+module.exports = { subjectCreate, allSubjects, getSubjectDetail,updateSubject, deleteSubject, addOutcome, updateOutcome, deleteOutcome};

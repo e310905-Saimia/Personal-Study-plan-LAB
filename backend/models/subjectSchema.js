@@ -4,6 +4,7 @@ const outcomeSchema = new mongoose.Schema({
     topic: String,
     project: String,
     credits: Number,
+    requirements: [String]
 });
 
 const subjectSchema = new mongoose.Schema({

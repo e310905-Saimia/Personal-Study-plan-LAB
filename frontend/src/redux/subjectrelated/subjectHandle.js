@@ -25,18 +25,7 @@ export const getSubjectDetails = (subjectID) => async () => {
     }
 };
 
-export const importSubjects = (formData) => async (dispatch) => {
-    dispatch(getRequest());
-    try {
-        await axios.post(`${API_BASE_URL}/import`, formData, {
-            headers: { "Content-Type": "multipart/form-data" }
-        });
-        dispatch(getSubjectList()); // ✅ Refresh subject list
-    } catch (error) {
-        console.error("Error importing subjects:", error);
-        dispatch(getFailed(error.message));
-    }
-};
+
 
 // export const getSubjectList = () => async (dispatch) => {
 //     dispatch(getRequest());
@@ -110,3 +99,29 @@ export const deleteOutcome = (subjectID, outcomeID) => async (dispatch) => {
         dispatch(getFailed(error.message));
     }
 };
+
+
+
+// ✅ Add Requirement to an Outcome
+export const addRequirement = (subjectID, outcomeID, requirement) => async (dispatch) => {
+    try {
+        await axios.post(`${API_BASE_URL}/${subjectID}/outcomes/${outcomeID}/requirements`, { requirement });
+        dispatch(getSubjectList()); // Refresh list
+    } catch (error) {
+        console.error("Error adding requirement:", error);
+        dispatch(getFailed(error.message));
+    }
+};
+
+// ✅ Edit an Existing Requirement
+export const editRequirement = (subjectID, outcomeID, requirementIndex, newRequirement) => async (dispatch) => {
+    try {
+        await axios.put(`${API_BASE_URL}/${subjectID}/outcomes/${outcomeID}/requirements`, { requirementIndex, newRequirement });
+        dispatch(getSubjectList());
+    } catch (error) {
+        console.error("Error updating requirement:", error);
+        dispatch(getFailed(error.message));
+    }
+};
+
+

@@ -21,7 +21,7 @@ import { getAllStudents } from "../../redux/studentRelated/studentHandle";
 const TeacherHomePage = () => {
   const dispatch = useDispatch();
   const studentsList = useSelector((state) => state.student?.studentsList || []); // ✅ Fixed
-  const subjectsList = useSelector((state) => state.subject?.subjectsList || []); // ✅ Fixed
+  const subjectsList = useSelector((state) => state.subject?.subjects || []); // ✅ Fixed
 
   const { currentUser } = useSelector((state) => state.user);
   const teacherID = currentUser?._id || "";

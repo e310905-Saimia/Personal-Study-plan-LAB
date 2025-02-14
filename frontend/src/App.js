@@ -8,39 +8,38 @@ import LoginPage from './pages/LoginPage';
 import ChooseUser from './pages/ChooseUser';
 import TeacherRegisterPage from './pages/Teacher/TeacherRegister';
 import Logout from './pages/Logout';
-import SubjectForm from './pages/Teacher/subjects/SubjectForm'; // ✅ Import SubjectForm
+
+import ShowSubjects from './pages/Teacher/subjects/ShowSubjects';
 
 const App = () => {
   const { currentRole } = useSelector((state) => state.user);
 
   return (
     <Routes>
-      {/* Homepage and Choose User */}
+      {/* ✅ Public Routes */}
       <Route path="/" element={<Homepage />} />
       <Route path="/choose" element={<ChooseUser />} />
-
-      {/* Teacher Login and Registration */}
       <Route path="/Teacherlogin" element={<LoginPage role="Teacher" />} />
       <Route path="/Teacher/register" element={<TeacherRegisterPage />} />
-
-      {/* Student Login */}
       <Route path="/Studentlogin" element={<LoginPage role="Student" />} />
 
-      {/* Role-based Dashboards */}
+      {/* ✅ Protected Teacher Routes */}
       {currentRole === 'Teacher' && (
         <>
           <Route path="/Teacher/dashboard/*" element={<TeacherDashboard />} />
-          <Route path="/Teacher/subjects/add" element={<SubjectForm />} /> {/* ✅ Add this */}
+          <Route path="/Teacher/students/:id/subjects" element={<ShowSubjects />} /> {/* ✅ Updated Reference */}
         </>
       )}
+
+      {/* ✅ Protected Student Routes */}
       {currentRole === 'Student' && (
-        <Route path="/Student/dashboard" element={<StudentDashboard />} />
+        <Route path="/Student/dashboard/*" element={<StudentDashboard />} />
       )}
 
-      {/* Logout */}
+      {/* ✅ Logout Route */}
       <Route path="/logout" element={<Logout />} />
 
-      {/* Redirect invalid routes */}
+      {/* ✅ Catch All: Redirect to Homepage */}
       <Route path="*" element={<Navigate to="/" />} />
     </Routes>
   );

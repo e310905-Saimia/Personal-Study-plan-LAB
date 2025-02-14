@@ -130,6 +130,65 @@ const deleteOutcome = async (req, res) => {
     }
 };
 
+// ✅ Add Requirement to an Outcome
+const addRequirement = async (req, res) => {
+    try {
+        const { requirement } = req.body;
+        const subject = await Subject.findById(req.params.subjectID);
+        if (!subject) return res.status(404).json({ message: "Subject not found" });
 
+        const outcome = subject.outcomes.id(req.params.outcomeID);
+        if (!outcome) return res.status(404).json({ message: "Outcome not found" });
 
-module.exports = { subjectCreate, allSubjects, getSubjectDetail,updateSubject, deleteSubject, addOutcome, updateOutcome, deleteOutcome};
+        outcome.requirements.push(requirement);
+        await subject.save();
+
+        res.status(200).json({ message: "Requirement added successfully", subject });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+};
+
+// ✅ Edit an Existing Requirement
+const editRequirement = async (req, res) => {
+    try {
+        const { requirementIndex, newRequirement } = req.body;
+        const subject = await Subject.findById(req.params.subjectID);
+        if (!subject) return res.status(404).json({ message: "Subject not found" });
+
+        const outcome = subject.outcomes.id(req.params.outcomeID);
+        if (!outcome || requirementIndex < 0 || requirementIndex >= outcome.requirements.length) {
+            return res.status(404).json({ message: "Requirement not found" });
+        }
+
+        outcome.requirements[requirementIndex] = newRequirement;
+        await subject.save();
+
+        res.status(200).json({ message: "Requirement updated successfully", subject });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+};
+
+// ✅ Remove a Requirement
+const removeRequirement = async (req, res) => {
+    try {
+        const { requirementIndex } = req.body;
+        const subject = await Subject.findById(req.params.subjectID);
+        if (!subject) return res.status(404).json({ message: "Subject not found" });
+
+        const outcome = subject.outcomes.id(req.params.outcomeID);
+        if (!outcome || requirementIndex < 0 || requirementIndex >= outcome.requirements.length) {
+            return res.status(404).json({ message: "Requirement not found" });
+        }
+
+        outcome.requirements.splice(requirementIndex, 1);
+        await subject.save();
+
+        res.status(200).json({ message: "Requirement removed successfully", subject });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+};
+
+module.exports = { subjectCreate, allSubjects, getSubjectDetail,updateSubject, deleteSubject, addOutcome, updateOutcome, deleteOutcome, addRequirement, editRequirement, removeRequirement };

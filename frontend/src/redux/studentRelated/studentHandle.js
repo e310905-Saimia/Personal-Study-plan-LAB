@@ -23,3 +23,4 @@ export const registerUser = (userData, role) => async (dispatch) => {
         throw error;
     }
 };
+

@@ -7,27 +7,28 @@ import AssignmentIcon from '@mui/icons-material/Assignment';
 
 const StudentSideBar = () => {
     const location = useLocation();
+
     return (
         <>
             <React.Fragment>
-                <ListItemButton component={Link} to="/">
+                <ListItemButton component={Link} to="/Student/dashboard/home">
                     <ListItemIcon>
-                        <HomeIcon color={location.pathname === ("/" || "/Student/dashboard") ? 'primary' : 'inherit'} />
+                        <HomeIcon color={location.pathname === "/Student/dashboard/home" ? 'primary' : 'inherit'} />
                     </ListItemIcon>
                     <ListItemText primary="Home" />
                 </ListItemButton>
-                <ListItemButton component={Link} to="/Student/subjects">
+
+                <ListItemButton component={Link} to="/Student/dashboard/subjects">
                     <ListItemIcon>
-                        <AssignmentIcon color={location.pathname.startsWith("/Student/subjects") ? 'primary' : 'inherit'} />
+                        <AssignmentIcon color={location.pathname.startsWith("/Student/dashboard/subjects") ? 'primary' : 'inherit'} />
                     </ListItemIcon>
                     <ListItemText primary="Subjects" />
                 </ListItemButton>
-                
-                
             </React.Fragment>
+
             <Divider sx={{ my: 1 }} />
+
             <React.Fragment>
-                
                 <ListItemButton component={Link} to="/logout">
                     <ListItemIcon>
                         <ExitToAppIcon color={location.pathname.startsWith("/logout") ? 'primary' : 'inherit'} />
@@ -36,7 +37,7 @@ const StudentSideBar = () => {
                 </ListItemButton>
             </React.Fragment>
         </>
-    )
+    );
 }
 
-export default StudentSideBar
+export default StudentSideBar;

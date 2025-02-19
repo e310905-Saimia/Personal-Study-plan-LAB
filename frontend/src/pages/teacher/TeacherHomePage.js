@@ -20,16 +20,16 @@ import { getAllStudents } from "../../redux/studentRelated/studentHandle";
 
 const TeacherHomePage = () => {
   const dispatch = useDispatch();
-  const studentsList = useSelector((state) => state.student?.studentsList || []); // ✅ Fixed
-  const subjectsList = useSelector((state) => state.subject?.subjects || []); // ✅ Fixed
+  const studentsList = useSelector((state) => state.student?.studentsList || []); 
+  const subjectsList = useSelector((state) => state.subject?.subjects || []);
 
   const { currentUser } = useSelector((state) => state.user);
   const teacherID = currentUser?._id || "";
 
   useEffect(() => {
     if (teacherID) {
-      dispatch(getAllStudents(teacherID)); // Fetch students
-      dispatch(getSubjectList(teacherID)); // Fetch subjects correctly
+      dispatch(getAllStudents(teacherID)); 
+      dispatch(getSubjectList(teacherID)); 
     }
   }, [teacherID, dispatch]);
 

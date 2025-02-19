@@ -26,7 +26,7 @@ import {
   IconButton,
 } from "@mui/material";
 import { ExpandMore, ExpandLess } from "@mui/icons-material";
-
+import { uploadCSV } from "../../../redux/subjectrelated/subjectCSVHandle";
 
 
 
@@ -118,11 +118,11 @@ const ShowSubjects = () => {
   };
 
   // ✅ Handle Delete
-  const handleDelete = (subjectID) => {
-    if (window.confirm("Are you sure you want to delete this subject?")) {
-      dispatch(deleteSubject(subjectID)).then(() => dispatch(getSubjectList())); // Refresh subjects after delete
-    }
-  };
+  // const handleDelete = (subjectID) => {
+  //   if (window.confirm("Are you sure you want to delete this subject?")) {
+  //     dispatch(deleteSubject(subjectID)).then(() => dispatch(getSubjectList())); // Refresh subjects after delete
+  //   }
+  // };
 
 
   return (
@@ -131,7 +131,7 @@ const ShowSubjects = () => {
         <div>Loading...</div>
       ) : (
         <>
-          <Box
+          {/* <Box
             sx={{
               display: "flex",
               justifyContent: "space-between",
@@ -145,10 +145,15 @@ const ShowSubjects = () => {
               Add Subject
             </Button>
             
-          </Box>
+          </Box> */}
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', marginBottom: 2 }}>
+                        <Button variant="contained" onClick={() => navigate("/Teacher/subjects/add")}>
+                            Add Subject
+                        </Button>
+                    </Box>
           <Button
               variant="contained"
-              onClick={() => navigate("/Teacher/subjects/add")}
+             
             >
               Import CSV
             </Button>
@@ -200,13 +205,13 @@ const ShowSubjects = () => {
                               EDIT
                             </Button>
                             &nbsp;
-                            <Button
+                            {/* <Button
                               variant="outlined"
                               color="error"
                               onClick={() => handleDelete(subject._id)}
                             >
                               DELETE
-                            </Button>
+                            </Button> */}
                           </TableCell>
                         </TableRow>
 
@@ -370,3 +375,5 @@ const ShowSubjects = () => {
 };
 
 export default ShowSubjects;
+
+

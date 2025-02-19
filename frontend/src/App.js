@@ -10,7 +10,7 @@ import TeacherRegisterPage from './pages/Teacher/TeacherRegister';
 import Logout from './pages/Logout';
 
 import ShowSubjects from './pages/Teacher/subjects/ShowSubjects';
-
+import AddSubject from "./pages/Teacher/subjects/AddSubject";
 const App = () => {
   const { currentRole } = useSelector((state) => state.user);
 
@@ -23,11 +23,12 @@ const App = () => {
       <Route path="/Teacher/register" element={<TeacherRegisterPage />} />
       <Route path="/Studentlogin" element={<LoginPage role="Student" />} />
 
-      {/* ✅ Protected Teacher Routes */}
-      {currentRole === 'Teacher' && (
+       {/* Protected Teacher Routes */}
+       {currentRole === "Teacher" && (
         <>
           <Route path="/Teacher/dashboard/*" element={<TeacherDashboard />} />
-          <Route path="/Teacher/students/:id/subjects" element={<ShowSubjects />} /> {/* ✅ Updated Reference */}
+          <Route path="/Teacher/subjects" element={<ShowSubjects />} />
+          <Route path="/Teacher/subjects/add" element={<AddSubject />} /> {/* ✅ Route Added */}
         </>
       )}
 

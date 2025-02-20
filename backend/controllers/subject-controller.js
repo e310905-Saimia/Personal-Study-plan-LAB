@@ -15,7 +15,7 @@ const subjectCreate = async (req, res) => {
 
         res.status(201).json({ message: "Subject added successfully!", subject: newSubject });
     } catch (error) {
-        console.error("❌ Error in subjectCreate:", error);
+        console.error("Error in subjectCreate:", error);
         res.status(500).json({ error: error.message });
     }
 };
@@ -26,7 +26,7 @@ const allSubjects = async (req, res) => {
         const subjects = await Subject.find();
         res.status(200).json(subjects);
     } catch (error) {
-        console.error("❌ Error in allSubjects:", error);
+        console.error("Error in allSubjects:", error);
         res.status(500).json({ error: error.message });
     }
 };
@@ -40,7 +40,7 @@ const getSubjectDetail = async (req, res) => {
         }
         res.status(200).json(subject);
     } catch (error) {
-        console.error("❌ Error in getSubjectDetail:", error);
+        console.error("Error in getSubjectDetail:", error);
         res.status(500).json({ error: error.message });
     }
 };
@@ -61,7 +61,7 @@ const updateSubject = async (req, res) => {
 
         res.status(200).json({ message: 'Subject updated successfully', subject: updatedSubject });
     } catch (error) {
-        console.error("❌ Error in updateSubject:", error);
+        console.error("Error in updateSubject:", error);
         res.status(500).json({ error: error.message });
     }
 };
@@ -75,7 +75,7 @@ const deleteSubject = async (req, res) => {
         }
         res.status(200).json({ message: 'Subject deleted successfully' });
     } catch (error) {
-        console.error("❌ Error in deleteSubject:", error);
+        console.error("Error in deleteSubject:", error);
         res.status(500).json({ error: error.message });
     }
 };
@@ -190,5 +190,6 @@ const removeRequirement = async (req, res) => {
         res.status(500).json({ error: error.message });
     }
 };
+
 
 module.exports = { subjectCreate, allSubjects, getSubjectDetail,updateSubject, deleteSubject, addOutcome, updateOutcome, deleteOutcome, addRequirement, editRequirement, removeRequirement };

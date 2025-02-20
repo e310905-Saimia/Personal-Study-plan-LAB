@@ -5,7 +5,7 @@ const dotenv = require('dotenv');
 const bodyParser = require('body-parser');
 const teacherRoutes = require('./routes/teacherRoutes');
 const studentRoutes = require('./routes/studentRoutes');
-const subjectRoutes = require('./routes/route'); // ✅ Import subject routes
+const subjectRoutes = require('./routes/route'); 
 
 dotenv.config();
 
@@ -28,7 +28,7 @@ mongoose.connect(process.env.MONGO_URL, {
 // ✅ Register Routes
 app.use('/api/teachers', teacherRoutes);
 app.use('/api/students', studentRoutes);
-app.use('/api', subjectRoutes); // ✅ Register subject routes
+app.use('/api', subjectRoutes); 
 
 // Root Route
 app.get('/', (req, res) => {

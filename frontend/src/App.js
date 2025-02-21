@@ -8,7 +8,7 @@ import LoginPage from './pages/LoginPage';
 import ChooseUser from './pages/ChooseUser';
 import TeacherRegisterPage from './pages/Teacher/TeacherRegister';
 import Logout from './pages/Logout';
-
+import StudentProgress from "./pages/Teacher/students/StudentProgress";
 import ShowSubjects from './pages/Teacher/subjects/ShowSubjects';
 import AddSubject from "./pages/Teacher/subjects/AddSubject";
 const App = () => {
@@ -28,7 +28,8 @@ const App = () => {
         <>
           <Route path="/Teacher/dashboard/*" element={<TeacherDashboard />} />
           <Route path="/Teacher/subjects" element={<ShowSubjects />} />
-          <Route path="/Teacher/subjects/add" element={<AddSubject />} /> {/* ✅ Route Added */}
+          <Route path="/Teacher/subjects/add" element={<AddSubject />} /> 
+          <Route path="/Teacher/students/:studentID/subjects" element={<StudentProgress />} />
         </>
       )}
 

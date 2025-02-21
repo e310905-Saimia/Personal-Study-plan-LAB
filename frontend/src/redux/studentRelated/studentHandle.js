@@ -24,3 +24,21 @@ export const registerUser = (userData, role) => async (dispatch) => {
     }
 };
 
+export const getStudentSubjects = (studentID) => async (dispatch) => {
+    dispatch(getRequest());
+    try {
+        const response = await axios.get(`http://localhost:5000/api/students/${studentID}/subjects`);
+        dispatch(getSuccess(response.data));
+    } catch (error) {
+        console.error("Error fetching student's subjects:", error);
+        dispatch(getFailed(error.message));
+    }
+};
+export const updateProjectAssessment = (subjectID, outcomeID, projectIndex, assessmentData) => async (dispatch) => {
+    try {
+        await axios.put(`http://localhost:5000/api/subjects/${subjectID}/outcomes/${outcomeID}/projects/${projectIndex}/assess`, assessmentData);
+        dispatch(getStudentSubjects(subjectID)); // Refresh the student's data
+    } catch (error) {
+        console.error("Error updating project assessment:", error);
+    }
+};

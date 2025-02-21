@@ -26,7 +26,7 @@
 //   const dispatch = useDispatch();
 //   const { studentsList, loading } = useSelector((state) => state.student);
 //   const { currentUser } = useSelector((state) => state.user);
-  
+
 //   // useEffect(() => {
 //   //   dispatch(getAllStudents()); // ✅ Fetch all students
 //   // }, [dispatch]);
@@ -46,8 +46,8 @@
 //   // Extract name from email if no name is stored in DB
 //   const formatNameFromEmail = (email) => {
 //     if (!email) return "Unknown";
-//     const namePart = email.split("@")[0]; 
-//     const words = namePart.split("."); 
+//     const namePart = email.split("@")[0];
+//     const words = namePart.split(".");
 //     return words.map((word) => word.charAt(0).toUpperCase() + word.slice(1)).join(" ");
 //   };
 
@@ -91,7 +91,7 @@
 //   };
 
 //   return (
-//     <Box>  
+//     <Box>
 //       <Paper>
 //         {loading ? (
 //           <p>Loading...</p>
@@ -100,12 +100,12 @@
 //             <Table>
 //               <TableHead>
 //                 <TableRow>
-//                   <TableCell>Name</TableCell> 
+//                   <TableCell>Name</TableCell>
 //                   <TableCell>Email</TableCell>
 //                 </TableRow>
 //               </TableHead>
 //               <TableBody>
-//                 {console.log("🔹 Rendering Students:", studentsList)} 
+//                 {console.log("🔹 Rendering Students:", studentsList)}
 //                 {Array.isArray(studentsList) && studentsList.length > 0 ? (
 //                   studentsList.map((student) => (
 //                     <TableRow key={student._id}>
@@ -127,9 +127,9 @@
 //       </Paper>
 
 //       {/* ✅ Floating Add Student Button */}
-//       <Fab 
-//         color="primary" 
-//         sx={styles.fabButton} 
+//       <Fab
+//         color="primary"
+//         sx={styles.fabButton}
 //         onClick={handleOpen}
 //       >
 //         <AddIcon />
@@ -170,7 +170,7 @@
 
 //       {/* Popup for success or failure messages */}
 //       <Popup message={message} setShowPopup={setShowPopup} showPopup={showPopup} />
-//     </Box>  
+//     </Box>
 //   );
 // };
 
@@ -184,7 +184,6 @@
 //     right: 20,
 //   },
 // };
-
 
 import React, { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
@@ -234,7 +233,9 @@ const ShowStudents = () => {
     if (!email) return "Unknown";
     const namePart = email.split("@")[0];
     const words = namePart.split(".");
-    return words.map((word) => word.charAt(0).toUpperCase() + word.slice(1)).join(" ");
+    return words
+      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(" ");
   };
 
   // Open modal
@@ -284,9 +285,15 @@ const ShowStudents = () => {
           <TableContainer>
             <Table>
               <TableHead>
-                <TableRow sx={{ backgroundColor: "#f5f5f5" }}>  {/* ✅ Grey Background */}
-                  <TableCell><strong>Name</strong></TableCell>
-                  <TableCell><strong>Email</strong></TableCell>
+                <TableRow sx={{ backgroundColor: "#f5f5f5" }}>
+                  {" "}
+                  {/* ✅ Grey Background */}
+                  <TableCell>
+                    <strong>Name</strong>
+                  </TableCell>
+                  <TableCell>
+                    <strong>Email</strong>
+                  </TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -294,15 +301,16 @@ const ShowStudents = () => {
                   studentsList.map((student) => (
                     <TableRow key={student._id}>
                       <TableCell
-                        sx={{
-                          textDecoration: "underline",
-                          color: "blue",
-                          cursor: "pointer",
-                        }}
-                        onClick={() => navigate(`/Teacher/students/${student._id}/subjects`)}  // ✅ Clickable Name
+                        sx={{ cursor: "pointer", color: "blue" }}
+                        onClick={() =>
+                          navigate(`/Teacher/students/${student._id}/subjects`)
+                        }
                       >
-                        {student.name ? student.name : formatNameFromEmail(student.email)}
+                        {student.name
+                          ? student.name
+                          : formatNameFromEmail(student.email)}
                       </TableCell>
+
                       <TableCell>{student.email}</TableCell>
                     </TableRow>
                   ))
@@ -358,7 +366,11 @@ const ShowStudents = () => {
       </Dialog>
 
       {/* Popup for success or failure messages */}
-      <Popup message={message} setShowPopup={setShowPopup} showPopup={showPopup} />
+      <Popup
+        message={message}
+        setShowPopup={setShowPopup}
+        showPopup={showPopup}
+      />
     </Box>
   );
 };

@@ -2,6 +2,7 @@ const bcrypt = require('bcrypt');
 const mongoose = require('mongoose');
 const jwt = require('jsonwebtoken');
 const Student = require('../models/studentSchema.js');
+const Subject = require('../models/subjectSchema');
 
 // ✅ Register Student
 const studentRegister = async (req, res) => {
@@ -185,6 +186,25 @@ const updateExamResult = async (req, res) => {
         res.status(500).json({ error: error.message });
     }
 };
+const getStudentSubjects = async (req, res) => {
+    try {
+        const studentID = req.params.studentID;
+
+        // Find the student
+        const student = await Student.findById(studentID);
+        if (!student) {
+            return res.status(404).json({ message: "Student not found" });
+        }
+
+        // Fetch all subjects and outcomes
+        const subjects = await Subject.find().populate("outcomes");
+
+        res.status(200).json(subjects);
+    } catch (error) {
+        console.error("Error in getStudentSubjects:", error);
+        res.status(500).json({ message: "Internal Server Error", error: error.message });
+    }
+};
 
 module.exports = {
     studentRegister,
@@ -195,5 +215,6 @@ module.exports = {
     deleteStudent,
     updateStudent,
     deleteStudentsByClass,
-    updateExamResult
+    updateExamResult,
+    getStudentSubjects
 };

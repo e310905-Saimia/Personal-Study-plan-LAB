@@ -3,7 +3,7 @@ import userReducer from "./userRelated/userSlice";
 import studentReducer from "./studentRelated/studentSlice";
 import teacherReducer from "./teacherRelated/teacherSlice";
 import subjectReducer from "./subjectrelated/subjectSlice";
-import noticeReducer from "./noticeRelated/noticeSlice";
+import notificationReducer from "./noticeRelated/notificationSlice"; // ✅ Correct path
 
 const store = configureStore({
   reducer: {
@@ -11,7 +11,7 @@ const store = configureStore({
     student: studentReducer,
     teacher: teacherReducer,
     subject: subjectReducer,
-    notice: noticeReducer,
+    notification: notificationReducer, 
   },
 });
 

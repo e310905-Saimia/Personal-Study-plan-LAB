@@ -6,6 +6,7 @@ const bodyParser = require('body-parser');
 const teacherRoutes = require('./routes/teacherRoutes');
 const studentRoutes = require('./routes/studentRoutes');
 const subjectRoutes = require('./routes/route'); 
+const notificationRoutes = require("./routes/notificationRoutes");
 
 dotenv.config();
 
@@ -25,10 +26,11 @@ mongoose.connect(process.env.MONGO_URL, {
     .then(() => console.log('MongoDB connected'))
     .catch(err => console.error('MongoDB connection error:', err));
 
-// ✅ Register Routes
+// Register Routes
 app.use('/api/teachers', teacherRoutes);
 app.use('/api/students', studentRoutes);
 app.use('/api', subjectRoutes); 
+app.use("/api/notifications", notificationRoutes);
 
 // Root Route
 app.get('/', (req, res) => {

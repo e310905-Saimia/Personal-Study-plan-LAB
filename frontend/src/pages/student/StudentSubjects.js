@@ -1,19 +1,22 @@
 import React, { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { getSubjectList } from "../../redux/subjectrelated/subjectHandle";
+import axios from "axios";
 import {
     Paper, Box, Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
-    Typography, Collapse, IconButton, Card, Divider, Accordion, AccordionSummary, AccordionDetails, TextField, Button, Dialog, DialogTitle, DialogContent, DialogActions
+    Typography, Collapse, IconButton, Card, Divider, Accordion, AccordionSummary, AccordionDetails, TextField, Button, Dialog, DialogTitle, DialogContent, DialogActions, Snackbar, Alert
 } from "@mui/material";
 import { ExpandMore, Delete, Add, Visibility } from "@mui/icons-material";
 
 const StudentSubjects = () => {
     const dispatch = useDispatch();
     const { subjects = [], loading } = useSelector((state) => state.subject);
+    const { currentUser } = useSelector((state) => state.user);
     const [expandedSubject, setExpandedSubject] = useState(null);
     const [projects, setProjects] = useState({});
     const [openRequirements, setOpenRequirements] = useState(false);
     const [selectedRequirements, setSelectedRequirements] = useState([]);
+    const [notification, setNotification] = useState({ open: false, message: "", severity: "success" });
 
     useEffect(() => {
         dispatch(getSubjectList());
@@ -23,13 +26,13 @@ const StudentSubjects = () => {
         setExpandedSubject(expandedSubject === subjectID ? null : subjectID);
     };
 
-    // ✅ Open Requirements Dialog
+    // Open Requirements Dialog
     const handleOpenRequirements = (requirements) => {
         setSelectedRequirements(requirements || []);
         setOpenRequirements(true);
     };
 
-    // ✅ Handle Project Input Changes
+    // Handle Project Input Changes
     const handleProjectChange = (outcomeID, field, value) => {
         setProjects(prev => ({
             ...prev,
@@ -37,10 +40,14 @@ const StudentSubjects = () => {
         }));
     };
 
-    // ✅ Handle Add Project
-    const handleAddProject = (outcomeID) => {
+    // Handle Add Project
+    const handleAddProject = async (outcomeID, subjectName, topicName) => {
         if (!projects[outcomeID]?.name || !projects[outcomeID]?.credit) {
-            alert("Please fill in all fields!");
+            setNotification({
+                open: true,
+                message: "Please fill in all fields!",
+                severity: "error"
+            });
             return;
         }
 
@@ -48,7 +55,7 @@ const StudentSubjects = () => {
             name: projects[outcomeID]?.name,
             credit: projects[outcomeID]?.credit,
             assessedBy: "", // Empty for now
-            date: "",       // Empty for now
+            date: new Date().toISOString().split('T')[0],
         };
 
         setProjects(prev => ({
@@ -60,9 +67,41 @@ const StudentSubjects = () => {
                 credit: ""
             }
         }));
+
+        // Create and send notification
+        try {
+            // Get the subject and outcome names for better context
+            const studentName = currentUser?.name || "A student";
+            
+            // Create notification in the database
+            await axios.post("http://localhost:5000/api/notifications", {
+                message: `${studentName} submitted project "${newProject.name}" for ${topicName} in ${subjectName}`,
+                studentID: currentUser?._id,
+                subjectID: expandedSubject,
+                outcomeID: outcomeID,
+                projectName: newProject.name,
+                creditRequested: newProject.credit,
+                read: false,
+                date: new Date()
+            });
+
+            setNotification({
+                open: true,
+                message: "Project submitted successfully! Teacher has been notified.",
+                severity: "success"
+            });
+            
+        } catch (error) {
+            console.error("Error sending notification:", error);
+            setNotification({
+                open: true,
+                message: "Project added, but failed to notify teacher.",
+                severity: "warning"
+            });
+        }
     };
 
-    // ✅ Handle Delete Project
+    // Handle Delete Project
     const handleDeleteProject = (outcomeID, index) => {
         setProjects(prev => ({
             ...prev,
@@ -71,6 +110,11 @@ const StudentSubjects = () => {
                 list: prev[outcomeID]?.list.filter((_, i) => i !== index)
             }
         }));
+    };
+
+    // Handle close notification
+    const handleCloseNotification = () => {
+        setNotification({ ...notification, open: false });
     };
 
     return (
@@ -95,7 +139,7 @@ const StudentSubjects = () => {
                                 {subjects.length > 0 ? (
                                     subjects.map((subject) => (
                                         <React.Fragment key={subject._id}>
-                                            {/* ✅ Subject Row */}
+                                            {/* Subject Row */}
                                             <TableRow>
                                                 <TableCell>
                                                     <IconButton onClick={() => toggleExpandSubject(subject._id)}>
@@ -106,7 +150,7 @@ const StudentSubjects = () => {
                                                 <TableCell align="right">{subject.credits}</TableCell>
                                             </TableRow>
 
-                                            {/* ✅ Collapsible Section for Outcomes */}
+                                            {/* Collapsible Section for Outcomes */}
                                             <TableRow>
                                                 <TableCell colSpan={3} sx={{ padding: 0, border: "none" }}>
                                                     <Collapse in={expandedSubject === subject._id} timeout="auto" unmountOnExit>
@@ -125,7 +169,7 @@ const StudentSubjects = () => {
                                                                         </AccordionSummary>
                                                                         <AccordionDetails>
 
-                                                                            {/* ✅ View Requirements Button */}
+                                                                            {/* View Requirements Button */}
                                                                             <Button
                                                                                 variant="outlined"
                                                                                 startIcon={<Visibility />}
@@ -135,7 +179,7 @@ const StudentSubjects = () => {
                                                                                 View Requirements
                                                                             </Button>
 
-                                                                            {/* ✅ Student Project Submission */}
+                                                                            {/* Student Project Submission */}
                                                                             <Accordion sx={{ mt: 2, boxShadow: 0, backgroundColor: "#f9f9f9" }}>
                                                                                 <AccordionSummary expandIcon={<ExpandMore />}>
                                                                                     <Typography variant="subtitle1" sx={{ color: "#1976d2", fontWeight: "bold" }}>
@@ -149,7 +193,7 @@ const StudentSubjects = () => {
                                                                                         </Typography>
                                                                                         <Divider sx={{ mb: 2 }} />
 
-                                                                                        {/* ✅ Input Fields */}
+                                                                                        {/* Input Fields */}
                                                                                         <Box sx={{ display: "flex", gap: 2, mb: 2 }}>
                                                                                             <TextField
                                                                                                 label="Project Name"
@@ -170,13 +214,13 @@ const StudentSubjects = () => {
                                                                                                 variant="contained"
                                                                                                 color="primary"
                                                                                                 startIcon={<Add />}
-                                                                                                onClick={() => handleAddProject(outcome._id)}
+                                                                                                onClick={() => handleAddProject(outcome._id, subject.name, outcome.topic)}
                                                                                             >
                                                                                                 Add
                                                                                             </Button>
                                                                                         </Box>
 
-                                                                                        {/* ✅ Display Added Projects in Table */}
+                                                                                        {/* Display Added Projects in Table */}
                                                                                         <TableContainer>
                                                                                             <Table>
                                                                                                 <TableHead>
@@ -196,8 +240,8 @@ const StudentSubjects = () => {
                                                                                                                 <TableCell>{index + 1}</TableCell>
                                                                                                                 <TableCell>{project.name}</TableCell>
                                                                                                                 <TableCell>{project.credit}</TableCell>
-                                                                                                                <TableCell>-</TableCell>
-                                                                                                                <TableCell>-</TableCell>
+                                                                                                                <TableCell>{project.assessedBy || "-"}</TableCell>
+                                                                                                                <TableCell>{project.date || "-"}</TableCell>
                                                                                                                 <TableCell>
                                                                                                                     <IconButton onClick={() => handleDeleteProject(outcome._id, index)}>
                                                                                                                         <Delete color="error" />
@@ -235,7 +279,7 @@ const StudentSubjects = () => {
                 </Paper>
             )}
 
-            {/* ✅ Requirements Pop-up Dialog */}
+            {/* Requirements Pop-up Dialog */}
             <Dialog open={openRequirements} onClose={() => setOpenRequirements(false)}>
                 <DialogTitle>Requirements</DialogTitle>
                 <DialogContent>
@@ -247,6 +291,18 @@ const StudentSubjects = () => {
                     <Button onClick={() => setOpenRequirements(false)}>Close</Button>
                 </DialogActions>
             </Dialog>
+
+            {/* Notification Snackbar */}
+            <Snackbar 
+                open={notification.open} 
+                autoHideDuration={6000} 
+                onClose={handleCloseNotification}
+                anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+            >
+                <Alert onClose={handleCloseNotification} severity={notification.severity}>
+                    {notification.message}
+                </Alert>
+            </Snackbar>
         </Box>
     );
 };

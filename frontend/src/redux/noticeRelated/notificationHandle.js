@@ -1,23 +1,28 @@
 import axios from "axios";
-import { getRequest, getSuccess, getFailed } from "./notificationSlice";
+import { 
+  fetchNotifications as fetchNotificationsAction,
+  markAllNotificationsAsRead
+} from "./notificationSlice";
 
-export const getNotifications = () => async (dispatch) => {
-    dispatch(getRequest());
+// ✅ Fetch notifications for a teacher
+export const getNotifications = (teacherID) => async (dispatch) => {
     try {
-        const response = await axios.get("http://localhost:5000/api/notifications"); // ✅ API Endpoint
-        dispatch(getSuccess(response.data));
+        dispatch(fetchNotificationsAction());
+        // Call your API with the teacherID parameter
+        const response = await axios.get(`http://localhost:5000/api/notifications/${teacherID}`);
+        // The payload handling is now built into the fetchNotifications thunk
+        return response.data;
     } catch (error) {
         console.error("Error fetching notifications:", error);
-        dispatch(getFailed(error.message));
     }
 };
 
-export const clearNotifications = () => async (dispatch) => {
+// ✅ Mark all notifications as read
+export const clearNotifications = (teacherID) => async (dispatch) => {
     try {
-        await axios.delete("http://localhost:5000/api/notifications");
-        dispatch(getSuccess([])); // ✅ Clear notifications
+        await axios.put(`http://localhost:5000/api/notifications/mark-all-read/${teacherID}`);
+        dispatch(markAllNotificationsAsRead());
     } catch (error) {
         console.error("Error clearing notifications:", error);
-        dispatch(getFailed(error.message));
     }
 };

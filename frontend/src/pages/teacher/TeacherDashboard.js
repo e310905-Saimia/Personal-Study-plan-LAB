@@ -23,6 +23,7 @@ import ShowNotices from "./notices/ShowNotices";
 import ShowSubjects from "./subjects/ShowSubjects";
 import SubjectForm from "./subjects/SubjectForm";
 import AccountMenu from "../../components/AccountMenu";
+import NotificationBell from "../../components/NotificationBell";
 // Recharts imports
 import {
   BarChart,
@@ -34,9 +35,7 @@ import {
   ResponsiveContainer,
 } from "recharts";
 // Redux actions
-// import { fetchClasses as fetchSclasses } from "../../redux/sclassRelated/sclassHandle";
 import { getSubjectList } from "../../redux/subjectrelated/subjectHandle";
-
 import { getAllStudents } from "../../redux/studentRelated/studentHandle";
 import { getAllTeachers } from "../../redux/teacherRelated/teacherHandle";
 import TeacherHomePage from "./TeacherHomepage";
@@ -46,7 +45,6 @@ const TeacherDashboard = () => {
   const { currentRole, currentUser } = useSelector((state) => state.user);
   const { studentsList } = useSelector((state) => state.student);
   const { classes } = useSelector((state) => state.subject);
-  // const { teachersList } = useSelector((state) => state.teacher);
   const navigate = useNavigate();
   const dispatch = useDispatch();
 
@@ -75,7 +73,6 @@ const TeacherDashboard = () => {
   const data = [
     { name: "Students", count: studentsList?.length || 0 },
     { name: "Subjects", count: classes?.length || 0 },
-    // { name: "Teachers", count: teachersList?.length || 0 },
   ];
 
   return (
@@ -104,6 +101,9 @@ const TeacherDashboard = () => {
           >
             Teacher
           </Typography>
+          
+          {/* Add NotificationBell component here */}
+          <NotificationBell />
           <AccountMenu />
         </Toolbar>
       </AppBar>
@@ -173,4 +173,3 @@ const styles = {
     padding: "16px",
   },
 };
-

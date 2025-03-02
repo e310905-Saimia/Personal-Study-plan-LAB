@@ -17,6 +17,7 @@ import StudentProfile from "./StudentProfile";
 import StudentSubjects from "./StudentSubjects";
 import Logout from "../Logout";
 import AccountMenu from "../../components/AccountMenu";
+import NotificationBell from "../../components/NotificationBell";
 import { AppBar, Drawer } from "../../components/styles";
 import { useSelector } from "react-redux";
 
@@ -59,6 +60,9 @@ const StudentDashboard = () => {
           >
             Student
           </Typography>
+          
+          {/* Add NotificationBell component here */}
+          <NotificationBell />
           <AccountMenu />
         </Toolbar>
       </AppBar>

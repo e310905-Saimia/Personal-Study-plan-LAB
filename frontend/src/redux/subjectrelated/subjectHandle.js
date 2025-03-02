@@ -125,3 +125,12 @@ export const editRequirement = (subjectID, outcomeID, requirementIndex, newRequi
 };
 
 
+export const addProject = (subjectID, outcomeID, projectData) => async (dispatch) => {
+    try {
+        await axios.post(`http://localhost:5000/api/subjects/${subjectID}/outcomes/${outcomeID}/projects`, projectData);
+        dispatch(getSubjectList()); // ✅ Refresh subjects after adding a project
+    } catch (error) {
+        console.error("Error adding project:", error);
+    }
+};
+

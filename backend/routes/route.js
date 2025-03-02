@@ -13,5 +13,7 @@ router.delete('/subjects/:id', subjectController.deleteSubject);
 router.post('/subjects/:id/outcomes', subjectController.addOutcome);
 router.put('/subjects/:subjectID/outcomes/:outcomeID', subjectController.updateOutcome);
 router.delete('/subjects/:subjectID/outcomes/:outcomeID', subjectController.deleteOutcome);
+router.post('/subjects/:subjectID/outcomes/:outcomeID/projects', subjectController.addProject);
+
 
 module.exports = router;

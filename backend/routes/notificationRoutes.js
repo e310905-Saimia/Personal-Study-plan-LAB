@@ -2,17 +2,33 @@ const express = require("express");
 const router = express.Router();
 const {
   getNotifications,
+  getUnreadCount,
+  createNotification,
+  markAsRead,
   markAllNotificationsAsRead,
+  deleteNotification,
   deleteAllNotifications,
 } = require("../controllers/notification-controller");
 
-// ✅ Get All Notifications
+// Get all notifications
 router.get("/", getNotifications);
 
-// ✅ Mark All as Read
+// Get unread notification count
+router.get("/unread-count", getUnreadCount);
+
+// Create a new notification
+router.post("/", createNotification);
+
+// Mark a specific notification as read
+router.put("/:id/read", markAsRead);
+
+// Mark all notifications as read
 router.put("/mark-all-read", markAllNotificationsAsRead);
 
-// ✅ Delete All Notifications
-router.delete("/delete-all", deleteAllNotifications);
+// Delete a specific notification
+router.delete("/:id", deleteNotification);
+
+// Delete all notifications
+router.delete("/", deleteAllNotifications);
 
 module.exports = router;

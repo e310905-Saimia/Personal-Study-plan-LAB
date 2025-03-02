@@ -134,7 +134,38 @@ const deleteOutcome = async (req, res) => {
     }
 };
 
+const addProject = async (req, res) => {
+    try {
+        const { subjectID, outcomeID } = req.params;
+        const { name, credit, studentID } = req.body;
+
+        // Find the subject
+        const subject = await Subject.findById(subjectID);
+        if (!subject) return res.status(404).json({ message: "Subject not found" });
+
+        // Find the outcome
+        const outcome = subject.outcomes.id(outcomeID);
+        if (!outcome) return res.status(404).json({ message: "Outcome not found" });
+
+        // Create a new project
+        const newProject = { name, credit, studentID };
+        outcome.projects.push(newProject);
+
+        await subject.save();
+
+        // ✅ Send Notification to Teacher
+        await Notification.create({
+            message: `New project submitted for ${subject.name}`,
+            studentID,
+            subjectID,
+            isRead: false
+        });
+
+        res.status(201).json({ message: "Project submitted successfully", project: newProject });
+    } catch (error) {
+        res.status(500).json({ message: "Error submitting project", error });
+    }
+};
 
 
-
-module.exports = { subjectCreate, allSubjects, getSubjectDetail,updateSubject, deleteSubject, addOutcome, updateOutcome, deleteOutcome};
+module.exports = { subjectCreate, allSubjects, getSubjectDetail,updateSubject, deleteSubject, addOutcome, updateOutcome, deleteOutcome, addProject };

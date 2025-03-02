@@ -1,66 +1,49 @@
 import { createSlice } from "@reduxjs/toolkit";
 
-const initialState = {
-  currentUser: JSON.parse(localStorage.getItem("currentUser")) || null,
-  status: null,
-  error: null,
-  currentRole: JSON.parse(localStorage.getItem("currentRole")) || null,
+const getLocalStorageItem = (key) => {
+  try {
+    const item = localStorage.getItem(key);
+    return item ? JSON.parse(item) : null;
+  } catch (error) {
+    console.error(`Error parsing localStorage item "${key}":`, error);
+    return null;
+  }
 };
 
-// const userSlice = createSlice({
-//   name: "user",
-//   initialState,
-//   reducers: {
-//     underControl: (state, action) => {
-//       state.status = action.payload;
-//     },
-//     loginRequest: (state) => {
-//       state.status = "loading";
-//     },
-//     loginSuccess: (state, action) => {
-//       state.status = "success";
-//       state.currentUser = action.payload;
-//       state.currentRole =
-//         action.payload.teacher?.role || action.payload.student?.role || null;
+const initialState = {
+  currentUser: getLocalStorageItem("currentUser"),
+  status: null,
+  error: null,
+  currentRole: getLocalStorageItem("currentRole"),
+};
 
-//       localStorage.setItem("currentUser", JSON.stringify(action.payload));
-//       localStorage.setItem("currentRole", JSON.stringify(state.currentRole));
-//     },
-//     loginFailure: (state, action) => {
-//       state.status = "failed";
-//       state.error = action.payload;
-//     },
-//     Authlogout: (state) => {
-//       state.currentUser = null;
-//       state.status = null;
-//       state.currentRole = null;
-//     },
 const userSlice = createSlice({
   name: "user",
   initialState,
   reducers: {
-      loginRequest: (state) => {
-          state.status = "loading";
-      },
-      loginSuccess: (state, action) => {
-          state.status = "success";
-          state.currentUser = action.payload;
-          state.currentRole = action.payload.teacher?.role || action.payload.student?.role || action.payload.role || null;
+    loginRequest: (state) => {
+      state.status = "loading";
+    },
+    loginSuccess: (state, action) => {
+      state.status = "success";
+      state.currentUser = action.payload;
+      state.currentRole =
+        action.payload.teacher?.role || action.payload.student?.role || action.payload.role || null;
 
-          localStorage.setItem("currentUser", JSON.stringify(action.payload));
-          localStorage.setItem("currentRole", JSON.stringify(state.currentRole));
-      },
-      loginFailure: (state, action) => {
-          state.status = "failed";
-          state.error = action.payload;
-      },
-      Authlogout: (state) => {
-          state.currentUser = null;
-          state.status = null;
-          state.currentRole = null;
-          localStorage.removeItem("currentUser");
-          localStorage.removeItem("currentRole");
-      },
+      localStorage.setItem("currentUser", JSON.stringify(action.payload));
+      localStorage.setItem("currentRole", JSON.stringify(state.currentRole));
+    },
+    loginFailure: (state, action) => {
+      state.status = "failed";
+      state.error = action.payload;
+    },
+    Authlogout: (state) => {
+      state.currentUser = null;
+      state.status = null;
+      state.currentRole = null;
+      localStorage.removeItem("currentUser");
+      localStorage.removeItem("currentRole");
+    },
     registerSuccess: (state, action) => {
       state.status = "success";
       state.currentUser = action.payload;

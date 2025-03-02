@@ -11,7 +11,6 @@ import { useDispatch, useSelector } from "react-redux";
 import { getNotifications, clearNotifications } from "../../redux/noticeRelated/notificationHandle";
 
 import HomeIcon from "@mui/icons-material/Home";
-import PersonOutlineIcon from "@mui/icons-material/PersonOutline";
 import ExitToAppIcon from "@mui/icons-material/ExitToApp";
 import AnnouncementOutlinedIcon from "@mui/icons-material/AnnouncementOutlined";
 import AssignmentIcon from "@mui/icons-material/Assignment";
@@ -20,77 +19,56 @@ const SideBar = () => {
   const location = useLocation();
   const dispatch = useDispatch();
   const { notifications } = useSelector((state) => state.notification);
+  const { currentUser } = useSelector((state) => state.user);
   const [unreadCount, setUnreadCount] = useState(0);
 
   useEffect(() => {
-    dispatch(getNotifications());
-  }, [dispatch]);
+    if (currentUser?.role === "Teacher") {
+      dispatch(getNotifications(currentUser._id));
+    }
+
+    // ✅ Auto-fetch notifications every 10 seconds
+    const interval = setInterval(() => {
+      if (currentUser?.role === "Teacher") {
+        dispatch(getNotifications(currentUser._id));
+      }
+    }, 10000); // 10 seconds
+
+    return () => clearInterval(interval); // ✅ Cleanup function to prevent memory leaks
+  }, [dispatch, currentUser]);
 
   useEffect(() => {
-    // Update unread notifications count
-    setUnreadCount(notifications.filter((notif) => !notif.read).length);
+    setUnreadCount(notifications.filter((notif) => !notif.isRead).length);
   }, [notifications]);
 
   useEffect(() => {
-    // Mark notifications as read when visiting Notices page
     if (location.pathname.startsWith("/Teacher/dashboard/notices")) {
-      dispatch(clearNotifications());
+      dispatch(clearNotifications(currentUser._id));
       setUnreadCount(0);
     }
-  }, [location, dispatch]);
+  }, [location, dispatch, currentUser]);
 
   return (
     <>
       <ListItemButton component={Link} to="/Teacher/dashboard/home">
         <ListItemIcon>
-          <HomeIcon
-            color={
-              location.pathname.startsWith("/Teacher/dashboard/home")
-                ? "primary"
-                : "inherit"
-            }
-          />
+          <HomeIcon color={location.pathname.startsWith("/Teacher/dashboard/home") ? "primary" : "inherit"} />
         </ListItemIcon>
         <ListItemText primary="Home" />
       </ListItemButton>
 
       <ListItemButton component={Link} to="/Teacher/dashboard/subjects">
         <ListItemIcon>
-          <AssignmentIcon
-            color={
-              location.pathname.startsWith("/Teacher/dashboard/subjects")
-                ? "primary"
-                : "inherit"
-            }
-          />
+          <AssignmentIcon color={location.pathname.startsWith("/Teacher/dashboard/subjects") ? "primary" : "inherit"} />
         </ListItemIcon>
         <ListItemText primary="Subjects" />
       </ListItemButton>
 
-      <ListItemButton component={Link} to="/Teacher/dashboard/students">
-        <ListItemIcon>
-          <PersonOutlineIcon
-            color={
-              location.pathname.startsWith("/Teacher/dashboard/students")
-                ? "primary"
-                : "inherit"
-            }
-          />
-        </ListItemIcon>
-        <ListItemText primary="Students" />
-      </ListItemButton>
-
-      {/* ✅ Notices with Notification Badge */}
+      {/* ✅ Show Project Notifications */}
       <ListItemButton component={Link} to="/Teacher/dashboard/notices">
         <ListItemIcon>
           <Badge badgeContent={unreadCount} color="error">
-            <AnnouncementOutlinedIcon
-              color={
-                location.pathname.startsWith("/Teacher/dashboard/notices")
-                  ? "primary"
-                  : "inherit"
-              }
-            />
+            <AnnouncementOutlinedIcon color={location.pathname.startsWith("/Teacher/dashboard/notices") ? "primary" : "inherit"} />
           </Badge>
         </ListItemIcon>
         <ListItemText primary="Notices" />
@@ -98,12 +76,9 @@ const SideBar = () => {
 
       <Divider sx={{ my: 1 }} />
 
-      {/* ✅ Logout Button */}
       <ListItemButton component={Link} to="/logout">
         <ListItemIcon>
-          <ExitToAppIcon
-            color={location.pathname.startsWith("/logout") ? "primary" : "inherit"}
-          />
+          <ExitToAppIcon color={location.pathname.startsWith("/logout") ? "primary" : "inherit"} />
         </ListItemIcon>
         <ListItemText primary="Logout" />
       </ListItemButton>

@@ -4,13 +4,12 @@ import {
   markAllNotificationsAsRead
 } from "./notificationSlice";
 
-// ✅ Fetch notifications for a teacher
-export const getNotifications = (teacherID) => async (dispatch) => {
+// ✅ Fetch notifications 
+export const getNotifications = () => async (dispatch) => {
     try {
         dispatch(fetchNotificationsAction());
-        // Call your API with the teacherID parameter
-        const response = await axios.get(`http://localhost:5000/api/notifications/${teacherID}`);
-        // The payload handling is now built into the fetchNotifications thunk
+        // Remove the parameter from the API call
+        const response = await axios.get("http://localhost:5000/api/notifications");
         return response.data;
     } catch (error) {
         console.error("Error fetching notifications:", error);
@@ -18,9 +17,10 @@ export const getNotifications = (teacherID) => async (dispatch) => {
 };
 
 // ✅ Mark all notifications as read
-export const clearNotifications = (teacherID) => async (dispatch) => {
+export const clearNotifications = () => async (dispatch) => {
     try {
-        await axios.put(`http://localhost:5000/api/notifications/mark-all-read/${teacherID}`);
+        // Remove the parameter from the API call
+        await axios.put("http://localhost:5000/api/notifications/mark-all-read");
         dispatch(markAllNotificationsAsRead());
     } catch (error) {
         console.error("Error clearing notifications:", error);

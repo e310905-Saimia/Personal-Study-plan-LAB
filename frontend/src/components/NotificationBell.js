@@ -1,51 +1,42 @@
-import React, { useEffect, useState } from 'react';
-import { 
-  IconButton, 
-  Badge, 
-  Menu, 
-  MenuItem, 
-  Typography, 
-  ListItemText, 
-  Divider, 
+import React, { useEffect, useState } from "react";
+import { useDispatch, useSelector } from "react-redux";
+import {
+  Badge,
+  IconButton,
+  Popover,
+  List,
+  ListItem,
+  ListItemText,
+  Typography,
+  Box,
   Button,
-  Box
-} from '@mui/material';
-import { Notifications, Close, Check } from '@mui/icons-material';
-import { useSelector } from 'react-redux';
-import axios from 'axios';
-import styled from 'styled-components';
+  Divider,
+  CircularProgress
+} from "@mui/material";
+import NotificationsIcon from "@mui/icons-material/Notifications";
+import { fetchNotifications, markAllNotificationsAsRead } from "../redux/noticeRelated/notificationSlice";
 
 const NotificationBell = () => {
-  const { currentUser } = useSelector((state) => state.user);
-  const [notifications, setNotifications] = useState([]);
-  const [loading, setLoading] = useState(false);
+  const dispatch = useDispatch();
+  const { notifications, unreadCount, loading } = useSelector(
+    (state) => state.notification
+  );
   const [anchorEl, setAnchorEl] = useState(null);
-  const open = Boolean(anchorEl);
-  const unreadCount = notifications.filter(notif => !notif.read).length;
-
-  const fetchNotifications = async () => {
-    setLoading(true);
-    try {
-      const response = await axios.get("http://localhost:5000/api/notifications");
-      setNotifications(response.data);
-    } catch (error) {
-      console.error("Error fetching notifications:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
-    fetchNotifications();
-    // Set up polling for new notifications every 30 seconds
-    const interval = setInterval(() => {
-      fetchNotifications();
-    }, 30000);
+    // Fetch notifications on component mount
+    dispatch(fetchNotifications());
     
-    return () => clearInterval(interval);
-  }, []);
+    // Set up interval to check for new notifications
+    const intervalId = setInterval(() => {
+      dispatch(fetchNotifications());
+    }, 60000); // Check every minute
+    
+    return () => clearInterval(intervalId);
+  }, [dispatch]);
 
-  const handleBellClick = (event) => {
+  const handleClick = (event) => {
     setAnchorEl(event.currentTarget);
   };
 
@@ -54,169 +45,176 @@ const NotificationBell = () => {
   };
 
   const handleMarkAllAsRead = async () => {
-    try {
-      await axios.put("http://localhost:5000/api/notifications/mark-all-read");
-      setNotifications(prev => prev.map(notif => ({ ...notif, read: true })));
-      handleClose();
-    } catch (error) {
-      console.error("Error marking notifications as read:", error);
-    }
+    await dispatch(markAllNotificationsAsRead());
+    handleClose();
   };
 
-  const handleNotificationClick = async (notification) => {
-    try {
-      // Mark this notification as read
-      await axios.put(`http://localhost:5000/api/notifications/${notification._id}/read`);
-      
-      // Update local state
-      setNotifications(prev => 
-        prev.map(notif => 
-          notif._id === notification._id ? { ...notif, read: true } : notif
-        )
-      );
-    } catch (error) {
-      console.error("Error marking notification as read:", error);
-    }
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    await dispatch(fetchNotifications());
+    setRefreshing(false);
   };
 
+  const open = Boolean(anchorEl);
+  const id = open ? "notification-popover" : undefined;
+  
   const formatDate = (dateString) => {
     const date = new Date(dateString);
-    
-    // Check if less than 24 hours ago
-    const now = new Date();
-    const diffMs = now - date;
-    const diffHrs = diffMs / (1000 * 60 * 60);
-    
-    if (diffHrs < 24) {
-      // Show relative time for recent notifications
-      if (diffHrs < 1) {
-        const diffMins = Math.floor(diffMs / (1000 * 60));
-        return `${diffMins} ${diffMins === 1 ? 'minute' : 'minutes'} ago`;
-      } else {
-        const hours = Math.floor(diffHrs);
-        return `${hours} ${hours === 1 ? 'hour' : 'hours'} ago`;
-      }
-    } else {
-      // Show date for older notifications
-      return date.toLocaleDateString();
+    return date.toLocaleString();
+  };
+
+  // Get notification status color
+  const getStatusColor = (status) => {
+    switch (status) {
+      case 'approved': return '#4caf50';
+      case 'rejected': return '#f44336';
+      default: return '#ff9800';
     }
   };
 
   return (
     <>
       <IconButton
+        aria-describedby={id}
         color="inherit"
-        aria-label="notifications"
-        onClick={handleBellClick}
+        onClick={handleClick}
       >
         <Badge badgeContent={unreadCount} color="error">
-          <Notifications />
+          <NotificationsIcon />
         </Badge>
       </IconButton>
 
-      <Menu
-        anchorEl={anchorEl}
-        id="notification-menu"
+      <Popover
+        id={id}
         open={open}
+        anchorEl={anchorEl}
         onClose={handleClose}
-        PaperProps={{
-          elevation: 0,
-          sx: {
-            overflow: 'visible',
-            filter: 'drop-shadow(0px 2px 8px rgba(0,0,0,0.32))',
-            mt: 1.5,
-            maxHeight: 400,
-            width: 320,
-            '&:before': {
-              content: '""',
-              display: 'block',
-              position: 'absolute',
-              top: 0,
-              right: 14,
-              width: 10,
-              height: 10,
-              bgcolor: 'background.paper',
-              transform: 'translateY(-50%) rotate(45deg)',
-              zIndex: 0,
-            },
-          },
+        anchorOrigin={{
+          vertical: "bottom",
+          horizontal: "right",
         }}
-        transformOrigin={{ horizontal: 'right', vertical: 'top' }}
-        anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
+        transformOrigin={{
+          vertical: "top",
+          horizontal: "right",
+        }}
       >
-        <NotificationHeader>
-          <Typography variant="h6">Notifications</Typography>
-          <IconButton size="small" onClick={handleClose}>
-            <Close fontSize="small" />
-          </IconButton>
-        </NotificationHeader>
-
-        <Divider />
-
-        {loading ? (
-          <MenuItem>
-            <ListItemText primary="Loading notifications..." />
-          </MenuItem>
-        ) : notifications.length === 0 ? (
-          <MenuItem>
-            <ListItemText primary="No notifications" />
-          </MenuItem>
-        ) : (
-          <>
-            {notifications.map((notification, index) => (
-              <React.Fragment key={notification._id || index}>
-                <NotificationItem 
-                  unread={!notification.read}
-                  onClick={() => handleNotificationClick(notification)}
-                >
-                  <Typography variant="body2" sx={{ fontWeight: notification.read ? 'normal' : 'bold' }}>
-                    {notification.message}
-                  </Typography>
-                  <Typography variant="caption" color="textSecondary">
-                    {formatDate(notification.date || notification.createdAt)}
-                  </Typography>
-                </NotificationItem>
-                {index < notifications.length - 1 && <Divider />}
-              </React.Fragment>
-            ))}
-
-            <Divider />
-            
-            <Box sx={{ padding: 1, display: 'flex', justifyContent: 'flex-end' }}>
+        <Box sx={{ width: 350, maxHeight: 400, overflow: "auto", p: 0 }}>
+          <Box sx={{ 
+            display: "flex", 
+            justifyContent: "space-between", 
+            alignItems: "center",
+            p: 2,
+            backgroundColor: "#f5f5f5",
+            borderBottom: "1px solid #ddd"
+          }}>
+            <Typography variant="h6">Notifications</Typography>
+            <Box>
               <Button 
-                startIcon={<Check />} 
-                size="small" 
+                size="small"
+                onClick={handleRefresh}
+                disabled={refreshing || loading}
+                sx={{ mr: 1 }}
+              >
+                {refreshing ? <CircularProgress size={20} /> : "Refresh"}
+              </Button>
+              <Button 
+                size="small"
                 onClick={handleMarkAllAsRead}
                 disabled={unreadCount === 0}
               >
                 Mark all as read
               </Button>
             </Box>
-          </>
-        )}
-      </Menu>
+          </Box>
+          
+          {loading && !refreshing ? (
+            <Box sx={{ display: "flex", justifyContent: "center", p: 2 }}>
+              <CircularProgress size={24} />
+            </Box>
+          ) : notifications.length === 0 ? (
+            <Typography sx={{ p: 2, textAlign: "center", color: "text.secondary" }}>
+              No notifications
+            </Typography>
+          ) : (
+            <List sx={{ p: 0 }}>
+              {notifications.map((notif) => (
+                <React.Fragment key={notif._id}>
+                  <ListItem
+                    alignItems="flex-start"
+                    sx={{
+                      backgroundColor: notif.read ? "white" : "#f0f7ff",
+                      borderLeft: notif.status !== 'pending' ? 
+                        `4px solid ${getStatusColor(notif.status)}` : 'none'
+                    }}
+                  >
+                    <ListItemText
+                      primary={
+                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                          <Typography variant="subtitle2" sx={{ fontWeight: notif.read ? 'normal' : 'bold' }}>
+                            {notif.message}
+                          </Typography>
+                          {notif.status !== 'pending' && (
+                            <Typography 
+                              variant="caption" 
+                              sx={{ 
+                                ml: 1, 
+                                backgroundColor: getStatusColor(notif.status),
+                                color: 'white',
+                                px: 1,
+                                py: 0.5,
+                                borderRadius: 1,
+                                fontWeight: 'bold'
+                              }}
+                            >
+                              {notif.status.toUpperCase()}
+                            </Typography>
+                          )}
+                        </Box>
+                      }
+                      secondary={
+                        <React.Fragment>
+                          <Typography variant="caption" display="block" color="text.secondary">
+                            {formatDate(notif.date)}
+                          </Typography>
+                          
+                          {notif.status === 'approved' && (
+                            <Box sx={{ mt: 1, p: 1, backgroundColor: '#f9f9f9', borderRadius: 1 }}>
+                              <Typography variant="caption" display="block" sx={{ fontWeight: 'bold' }}>
+                                Credits: {notif.approvedCredits}
+                              </Typography>
+                              {notif.assessedBy && (
+                                <Typography variant="caption" display="block">
+                                  By: {notif.assessedBy}
+                                </Typography>
+                              )}
+                              {notif.teacherComment && (
+                                <Typography variant="caption" display="block">
+                                  "{notif.teacherComment}"
+                                </Typography>
+                              )}
+                            </Box>
+                          )}
+                          
+                          {notif.status === 'rejected' && notif.teacherComment && (
+                            <Box sx={{ mt: 1, p: 1, backgroundColor: '#f9f9f9', borderRadius: 1 }}>
+                              <Typography variant="caption" display="block">
+                                Reason: "{notif.teacherComment}"
+                              </Typography>
+                            </Box>
+                          )}
+                        </React.Fragment>
+                      }
+                    />
+                  </ListItem>
+                  <Divider component="li" />
+                </React.Fragment>
+              ))}
+            </List>
+          )}
+        </Box>
+      </Popover>
     </>
   );
 };
 
 export default NotificationBell;
-
-// Styled components
-const NotificationHeader = styled.div`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 8px 16px;
-`;
-
-const NotificationItem = styled.div`
-  padding: 8px 16px;
-  background-color: ${props => props.unread ? 'rgba(25, 118, 210, 0.08)' : 'transparent'};
-  display: flex;
-  flex-direction: column;
-  cursor: pointer;
-  
-  &:hover {
-    background-color: rgba(0, 0, 0, 0.08);
-  }
-`;

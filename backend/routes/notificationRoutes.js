@@ -8,6 +8,7 @@ const {
   markAllNotificationsAsRead,
   deleteNotification,
   deleteAllNotifications,
+  processProjectNotification
 } = require("../controllers/notification-controller");
 
 // Get all notifications
@@ -30,5 +31,8 @@ router.delete("/:id", deleteNotification);
 
 // Delete all notifications
 router.delete("/", deleteAllNotifications);
+
+// FIXED: Changed from /:notificationID/process to /:id/process to match client expectation
+router.put("/:id/process", processProjectNotification);
 
 module.exports = router;

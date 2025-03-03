@@ -14,6 +14,7 @@ import HomeIcon from "@mui/icons-material/Home";
 import ExitToAppIcon from "@mui/icons-material/ExitToApp";
 import AnnouncementOutlinedIcon from "@mui/icons-material/AnnouncementOutlined";
 import AssignmentIcon from "@mui/icons-material/Assignment";
+import PeopleIcon from "@mui/icons-material/People";
 
 const SideBar = () => {
   const location = useLocation();
@@ -23,14 +24,16 @@ const SideBar = () => {
   const [unreadCount, setUnreadCount] = useState(0);
 
   useEffect(() => {
+    console.log("Current User in Sidebar:", currentUser);
+    
     if (currentUser?.role === "Teacher") {
-      dispatch(getNotifications(currentUser._id));
+      dispatch(getNotifications());
     }
 
     // ✅ Auto-fetch notifications every 10 seconds
     const interval = setInterval(() => {
       if (currentUser?.role === "Teacher") {
-        dispatch(getNotifications(currentUser._id));
+        dispatch(getNotifications());
       }
     }, 10000); // 10 seconds
 
@@ -38,15 +41,30 @@ const SideBar = () => {
   }, [dispatch, currentUser]);
 
   useEffect(() => {
-    setUnreadCount(notifications.filter((notif) => !notif.isRead).length);
+    console.log("Notifications in Sidebar:", notifications);
+    
+    // Detailed logging of notification properties
+    notifications.forEach((notif, index) => {
+      console.log(`Notification ${index}:`, {
+        id: notif._id,
+        read: notif.read,
+        isRead: notif.isRead
+      });
+    });
+    
+    // Use 'read' property for unread count
+    const count = notifications.filter((notif) => !notif.read).length;
+    console.log("Unread Count:", count);
+    
+    setUnreadCount(count);
   }, [notifications]);
 
   useEffect(() => {
     if (location.pathname.startsWith("/Teacher/dashboard/notices")) {
-      dispatch(clearNotifications(currentUser._id));
+      dispatch(clearNotifications());
       setUnreadCount(0);
     }
-  }, [location, dispatch, currentUser]);
+  }, [location, dispatch]);
 
   return (
     <>
@@ -62,6 +80,13 @@ const SideBar = () => {
           <AssignmentIcon color={location.pathname.startsWith("/Teacher/dashboard/subjects") ? "primary" : "inherit"} />
         </ListItemIcon>
         <ListItemText primary="Subjects" />
+      </ListItemButton>
+
+      <ListItemButton component={Link} to="/Teacher/dashboard/students">
+        <ListItemIcon>
+          <PeopleIcon color={location.pathname.startsWith("/Teacher/dashboard/students") ? "primary" : "inherit"} />
+        </ListItemIcon>
+        <ListItemText primary="Students" />
       </ListItemButton>
 
       {/* ✅ Show Project Notifications */}

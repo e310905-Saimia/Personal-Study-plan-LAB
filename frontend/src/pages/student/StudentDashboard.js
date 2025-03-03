@@ -7,24 +7,31 @@ import {
   Typography,
   Divider,
   IconButton,
+  Menu,
+  MenuItem,
+  ListItemIcon,
+  ListItemText
 } from "@mui/material";
 import MenuIcon from "@mui/icons-material/Menu";
 import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
+import { AccountCircle } from "@mui/icons-material";
 import StudentSideBar from "./StudentSideBar";
 import { Route, Routes, useNavigate, Navigate } from "react-router-dom";
+import { useSelector, useDispatch } from "react-redux";
 import StudentHomePage from "./StudentHomePage";
 import StudentProfile from "./StudentProfile";
 import StudentSubjects from "./StudentSubjects";
 import Logout from "../Logout";
-import AccountMenu from "../../components/AccountMenu";
 import NotificationBell from "../../components/NotificationBell";
 import { AppBar, Drawer } from "../../components/styles";
-import { useSelector } from "react-redux";
+import { Authlogout } from "../../redux/userRelated/userSlice";
 
 const StudentDashboard = () => {
   const [open, setOpen] = useState(true);
+  const [anchorEl, setAnchorEl] = useState(null);
   const { currentRole } = useSelector((state) => state.user);
   const navigate = useNavigate();
+  const dispatch = useDispatch();
 
   // Redirect unauthorized users
   useEffect(() => {
@@ -35,6 +42,25 @@ const StudentDashboard = () => {
 
   const toggleDrawer = () => {
     setOpen(!open);
+  };
+
+  const handleAccountMenuOpen = (event) => {
+    setAnchorEl(event.currentTarget);
+  };
+
+  const handleAccountMenuClose = () => {
+    setAnchorEl(null);
+  };
+
+  const handleProfileClick = () => {
+    navigate("/Student/dashboard/profile");
+    handleAccountMenuClose();
+  };
+
+  const handleLogout = () => {
+    dispatch(Authlogout());
+    navigate('/');
+    handleAccountMenuClose();
   };
 
   return (
@@ -61,9 +87,42 @@ const StudentDashboard = () => {
             Student
           </Typography>
           
-          {/* Add NotificationBell component here */}
           <NotificationBell />
-          <AccountMenu />
+          <IconButton
+            size="large"
+            aria-label="account of current user"
+            aria-controls="menu-appbar"
+            aria-haspopup="true"
+            onClick={handleAccountMenuOpen}
+            color="inherit"
+          >
+            <AccountCircle />
+          </IconButton>
+          <Menu
+            id="menu-appbar"
+            anchorEl={anchorEl}
+            anchorOrigin={{
+              vertical: 'bottom',
+              horizontal: 'right',
+            }}
+            keepMounted
+            transformOrigin={{
+              vertical: 'top',
+              horizontal: 'right',
+            }}
+            open={Boolean(anchorEl)}
+            onClose={handleAccountMenuClose}
+          >
+            <MenuItem onClick={handleProfileClick}>
+              <ListItemIcon>
+                <AccountCircle fontSize="small" />
+              </ListItemIcon>
+              <ListItemText>Profile</ListItemText>
+            </MenuItem>
+            <MenuItem onClick={handleLogout}>
+              <ListItemText>Logout</ListItemText>
+            </MenuItem>
+          </Menu>
         </Toolbar>
       </AppBar>
       <Drawer variant="permanent" open={open}>

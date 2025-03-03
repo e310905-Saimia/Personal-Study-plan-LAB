@@ -8,9 +8,14 @@ import {
   Divider,
   IconButton,
   Grid,
+  Menu,
+  MenuItem,
+  ListItemIcon,
+  ListItemText
 } from "@mui/material";
 import MenuIcon from "@mui/icons-material/Menu";
 import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
+import { AccountCircle } from "@mui/icons-material";
 import { Route, Routes, useNavigate } from "react-router-dom";
 import { useSelector, useDispatch } from "react-redux";
 import { AppBar, Drawer } from "../../components/styles";
@@ -22,8 +27,8 @@ import AddNotice from "./notices/AddNotice";
 import ShowNotices from "./notices/ShowNotices";
 import ShowSubjects from "./subjects/ShowSubjects";
 import SubjectForm from "./subjects/SubjectForm";
-import AccountMenu from "../../components/AccountMenu";
 import NotificationBell from "../../components/NotificationBell";
+import { Authlogout } from "../../redux/userRelated/userSlice";
 // Recharts imports
 import {
   BarChart,
@@ -42,6 +47,7 @@ import TeacherHomePage from "./TeacherHomepage";
 
 const TeacherDashboard = () => {
   const [open, setOpen] = useState(false);
+  const [anchorEl, setAnchorEl] = useState(null);
   const { currentRole, currentUser } = useSelector((state) => state.user);
   const { studentsList } = useSelector((state) => state.student);
   const { classes } = useSelector((state) => state.subject);
@@ -67,6 +73,25 @@ const TeacherDashboard = () => {
 
   const toggleDrawer = () => {
     setOpen(!open);
+  };
+
+  const handleAccountMenuOpen = (event) => {
+    setAnchorEl(event.currentTarget);
+  };
+
+  const handleAccountMenuClose = () => {
+    setAnchorEl(null);
+  };
+
+  const handleProfileClick = () => {
+    navigate("/Teacher/dashboard/profile");
+    handleAccountMenuClose();
+  };
+
+  const handleLogout = () => {
+    dispatch(Authlogout());
+    navigate('/');
+    handleAccountMenuClose();
   };
 
   // Chart data
@@ -102,9 +127,42 @@ const TeacherDashboard = () => {
             Teacher
           </Typography>
           
-          {/* Add NotificationBell component here */}
           <NotificationBell />
-          <AccountMenu />
+          <IconButton
+            size="large"
+            aria-label="account of current user"
+            aria-controls="menu-appbar"
+            aria-haspopup="true"
+            onClick={handleAccountMenuOpen}
+            color="inherit"
+          >
+            <AccountCircle />
+          </IconButton>
+          <Menu
+            id="menu-appbar"
+            anchorEl={anchorEl}
+            anchorOrigin={{
+              vertical: 'bottom',
+              horizontal: 'right',
+            }}
+            keepMounted
+            transformOrigin={{
+              vertical: 'top',
+              horizontal: 'right',
+            }}
+            open={Boolean(anchorEl)}
+            onClose={handleAccountMenuClose}
+          >
+            <MenuItem onClick={handleProfileClick}>
+              <ListItemIcon>
+                <AccountCircle fontSize="small" />
+              </ListItemIcon>
+              <ListItemText>Profile</ListItemText>
+            </MenuItem>
+            <MenuItem onClick={handleLogout}>
+              <ListItemText>Logout</ListItemText>
+            </MenuItem>
+          </Menu>
         </Toolbar>
       </AppBar>
       <Drawer variant="permanent" open={open}>

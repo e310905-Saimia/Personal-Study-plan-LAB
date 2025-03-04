@@ -21,6 +21,26 @@ const studentRegister = async (req, res) => {
         const hashedPass = await bcrypt.hash(password, 10);
         const student = new Student({ email, password: hashedPass, teacherID });
 
+        // Get all current subjects from master list to assign to the new student
+        const masterSubjects = await Subject.find();
+        
+        // Create snapshot copies of each subject for the student
+        student.assignedSubjects = masterSubjects.map(subject => ({
+            subjectId: subject._id,
+            name: subject.name,
+            credits: subject.credits,
+            outcomes: subject.outcomes.map(outcome => ({
+                outcomeId: outcome._id,
+                topic: outcome.topic,
+                project: outcome.project,
+                credits: outcome.credits,
+                compulsory: outcome.compulsory,
+                requirements: outcome.requirements || [],
+                completed: false,
+                projects: [] // Initialize empty projects array
+            }))
+        }));
+
         const result = await student.save();
         res.status(201).json(result);
     } catch (err) {
@@ -186,22 +206,290 @@ const updateExamResult = async (req, res) => {
         res.status(500).json({ error: error.message });
     }
 };
+
+// Get student's assigned subjects
 const getStudentSubjects = async (req, res) => {
     try {
         const studentID = req.params.studentID;
 
-        // Find the student
+        // Find the student with their assigned subjects
         const student = await Student.findById(studentID);
         if (!student) {
             return res.status(404).json({ message: "Student not found" });
         }
 
-        // Fetch all subjects and outcomes
-        const subjects = await Subject.find().populate("outcomes");
+        // Check if student has assigned subjects
+        if (!student.assignedSubjects || student.assignedSubjects.length === 0) {
+            // If student doesn't have assigned subjects yet, assign them from the master list
+            await assignSubjectsToStudent(studentID);
+            // Refetch the student with the newly assigned subjects
+            const updatedStudent = await Student.findById(studentID);
+            return res.status(200).json(updatedStudent.assignedSubjects);
+        }
 
-        res.status(200).json(subjects);
+        // Return the student's assigned subjects
+        res.status(200).json(student.assignedSubjects);
     } catch (error) {
         console.error("Error in getStudentSubjects:", error);
+        res.status(500).json({ message: "Internal Server Error", error: error.message });
+    }
+};
+
+// Function to assign current master subjects to an existing student
+const assignSubjectsToStudent = async (studentID) => {
+    try {
+        // Find the student
+        const student = await Student.findById(studentID);
+        if (!student) {
+            throw new Error("Student not found");
+        }
+        
+        // Get all current subjects from master list
+        const masterSubjects = await Subject.find();
+        
+        // Create snapshot copies of each subject for the student
+        student.assignedSubjects = masterSubjects.map(subject => ({
+            subjectId: subject._id,
+            name: subject.name,
+            credits: subject.credits,
+            outcomes: subject.outcomes.map(outcome => ({
+                outcomeId: outcome._id,
+                topic: outcome.topic,
+                project: outcome.project,
+                credits: outcome.credits,
+                compulsory: outcome.compulsory,
+                requirements: outcome.requirements || [],
+                completed: false,
+                projects: [] // Initialize empty projects array
+            }))
+        }));
+        
+        await student.save();
+        return student;
+    } catch (error) {
+        console.error("Error assigning subjects to student:", error);
+        throw error;
+    }
+};
+
+// API endpoint to manually assign current subjects to a student
+const assignCurrentSubjectsToStudent = async (req, res) => {
+    try {
+        const studentID = req.params.studentID;
+        const student = await assignSubjectsToStudent(studentID);
+        
+        res.status(200).json({ 
+            message: "Subjects assigned successfully", 
+            assignedSubjects: student.assignedSubjects 
+        });
+    } catch (error) {
+        console.error("Error in assignCurrentSubjectsToStudent:", error);
+        res.status(500).json({ message: "Internal Server Error", error: error.message });
+    }
+};
+
+// Update a student's progress on a specific outcome
+const updateOutcomeProgress = async (req, res) => {
+    try {
+        const { studentID, subjectID, outcomeID } = req.params;
+        const { completed } = req.body;
+
+        const student = await Student.findById(studentID);
+        if (!student) {
+            return res.status(404).json({ message: "Student not found" });
+        }
+
+        // Find the subject in the student's assigned subjects
+        const subjectIndex = student.assignedSubjects.findIndex(
+            subject => subject.subjectId.toString() === subjectID
+        );
+
+        if (subjectIndex === -1) {
+            return res.status(404).json({ message: "Subject not found in student's assigned subjects" });
+        }
+
+        // Find the outcome in the subject
+        const outcomeIndex = student.assignedSubjects[subjectIndex].outcomes.findIndex(
+            outcome => outcome.outcomeId.toString() === outcomeID
+        );
+
+        if (outcomeIndex === -1) {
+            return res.status(404).json({ message: "Outcome not found in subject" });
+        }
+
+        // Update the completed status
+        student.assignedSubjects[subjectIndex].outcomes[outcomeIndex].completed = completed;
+        await student.save();
+
+        res.status(200).json({ 
+            message: "Outcome progress updated successfully", 
+            outcome: student.assignedSubjects[subjectIndex].outcomes[outcomeIndex] 
+        });
+    } catch (error) {
+        console.error("Error updating outcome progress:", error);
+        res.status(500).json({ message: "Internal Server Error", error: error.message });
+    }
+};
+
+// NEW METHOD: Submit a project for an outcome
+const submitProject = async (req, res) => {
+    try {
+        const { studentID, subjectID, outcomeID } = req.params;
+        const { name, requestedCredit } = req.body;
+        
+        if (!name || !requestedCredit) {
+            return res.status(400).json({ message: "Project name and requested credit are required" });
+        }
+        
+        const student = await Student.findById(studentID);
+        if (!student) {
+            return res.status(404).json({ message: "Student not found" });
+        }
+        
+        // Find the subject in student's assigned subjects
+        const subjectIndex = student.assignedSubjects.findIndex(
+            subject => subject.subjectId.toString() === subjectID
+        );
+        
+        if (subjectIndex === -1) {
+            return res.status(404).json({ message: "Subject not found in student's assigned subjects" });
+        }
+        
+        // Find the outcome in the subject
+        const outcomeIndex = student.assignedSubjects[subjectIndex].outcomes.findIndex(
+            outcome => outcome.outcomeId.toString() === outcomeID
+        );
+        
+        if (outcomeIndex === -1) {
+            return res.status(404).json({ message: "Outcome not found in subject" });
+        }
+        
+        // Add the new project to the outcome's projects array
+        student.assignedSubjects[subjectIndex].outcomes[outcomeIndex].projects.push({
+            name,
+            requestedCredit: Number(requestedCredit),
+            status: 'Pending',
+            submissionDate: new Date()
+        });
+        
+        await student.save();
+        
+        res.status(201).json({ 
+            message: "Project submitted successfully", 
+            project: student.assignedSubjects[subjectIndex].outcomes[outcomeIndex].projects.slice(-1)[0] 
+        });
+    } catch (error) {
+        console.error("Error submitting project:", error);
+        res.status(500).json({ message: "Internal Server Error", error: error.message });
+    }
+};
+
+// NEW METHOD: For teachers to assess a student's project
+const assessProject = async (req, res) => {
+    try {
+        const { studentID, subjectID, outcomeID, projectID } = req.params;
+        const { approvedCredit, assessedBy, status, assessment } = req.body;
+        
+        if (!status || (status === 'Approved' && !approvedCredit)) {
+            return res.status(400).json({ 
+                message: "Status is required. If approving, approved credit is also required." 
+            });
+        }
+        
+        const student = await Student.findById(studentID);
+        if (!student) {
+            return res.status(404).json({ message: "Student not found" });
+        }
+        
+        // Find the subject
+        const subjectIndex = student.assignedSubjects.findIndex(
+            subject => subject.subjectId.toString() === subjectID
+        );
+        
+        if (subjectIndex === -1) {
+            return res.status(404).json({ message: "Subject not found" });
+        }
+        
+        // Find the outcome
+        const outcomeIndex = student.assignedSubjects[subjectIndex].outcomes.findIndex(
+            outcome => outcome.outcomeId.toString() === outcomeID
+        );
+        
+        if (outcomeIndex === -1) {
+            return res.status(404).json({ message: "Outcome not found" });
+        }
+        
+        // Find the project
+        const projectIndex = student.assignedSubjects[subjectIndex].outcomes[outcomeIndex].projects.findIndex(
+            project => project._id.toString() === projectID
+        );
+        
+        if (projectIndex === -1) {
+            return res.status(404).json({ message: "Project not found" });
+        }
+        
+        // Update the project
+        const project = student.assignedSubjects[subjectIndex].outcomes[outcomeIndex].projects[projectIndex];
+        
+        project.status = status;
+        if (status === 'Approved' && approvedCredit) {
+            project.approvedCredit = Number(approvedCredit);
+        }
+        if (assessedBy) {
+            project.assessedBy = assessedBy;
+        }
+        if (assessment) {
+            project.assessment = assessment;
+        }
+        
+        // If project is approved, mark the outcome as completed
+        if (status === 'Approved') {
+            student.assignedSubjects[subjectIndex].outcomes[outcomeIndex].completed = true;
+        }
+        
+        await student.save();
+        
+        res.status(200).json({ 
+            message: "Project assessment updated successfully", 
+            project: student.assignedSubjects[subjectIndex].outcomes[outcomeIndex].projects[projectIndex] 
+        });
+    } catch (error) {
+        console.error("Error assessing project:", error);
+        res.status(500).json({ message: "Internal Server Error", error: error.message });
+    }
+};
+
+// NEW METHOD: Get all projects for a specific outcome
+const getOutcomeProjects = async (req, res) => {
+    try {
+        const { studentID, subjectID, outcomeID } = req.params;
+        
+        const student = await Student.findById(studentID);
+        if (!student) {
+            return res.status(404).json({ message: "Student not found" });
+        }
+        
+        // Find the subject
+        const subject = student.assignedSubjects.find(
+            subject => subject.subjectId.toString() === subjectID
+        );
+        
+        if (!subject) {
+            return res.status(404).json({ message: "Subject not found" });
+        }
+        
+        // Find the outcome
+        const outcome = subject.outcomes.find(
+            outcome => outcome.outcomeId.toString() === outcomeID
+        );
+        
+        if (!outcome) {
+            return res.status(404).json({ message: "Outcome not found" });
+        }
+        
+        res.status(200).json(outcome.projects || []);
+    } catch (error) {
+        console.error("Error fetching outcome projects:", error);
         res.status(500).json({ message: "Internal Server Error", error: error.message });
     }
 };
@@ -216,5 +504,11 @@ module.exports = {
     updateStudent,
     deleteStudentsByClass,
     updateExamResult,
-    getStudentSubjects
+    getStudentSubjects,
+    assignCurrentSubjectsToStudent,
+    updateOutcomeProgress,
+    // New methods
+    submitProject,
+    assessProject,
+    getOutcomeProjects
 };

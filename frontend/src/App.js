@@ -11,6 +11,8 @@ import Logout from './pages/Logout';
 import StudentProgress from "./pages/Teacher/students/StudentProgress";
 import ShowSubjects from './pages/Teacher/subjects/ShowSubjects';
 import AddSubject from "./pages/Teacher/subjects/AddSubject";
+import ImportSubjects from './pages/Teacher/subjects/ImportSubjects';
+import ImportOutcomes from './pages/Teacher/subjects/ImportOutcomes';
 const App = () => {
   const { currentRole } = useSelector((state) => state.user);
 
@@ -29,6 +31,8 @@ const App = () => {
           <Route path="/Teacher/dashboard/*" element={<TeacherDashboard />} />
           <Route path="/Teacher/subjects" element={<ShowSubjects />} />
           <Route path="/Teacher/subjects/add" element={<AddSubject />} /> 
+          <Route path="/Teacher/subjects/import" element={<ImportSubjects />} />
+          <Route path="/Teacher/subjects/:subjectId/outcomes/import" element={<ImportOutcomes />} />
           <Route path="/Teacher/students/:studentID/subjects" element={<StudentProgress />} />
         </>
       )}

@@ -27,9 +27,17 @@ export const registerUser = (userData, role) => async (dispatch) => {
 export const getStudentSubjects = (studentID) => async (dispatch) => {
     dispatch(getRequest());
     try {
+        console.log(`Fetching subjects for student ID: ${studentID}`);
         const response = await axios.get(`http://localhost:5000/api/students/${studentID}/subjects`);
-        dispatch(getSuccess(response.data));
-        return response.data; // Return the data for components that need it directly
+        console.log("Student subjects received:", response.data);
+        
+        // Properly storing the student's data in Redux
+        dispatch(getSuccess({
+            ...response.data,
+            assignedSubjects: response.data
+        }));
+        
+        return response.data;
     } catch (error) {
         console.error("Error fetching student's subjects:", error);
         dispatch(getFailed(error.message));
@@ -81,6 +89,24 @@ export const submitStudentProject = (studentID, subjectID, outcomeID, projectDat
         return response.data;
     } catch (error) {
         console.error("Error submitting project:", error);
+        throw error;
+    }
+};
+
+// NEW: Delete a student project
+export const deleteStudentProject = (studentID, subjectID, outcomeID, projectID) => async (dispatch) => {
+    try {
+        console.log(`Deleting project ${projectID} for student ${studentID}`);
+        const response = await axios.delete(
+            `http://localhost:5000/api/students/${studentID}/subjects/${subjectID}/outcomes/${outcomeID}/projects/${projectID}`
+        );
+        
+        // Refresh the student's subjects data
+        dispatch(getStudentSubjects(studentID));
+        
+        return response.data;
+    } catch (error) {
+        console.error("Error deleting project:", error);
         throw error;
     }
 };

@@ -4,7 +4,7 @@ const jwt = require('jsonwebtoken');
 
 // Register Teacher
 exports.teacherRegister = async (req, res) => {
-    console.log("Request Body:", req.body);
+    
 
     const { name, email, password } = req.body;
     if (!name || !email || !password) {
@@ -42,9 +42,25 @@ exports.teacherLogIn = async (req, res) => {
             return res.status(401).json({ message: "Invalid credentials" });
         }
 
+        // Create a token with role information
         const token = jwt.sign({ id: teacher._id, role: "Teacher" }, process.env.JWT_SECRET, { expiresIn: "1d" });
-        teacher.password = undefined; // Exclude password from response
-        res.status(200).json({ token, teacher });
+        
+        // Make a copy of the teacher object to modify safely
+        const teacherResponse = { ...teacher.toObject() };
+        
+        // Remove password from response
+        delete teacherResponse.password;
+        
+        // Ensure role field exists
+        if (!teacherResponse.role) {
+            teacherResponse.role = "Teacher";
+        }
+        
+        // Return token and teacher data with role
+        res.status(200).json({ 
+            token, 
+            teacher: teacherResponse 
+        });
     } catch (err) {
         console.error("Error in teacherLogIn:", err);
         res.status(500).json({ message: "Internal server error", error: err.message });

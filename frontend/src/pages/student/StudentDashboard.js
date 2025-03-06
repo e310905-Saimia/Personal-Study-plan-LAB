@@ -22,7 +22,7 @@ import StudentHomePage from "./StudentHomePage";
 import StudentProfile from "./StudentProfile";
 import StudentSubjects from "./StudentSubjects";
 import Logout from "../Logout";
-import NotificationBell from "../../components/NotificationBell";
+// Removed NotificationBell import
 import { AppBar, Drawer } from "../../components/styles";
 import { Authlogout } from "../../redux/userRelated/userSlice";
 
@@ -87,7 +87,7 @@ const StudentDashboard = () => {
             Student
           </Typography>
           
-          <NotificationBell />
+          {/* NotificationBell component removed */}
           <IconButton
             size="large"
             aria-label="account of current user"

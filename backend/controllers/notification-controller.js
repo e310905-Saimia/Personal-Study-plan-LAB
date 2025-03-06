@@ -5,9 +5,9 @@ const Notification = require("../models/notificationSchema");
 const getNotifications = async (req, res) => {
   try {
     const notifications = await Notification.find()
-      .sort({ date: -1 }) // Sort by date, newest first
-      .populate("studentID", "name") // Include student name
-      .populate("subjectID", "name"); // Include subject name
+      .sort({ date: -1 }) 
+      .populate("studentID", "name") 
+      .populate("subjectID", "name"); 
     
     res.status(200).json(notifications);
   } catch (error) {
@@ -30,8 +30,6 @@ const getUnreadCount = async (req, res) => {
 // Create a New Notification
 const createNotification = async (req, res) => {
   try {
-    console.log("Received notification request FULL BODY:", req.body);
-
     const { 
       message, 
       studentID, 
@@ -101,120 +99,107 @@ const processProjectNotification = async (req, res) => {
       return res.status(400).json({ message: "Invalid status" });
     }
 
-    // Use teacherName from request body if provided, otherwise try to extract from req.user
-    let assessedBy = teacherName;
-    
-    // If teacherName is not provided, try to extract from req.user as fallback
-    if (!assessedBy && req.user) {
-      // Extract teacher name without affecting existing logic
-      const getTeacherName = () => {
-        // Check multiple possible locations for the name
-        if (req.user?.name) return req.user.name;
-        if (req.user?.teacher?.name) return req.user.teacher.name;
-        
-        // If no name, format name from email
-        const email = req.user?.email || 
-                      req.user?.teacher?.email || 
-                      'teacher@example.com';
-        
-        // Use the same formatting logic as in profiles
-        if (!email || typeof email !== 'string') return 'Teacher';
-        
-        const namePart = email.split('@')[0];
-        const formattedName = namePart
-          .split('.')
-          .map(part => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
-          .join(' ');
-        
-        return formattedName || 'Teacher';
-      };
-      
-      assessedBy = getTeacherName();
-    }
-    
-    // Default to 'Teacher' if all else fails
-    if (!assessedBy) {
-      assessedBy = 'Teacher';
-    }
+    // Set assessedBy to teacherName or default to 'Teacher'
+    const assessedBy = teacherName || 'Teacher';
     
     console.log("Using teacher name for assessment:", assessedBy);
 
-    // Update notification with teacher's name
-    const notification = await Notification.findByIdAndUpdate(
+    // First, get the notification to get student and project details
+    const notification = await Notification.findById(notificationId);
+    
+    if (!notification) {
+      return res.status(404).json({ message: "Notification not found" });
+    }
+    
+    // Get required IDs from the notification
+    const studentID = notification.studentID;
+    const subjectID = notification.subjectID;
+    const outcomeID = notification.outcomeID;
+    const projectName = notification.projectName;
+    
+    // Now, update ONLY this student's project
+    const Student = require('../models/studentSchema');
+    
+    const student = await Student.findById(studentID);
+    if (!student) {
+      return res.status(404).json({ message: "Student not found" });
+    }
+    
+    // Find matching subject in this student's assigned subjects
+    const subjectIndex = student.assignedSubjects.findIndex(
+      subject => subject.subjectId.toString() === subjectID.toString()
+    );
+    
+    if (subjectIndex === -1) {
+      return res.status(404).json({ message: "Subject not found for this student" });
+    }
+    
+    // Find matching outcome
+    const outcomeIndex = student.assignedSubjects[subjectIndex].outcomes.findIndex(
+      outcome => outcome.outcomeId.toString() === outcomeID.toString()
+    );
+    
+    if (outcomeIndex === -1) {
+      return res.status(404).json({ message: "Outcome not found for this student" });
+    }
+    
+    // Ensure the projects array exists for this outcome
+    if (!student.assignedSubjects[subjectIndex].outcomes[outcomeIndex].projects) {
+      student.assignedSubjects[subjectIndex].outcomes[outcomeIndex].projects = [];
+    }
+    
+    // Find project by name (since we don't have project ID in notification)
+    const projectIndex = student.assignedSubjects[subjectIndex].outcomes[outcomeIndex].projects.findIndex(
+      project => project.name === projectName
+    );
+    
+    if (projectIndex === -1) {
+      console.log(`Project ${projectName} not found for student ${studentID}. This is expected for notifications only.`);
+    } else {
+      // Update the existing project
+      const project = student.assignedSubjects[subjectIndex].outcomes[outcomeIndex].projects[projectIndex];
+      
+      // Update project status
+      project.status = status === 'approved' ? 'Approved' : 'Rejected';
+      
+      // Update other fields based on approval status
+      if (status === 'approved') {
+        project.approvedCredit = Number(approvedCredits);
+        // Mark outcome as completed
+        student.assignedSubjects[subjectIndex].outcomes[outcomeIndex].completed = true;
+      }
+      
+      // Set assessor name
+      project.assessedBy = assessedBy;
+      
+      // Add assessment comment
+      if (teacherComment) {
+        project.assessment = teacherComment;
+      }
+      
+      // Save student document
+      await student.save();
+      console.log(`Updated project for student ${studentID}`);
+    }
+    
+    // Finally update the notification record
+    const updatedNotification = await Notification.findByIdAndUpdate(
       notificationId,
       {
         status,
         approvedCredits: Number(approvedCredits) || 0,
         teacherComment: teacherComment || '',
         processedDate: new Date(),
-        assessedBy: assessedBy, // Use the teacher name
+        assessedBy: assessedBy,
         assessedDate: new Date(),
         isProcessed: true
       },
       { new: true, runValidators: true }
-    ).populate('studentID').populate('subjectID');
+    );
 
-    if (!notification) {
-      return res.status(404).json({ message: "Notification not found" });
-    }
-
-    // Update related project if exists
-    try {
-      // Check different possible locations for projectSchema
-      let Project;
-      
-      try {
-        // First try direct path
-        Project = require("../models/projectSchema");
-      } catch (err) {
-        try {
-          // Try alternative location - remove the dot
-          Project = require("./models/projectSchema");
-        } catch (err) {
-          try {
-            // Try parent directory if it exists at a different level
-            Project = require("../../models/projectSchema");
-          } catch (err) {
-            console.log("Project schema not found. Skipping project update.");
-            // Continue without updating project - it's not critical
-          }
-        }
-      }
-      
-      // Only try to update if we found the Project model
-      if (Project) {
-        const project = await Project.findOne({ 
-          outcomeID: notification.outcomeID,
-          studentID: notification.studentID._id,
-          subjectID: notification.subjectID._id
-        });
-        
-        if (project) {
-          console.log(`Found project ${project._id} to update`);
-          
-          // Update project with the same teacher name
-          project.status = status;
-          project.approvedCredits = Number(approvedCredits) || 0;
-          project.assessedBy = assessedBy; // Use the same teacher name
-          project.assessedDate = new Date();
-          project.teacherComment = teacherComment || '';
-          project.lastUpdated = new Date();
-          
-          await project.save();
-          console.log("Project updated successfully");
-        } else {
-          console.log("No matching project found to update");
-        }
-      }
-    } catch (projectError) {
-      console.error("Error updating related project:", projectError);
-      // Continue processing - this is not a critical error
-    }
-
-    // Keep existing response
     res.status(200).json({ 
       message: `Project ${status}`, 
-      notification 
+      notification: updatedNotification 
     });
   } catch (error) {
     console.error("Error processing project notification:", error);

@@ -59,7 +59,8 @@ const TeacherRegisterPage = () => {
     const fields = { name, email, password };
 
     setLoader(true);
-    dispatch(registerUser(fields));
+    // Fix: Add "Teacher" role parameter to registerUser function call
+    dispatch(registerUser(fields, "Teacher"));
   };
 
   // Handle input changes and reset errors

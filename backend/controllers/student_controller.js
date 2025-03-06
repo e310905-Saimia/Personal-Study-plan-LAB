@@ -207,7 +207,7 @@ const updateExamResult = async (req, res) => {
     }
 };
 
-// Get student's assigned subjects
+// Update the getStudentSubjects function in student_controller.js
 const getStudentSubjects = async (req, res) => {
     try {
         const studentID = req.params.studentID;
@@ -227,15 +227,14 @@ const getStudentSubjects = async (req, res) => {
             return res.status(200).json(updatedStudent.assignedSubjects);
         }
 
-        // Return the student's assigned subjects
+        // Return the student's assigned subjects (which include their own projects)
         res.status(200).json(student.assignedSubjects);
     } catch (error) {
         console.error("Error in getStudentSubjects:", error);
         res.status(500).json({ message: "Internal Server Error", error: error.message });
     }
 };
-
-// Function to assign current master subjects to an existing student
+// Update the assignSubjectsToStudent function in student_controller.js
 const assignSubjectsToStudent = async (studentID) => {
     try {
         // Find the student
@@ -248,6 +247,7 @@ const assignSubjectsToStudent = async (studentID) => {
         const masterSubjects = await Subject.find();
         
         // Create snapshot copies of each subject for the student
+        // Each student gets their own independent copy
         student.assignedSubjects = masterSubjects.map(subject => ({
             subjectId: subject._id,
             name: subject.name,
@@ -260,7 +260,7 @@ const assignSubjectsToStudent = async (studentID) => {
                 compulsory: outcome.compulsory,
                 requirements: outcome.requirements || [],
                 completed: false,
-                projects: [] // Initialize empty projects array
+                projects: [] // Initialize empty projects array specific to this student
             }))
         }));
         
@@ -331,29 +331,53 @@ const updateOutcomeProgress = async (req, res) => {
     }
 };
 
-// NEW METHOD: Submit a project for an outcome
 const submitProject = async (req, res) => {
     try {
         const { studentID, subjectID, outcomeID } = req.params;
         const { name, requestedCredit } = req.body;
         
+        // console.log("Received parameters:", { studentID, subjectID, outcomeID });
+        // console.log("Request body:", req.body);
+        
         if (!name || !requestedCredit) {
             return res.status(400).json({ message: "Project name and requested credit are required" });
         }
         
-        const student = await Student.findById(studentID);
+        // Find the student
+        let student = await Student.findById(studentID);
         if (!student) {
             return res.status(404).json({ message: "Student not found" });
         }
         
-        // Find the subject in student's assigned subjects
+        // Check if student has assigned subjects
+        if (!student.assignedSubjects || student.assignedSubjects.length === 0) {
+            // console.log("No assigned subjects found for student. Assigning subjects now...");
+            // Assign subjects to the student first
+            student = await assignSubjectsToStudent(studentID);
+        }
+        
+        // console.log("Student's subject IDs after ensuring assignment:", student.assignedSubjects.map(s => ({ 
+        //     id: s.subjectId.toString(), 
+        //     name: s.name 
+        // })));
+        
+        // Find the subject in the student's assigned subjects
         const subjectIndex = student.assignedSubjects.findIndex(
             subject => subject.subjectId.toString() === subjectID
         );
         
         if (subjectIndex === -1) {
-            return res.status(404).json({ message: "Subject not found in student's assigned subjects" });
+            return res.status(404).json({ 
+                message: "Subject not found in student's assigned subjects", 
+                studentSubjects: student.assignedSubjects.map(s => s.subjectId.toString()),
+                requestedSubjectID: subjectID
+            });
         }
+        
+        // console.log("Subject's outcome IDs:", student.assignedSubjects[subjectIndex].outcomes.map(o => ({
+        //     id: o.outcomeId.toString(),
+        //     topic: o.topic
+        // })));
         
         // Find the outcome in the subject
         const outcomeIndex = student.assignedSubjects[subjectIndex].outcomes.findIndex(
@@ -361,10 +385,14 @@ const submitProject = async (req, res) => {
         );
         
         if (outcomeIndex === -1) {
-            return res.status(404).json({ message: "Outcome not found in subject" });
+            return res.status(404).json({ 
+                message: "Outcome not found in subject",
+                subjectOutcomes: student.assignedSubjects[subjectIndex].outcomes.map(o => o.outcomeId.toString()),
+                requestedOutcomeID: outcomeID
+            });
         }
         
-        // Add the new project to the outcome's projects array
+        // Add the new project to the outcome's projects array for THIS STUDENT ONLY
         student.assignedSubjects[subjectIndex].outcomes[outcomeIndex].projects.push({
             name,
             requestedCredit: Number(requestedCredit),
@@ -383,8 +411,7 @@ const submitProject = async (req, res) => {
         res.status(500).json({ message: "Internal Server Error", error: error.message });
     }
 };
-
-// NEW METHOD: For teachers to assess a student's project
+// Update the assessProject function in student_controller.js
 const assessProject = async (req, res) => {
     try {
         const { studentID, subjectID, outcomeID, projectID } = req.params;
@@ -401,7 +428,7 @@ const assessProject = async (req, res) => {
             return res.status(404).json({ message: "Student not found" });
         }
         
-        // Find the subject
+        // Find the subject in the student's assigned subjects
         const subjectIndex = student.assignedSubjects.findIndex(
             subject => subject.subjectId.toString() === subjectID
         );
@@ -410,7 +437,7 @@ const assessProject = async (req, res) => {
             return res.status(404).json({ message: "Subject not found" });
         }
         
-        // Find the outcome
+        // Find the outcome in the subject
         const outcomeIndex = student.assignedSubjects[subjectIndex].outcomes.findIndex(
             outcome => outcome.outcomeId.toString() === outcomeID
         );
@@ -428,7 +455,7 @@ const assessProject = async (req, res) => {
             return res.status(404).json({ message: "Project not found" });
         }
         
-        // Update the project
+        // Update the project for THIS STUDENT ONLY
         const project = student.assignedSubjects[subjectIndex].outcomes[outcomeIndex].projects[projectIndex];
         
         project.status = status;
@@ -494,6 +521,49 @@ const getOutcomeProjects = async (req, res) => {
     }
 };
 
+// Delete a student project
+const deleteProject = async (req, res) => {
+    try {
+        const { studentID, subjectID, outcomeID, projectID } = req.params;
+        
+        const student = await Student.findById(studentID);
+        if (!student) {
+            return res.status(404).json({ message: "Student not found" });
+        }
+        
+        // Find the subject
+        const subjectIndex = student.assignedSubjects.findIndex(
+            subject => subject.subjectId.toString() === subjectID
+        );
+        
+        if (subjectIndex === -1) {
+            return res.status(404).json({ message: "Subject not found" });
+        }
+        
+        // Find the outcome
+        const outcomeIndex = student.assignedSubjects[subjectIndex].outcomes.findIndex(
+            outcome => outcome.outcomeId.toString() === outcomeID
+        );
+        
+        if (outcomeIndex === -1) {
+            return res.status(404).json({ message: "Outcome not found" });
+        }
+        
+        // Filter out the project to delete
+        student.assignedSubjects[subjectIndex].outcomes[outcomeIndex].projects = 
+            student.assignedSubjects[subjectIndex].outcomes[outcomeIndex].projects.filter(
+                project => project._id.toString() !== projectID
+            );
+        
+        await student.save();
+        
+        res.status(200).json({ message: "Project deleted successfully" });
+    } catch (error) {
+        console.error("Error deleting project:", error);
+        res.status(500).json({ message: "Internal Server Error", error: error.message });
+    }
+};
+
 module.exports = {
     studentRegister,
     studentLogIn, 
@@ -510,5 +580,6 @@ module.exports = {
     // New methods
     submitProject,
     assessProject,
-    getOutcomeProjects
+    getOutcomeProjects,
+    deleteProject,
 };

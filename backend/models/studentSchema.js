@@ -27,7 +27,7 @@ const assignedOutcomeSchema = new mongoose.Schema({
   compulsory: { type: Boolean, default: true },
   requirements: [{ type: String }],
   completed: { type: Boolean, default: false },
-  // Add projects array to store student submissions
+  // Projects array to store student submissions for this specific outcome
   projects: [projectSchema]
 });
 
@@ -62,7 +62,7 @@ const studentSchema = new mongoose.Schema({
         ref: "teacher",
         required: false,
     },
-    // Assigned subjects array stores snapshots of subjects
+    // Assigned subjects array stores snapshots of subjects specific to this student
     assignedSubjects: [assignedSubjectSchema],
     // Keep existing examResult field for backward compatibility
     examResult: [{

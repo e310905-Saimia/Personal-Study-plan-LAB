@@ -16,7 +16,7 @@ import {
 import MenuIcon from "@mui/icons-material/Menu";
 import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
 import { AccountCircle } from "@mui/icons-material";
-import { Route, Routes, useNavigate } from "react-router-dom";
+import { Route, Routes, useNavigate, Navigate } from "react-router-dom";
 import { useSelector, useDispatch } from "react-redux";
 import { AppBar, Drawer } from "../../components/styles";
 import SideBar from "./SideBar";
@@ -27,6 +27,10 @@ import AddNotice from "./notices/AddNotice";
 import ShowNotices from "./notices/ShowNotices";
 import ShowSubjects from "./subjects/ShowSubjects";
 import SubjectForm from "./subjects/SubjectForm";
+import AddSubject from "./subjects/AddSubject";
+import ImportSubjects from './subjects/ImportSubjects';
+import ImportOutcomes from './subjects/ImportOutcomes';
+import StudentProgress from "./students/StudentProgress";
 import NotificationBell from "../../components/NotificationBell";
 import { Authlogout } from "../../redux/userRelated/userSlice";
 // Recharts imports
@@ -44,6 +48,10 @@ import { getSubjectList } from "../../redux/subjectrelated/subjectHandle";
 import { getAllStudents } from "../../redux/studentRelated/studentHandle";
 import { getAllTeachers } from "../../redux/teacherRelated/teacherHandle";
 import TeacherHomePage from "./TeacherHomepage";
+
+import StudentCompetencies from './students/StudentCompetencies';
+import TeacherViewStudent from "./TeacherViewStudent";
+import AddTeacher from "./AddTeacher";
 
 const TeacherDashboard = () => {
   const [open, setOpen] = useState(false);
@@ -179,6 +187,7 @@ const TeacherDashboard = () => {
       <Box component="main" sx={styles.boxStyled}>
         <Toolbar />
         <Routes>
+          {/* Dashboard Home */}
           <Route
             path="/"
             element={
@@ -205,12 +214,35 @@ const TeacherDashboard = () => {
           />
           <Route path="profile" element={<TeacherProfile />} />
           <Route path="home" element={<TeacherHomePage />} />
+          
+          {/* Student Routes */}
           <Route path="addstudents" element={<AddStudent />} />
           <Route path="students" element={<ShowStudents />} />
+          <Route path="students/:id" element={<TeacherViewStudent />} />
+          <Route path="students/:studentID/subjects" element={<StudentProgress />} />
+          <Route path="students/:studentID/competencies" element={<StudentCompetencies />} />
+          
+          {/* Notice Routes */}
           <Route path="addnotice" element={<AddNotice />} />
           <Route path="notices" element={<ShowNotices />} />
+          
+          {/* Subject Routes */}
           <Route path="subjects" element={<ShowSubjects />} />
+          <Route path="subjects/add" element={<AddSubject />} />
+          <Route path="subjects/import" element={<ImportSubjects />} />
+          <Route path="subjects/:subjectId/outcomes/import" element={<ImportOutcomes />} />
           <Route path="addsubject" element={<SubjectForm />} />
+          <Route path="addsubject/:classId" element={<SubjectForm />} />
+          
+          {/* Teacher Routes - some components commented out due to import errors */}
+          {/* <Route path="teachers" element={<ShowTeachers />} /> */}
+          <Route path="teachers/add" element={<AddTeacher />} />
+          {/* <Route path="teachers/chooseclass/:situation" element={<ChooseClass />} /> */}
+          {/* <Route path="teachers/choosesubject/:classID/:teacherID" element={<ChooseSubject />} /> */}
+
+          
+          {/* Fallback - redirect to dashboard home */}
+          <Route path="*" element={<Navigate to="/Teacher/dashboard/home" replace />} />
         </Routes>
       </Box>
     </Box>

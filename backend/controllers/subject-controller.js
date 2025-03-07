@@ -1,12 +1,24 @@
 const Subject = require('../models/subjectSchema.js');
 
-// ✅ Create a Subject (Only Name & Credits)
+// ✅ Create a Subject (Only Name & Credits) with duplicate check
 const subjectCreate = async (req, res) => {
     try {
         let { name, credits } = req.body;
 
         if (!name || !credits) {
             return res.status(400).json({ message: "Name and credits are required" });
+        }
+
+        // Check if subject with this name already exists (case-insensitive)
+        const existingSubject = await Subject.findOne({ 
+            name: { $regex: new RegExp(`^${name}$`, 'i') } 
+        });
+
+        if (existingSubject) {
+            return res.status(409).json({ 
+                message: "Subject with this name already exists", 
+                existingSubject 
+            });
         }
 
         // ✅ Create and save the subject
@@ -16,6 +28,12 @@ const subjectCreate = async (req, res) => {
         res.status(201).json({ message: "Subject added successfully!", subject: newSubject });
     } catch (error) {
         console.error("Error in subjectCreate:", error);
+        
+        // Handle mongoose duplicate key error
+        if (error.name === 'MongoError' && error.code === 11000) {
+            return res.status(409).json({ message: "Subject with this name already exists" });
+        }
+        
         res.status(500).json({ error: error.message });
     }
 };
@@ -49,6 +67,20 @@ const updateSubject = async (req, res) => {
     try {
         const { name, credits } = req.body;
 
+        // Check if name is being changed and if it would create a duplicate
+        if (name) {
+            const existingSubject = await Subject.findOne({ 
+                name: { $regex: new RegExp(`^${name}$`, 'i') },
+                _id: { $ne: req.params.id } // Exclude current subject
+            });
+
+            if (existingSubject) {
+                return res.status(409).json({ 
+                    message: "Cannot update: another subject with this name already exists" 
+                });
+            }
+        }
+
         const updatedSubject = await Subject.findByIdAndUpdate(
             req.params.id,
             { name, credits },
@@ -62,6 +94,14 @@ const updateSubject = async (req, res) => {
         res.status(200).json({ message: 'Subject updated successfully', subject: updatedSubject });
     } catch (error) {
         console.error("Error in updateSubject:", error);
+        
+        // Handle mongoose duplicate key error
+        if (error.name === 'MongoError' && error.code === 11000) {
+            return res.status(409).json({ 
+                message: "Cannot update: another subject with this name already exists" 
+            });
+        }
+        
         res.status(500).json({ error: error.message });
     }
 };
@@ -86,6 +126,19 @@ const addOutcome = async (req, res) => {
         const subject = await Subject.findById(req.params.id);
         if (!subject) return res.status(404).json({ message: "Subject not found" });
 
+        // Check for duplicate outcome (topic and project combination)
+        const duplicateOutcome = subject.outcomes.find(outcome => 
+            outcome.topic.toLowerCase() === topic.toLowerCase() && 
+            outcome.project.toLowerCase() === project.toLowerCase()
+        );
+
+        if (duplicateOutcome) {
+            return res.status(409).json({ 
+                message: "An outcome with this topic and project already exists for this subject",
+                outcome: duplicateOutcome
+            });
+        }
+
         // Set compulsory to true by default if not provided
         const isCompulsory = compulsory !== undefined ? compulsory : true;
 
@@ -103,42 +156,35 @@ const addOutcome = async (req, res) => {
     }
 };
 
-// const updateOutcome = async (req, res) => {
-//     try {
-//         const { topic, project, credits, requirements, compulsory } = req.body;
-//         const subject = await Subject.findById(req.params.subjectID);
-//         if (!subject) return res.status(404).json({ message: "Subject not found" });
-
-//         const outcome = subject.outcomes.id(req.params.outcomeID);
-//         if (!outcome) return res.status(404).json({ message: "Outcome not found" });
-
-//         // ✅ Only update the specific outcome
-//         if (topic !== undefined) outcome.topic = topic;
-//         if (project !== undefined) outcome.project = project;
-//         if (credits !== undefined) outcome.credits = credits;
-//         if (requirements !== undefined) outcome.requirements = requirements; 
-//         if (compulsory !== undefined) outcome.compulsory = compulsory;
-
-//         await subject.save();
-
-//         res.status(200).json({ message: "Outcome updated successfully", subject });
-//     } catch (error) {
-//         res.status(500).json({ error: error.message });
-//     }
-// };
-
-// This is how the updateOutcome function in subject-controller.js should look:
-
 const updateOutcome = async (req, res) => {
     try {
         const { topic, project, credits, requirements, compulsory } = req.body;
-        console.log("Received update request with body:", req.body);
+        // console.log("Received update request with body:", req.body);
         
         const subject = await Subject.findById(req.params.subjectID);
         if (!subject) return res.status(404).json({ message: "Subject not found" });
 
         const outcome = subject.outcomes.id(req.params.outcomeID);
         if (!outcome) return res.status(404).json({ message: "Outcome not found" });
+
+        // Check if updating topic and project would create a duplicate
+        if (topic !== undefined || project !== undefined) {
+            const newTopic = topic !== undefined ? topic : outcome.topic;
+            const newProject = project !== undefined ? project : outcome.project;
+            
+            const duplicateOutcome = subject.outcomes.find(o => 
+                o._id.toString() !== req.params.outcomeID && // Skip the current outcome
+                o.topic.toLowerCase() === newTopic.toLowerCase() && 
+                o.project.toLowerCase() === newProject.toLowerCase()
+            );
+
+            if (duplicateOutcome) {
+                return res.status(409).json({ 
+                    message: "Cannot update: another outcome with this topic and project already exists",
+                    outcome: duplicateOutcome
+                });
+            }
+        }
 
         // Only update the specific outcome properties if they're provided
         if (topic !== undefined) outcome.topic = topic;
@@ -153,7 +199,7 @@ const updateOutcome = async (req, res) => {
         }
 
         await subject.save();
-        console.log("Subject saved successfully with updated outcome");
+        
 
         res.status(200).json({ message: "Outcome updated successfully", subject });
     } catch (error) {
@@ -210,7 +256,6 @@ const addProject = async (req, res) => {
     }
 };
 
-
 const importOutcomes = async (req, res) => {
     try {
         const { outcomes } = req.body;
@@ -223,6 +268,7 @@ const importOutcomes = async (req, res) => {
         }
         
         let addedCount = 0;
+        let updatedCount = 0;
         let errorCount = 0;
         
         // Process and add each outcome to the subject
@@ -234,19 +280,39 @@ const importOutcomes = async (req, res) => {
                     continue;
                 }
                 
-                // Add the outcome to the subject
-                subject.outcomes.push({
+                // Check for existing outcome with same topic and project
+                const existingOutcomeIndex = subject.outcomes.findIndex(o => 
+                    o.topic.toLowerCase() === outcome.topic.toLowerCase() && 
+                    o.project.toLowerCase() === outcome.project.toLowerCase()
+                );
+                
+                // Convert compulsory to boolean
+                const isCompulsory = outcome.compulsory !== undefined ? 
+                    (String(outcome.compulsory).toLowerCase() === 'true' || outcome.compulsory === true) : true;
+                
+                // Prepare the new outcome object
+                const outcomeData = {
                     topic: outcome.topic,
                     project: outcome.project,
                     credits: Number(outcome.credits),
-                    compulsory: outcome.compulsory !== undefined ? 
-                        (String(outcome.compulsory).toLowerCase() === 'true' || outcome.compulsory === true) : true,
+                    compulsory: isCompulsory,
                     requirements: Array.isArray(outcome.requirements) ? outcome.requirements : []
-                });
+                };
                 
-                addedCount++;
+                if (existingOutcomeIndex >= 0) {
+                    // Update existing outcome
+                    subject.outcomes[existingOutcomeIndex] = {
+                        ...subject.outcomes[existingOutcomeIndex].toObject(),
+                        ...outcomeData
+                    };
+                    updatedCount++;
+                } else {
+                    // Add new outcome
+                    subject.outcomes.push(outcomeData);
+                    addedCount++;
+                }
             } catch (err) {
-                console.error("Error adding outcome:", err);
+                console.error("Error processing outcome:", err);
                 errorCount++;
             }
         }
@@ -254,7 +320,7 @@ const importOutcomes = async (req, res) => {
         await subject.save();
         
         res.status(201).json({ 
-            message: `Successfully imported ${addedCount} outcomes${errorCount > 0 ? ` (${errorCount} failed)` : ''}`, 
+            message: `Successfully imported ${addedCount} new outcomes, updated ${updatedCount} existing outcomes${errorCount > 0 ? ` (${errorCount} failed)` : ''}`, 
             subject 
         });
     } catch (error) {
@@ -263,6 +329,4 @@ const importOutcomes = async (req, res) => {
     }
 };
 
-
-
-module.exports = { subjectCreate, allSubjects, getSubjectDetail,updateSubject, deleteSubject, addOutcome, updateOutcome, deleteOutcome, addProject, importOutcomes };
+module.exports = { subjectCreate, allSubjects, getSubjectDetail, updateSubject, deleteSubject, addOutcome, updateOutcome, deleteOutcome, addProject, importOutcomes };

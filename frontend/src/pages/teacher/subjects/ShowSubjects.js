@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import { ExpandMore, ExpandLess, CloudUpload, UploadFile } from "@mui/icons-material";
+import SearchBar from "../../../components/SearchBar";
 import { getSubjectList, updateSubject, updateOutcome, addOutcome } from "../../../redux/subjectrelated/subjectHandle";
 import {
   Paper,
@@ -26,6 +27,9 @@ import {
   Typography
 } from "@mui/material";
 
+
+
+
 // Helper function to determine if an outcome is compulsory
 const isCompulsory = (outcome) => {
   return String(outcome?.compulsory) === 'true' || outcome?.compulsory === true;
@@ -36,12 +40,30 @@ const ShowSubjects = () => {
   const dispatch = useDispatch();
   const { subjects = [], loading } = useSelector((state) => state.subject);
 
-  // Filter state
-  const [outcomeFilter, setOutcomeFilter] = useState("all"); // all, compulsory, optional
-
+  const [searchTerm, setSearchTerm] = useState("");
+  const [filteredSubjects, setFilteredSubjects] = useState([]);
+  
+  const [outcomeFilter, setOutcomeFilter] = useState("all"); 
   useEffect(() => {
     dispatch(getSubjectList());
   }, [dispatch]);
+
+  useEffect(() => {
+    let result = subjects;
+
+    // Apply search filter
+    if (searchTerm) {
+      result = result.filter(subject => 
+        subject.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        subject.outcomes.some(outcome => 
+          outcome.topic.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          outcome.project.toLowerCase().includes(searchTerm.toLowerCase())
+        )
+      );
+    }
+
+    setFilteredSubjects(result);
+  }, [subjects, searchTerm]);
 
   // State for Expanding Outcomes
   const [expandedSubject, setExpandedSubject] = useState(null);
@@ -252,6 +274,13 @@ const ShowSubjects = () => {
         <div>Loading...</div>
       ) : (
         <>
+        {/* Search Bar */}
+        <Box sx={{ mb: 2 }}>
+            <SearchBar 
+              onSearchChange={(term) => setSearchTerm(term)}
+              placeholder="Search subjects by name, topic, or project"
+            />
+          </Box>
           <Box sx={{ display: "flex", gap: 2, mb: 2 }}>
             <Button variant="contained" onClick={() => navigate("/Teacher/subjects/add")}>
               ADD SUBJECT
@@ -292,13 +321,12 @@ const ShowSubjects = () => {
                 </TableRow>
               </TableHead>
               <TableBody>
-                {subjects.length > 0 ? (
-                  subjects.map((subject) => {
-                    // Only show subjects that have outcomes matching the current filter when not in "all" mode
-                    const filteredOutcomes = filterOutcomes(subject.outcomes);
-                    if (outcomeFilter !== "all" && filteredOutcomes.length === 0) {
-                      return null;
-                    }
+              {filteredSubjects.length > 0 ? (
+    filteredSubjects.map((subject) => {
+      const filteredOutcomes = filterOutcomes(subject.outcomes);
+      if (outcomeFilter !== "all" && filteredOutcomes.length === 0) {
+        return null;
+      }
                     
                     return (
                       <React.Fragment key={subject._id}>

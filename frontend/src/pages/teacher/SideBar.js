@@ -30,14 +30,14 @@ const SideBar = () => {
       dispatch(getNotifications());
     }
 
-    // ✅ Auto-fetch notifications every 10 seconds
+    // Auto-fetch notifications every 10 seconds
     const interval = setInterval(() => {
       if (currentUser?.role === "Teacher") {
         dispatch(getNotifications());
       }
     }, 10000); // 10 seconds
 
-    return () => clearInterval(interval); // ✅ Cleanup function to prevent memory leaks
+    return () => clearInterval(interval); // Cleanup function to prevent memory leaks
   }, [dispatch, currentUser]);
 
   useEffect(() => {
@@ -66,34 +66,36 @@ const SideBar = () => {
     }
   }, [location, dispatch]);
 
+  // Base path for all dashboard links - ensure consistency
+  const basePath = "/Teacher/dashboard";
+
   return (
     <>
-      <ListItemButton component={Link} to="/Teacher/dashboard/home">
+      <ListItemButton component={Link} to={`${basePath}/home`}>
         <ListItemIcon>
-          <HomeIcon color={location.pathname.startsWith("/Teacher/dashboard/home") ? "primary" : "inherit"} />
+          <HomeIcon color={location.pathname.startsWith(`${basePath}/home`) ? "primary" : "inherit"} />
         </ListItemIcon>
         <ListItemText primary="Home" />
       </ListItemButton>
 
-      <ListItemButton component={Link} to="/Teacher/dashboard/subjects">
+      <ListItemButton component={Link} to={`${basePath}/subjects`}>
         <ListItemIcon>
-          <AssignmentIcon color={location.pathname.startsWith("/Teacher/dashboard/subjects") ? "primary" : "inherit"} />
+          <AssignmentIcon color={location.pathname.startsWith(`${basePath}/subjects`) ? "primary" : "inherit"} />
         </ListItemIcon>
         <ListItemText primary="Subjects" />
       </ListItemButton>
 
-      <ListItemButton component={Link} to="/Teacher/dashboard/students">
+      <ListItemButton component={Link} to={`${basePath}/students`}>
         <ListItemIcon>
-          <PeopleIcon color={location.pathname.startsWith("/Teacher/dashboard/students") ? "primary" : "inherit"} />
+          <PeopleIcon color={location.pathname.startsWith(`${basePath}/students`) ? "primary" : "inherit"} />
         </ListItemIcon>
         <ListItemText primary="Students" />
       </ListItemButton>
 
-      {/* ✅ Show Project Notifications */}
-      <ListItemButton component={Link} to="/Teacher/dashboard/notices">
+      <ListItemButton component={Link} to={`${basePath}/notices`}>
         <ListItemIcon>
           <Badge badgeContent={unreadCount} color="error">
-            <AnnouncementOutlinedIcon color={location.pathname.startsWith("/Teacher/dashboard/notices") ? "primary" : "inherit"} />
+            <AnnouncementOutlinedIcon color={location.pathname.startsWith(`${basePath}/notices`) ? "primary" : "inherit"} />
           </Badge>
         </ListItemIcon>
         <ListItemText primary="Notices" />

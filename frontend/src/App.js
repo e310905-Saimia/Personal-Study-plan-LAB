@@ -1,5 +1,5 @@
 import React from 'react';
-import { Routes, Route, Navigate } from 'react-router-dom';
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import Homepage from './pages/Homepage';
 import TeacherDashboard from './pages/Teacher/TeacherDashboard';
@@ -8,45 +8,50 @@ import LoginPage from './pages/LoginPage';
 import ChooseUser from './pages/ChooseUser';
 import TeacherRegisterPage from './pages/Teacher/TeacherRegister';
 import Logout from './pages/Logout';
-import StudentProgress from "./pages/Teacher/students/StudentProgress";
-import ShowSubjects from './pages/Teacher/subjects/ShowSubjects';
-import AddSubject from "./pages/Teacher/subjects/AddSubject";
-import ImportSubjects from './pages/Teacher/subjects/ImportSubjects';
-import ImportOutcomes from './pages/Teacher/subjects/ImportOutcomes';
+import ErrorPage from './ErrorPage';
+
+// Generic redirect component that preserves all URL parameters
+const TeacherDashboardRedirect = () => {
+  const location = useLocation();
+  // Get the path after "/Teacher/"
+  const subPath = location.pathname.substring("/Teacher/".length);
+  // Redirect to the dashboard equivalent
+  return <Navigate to={`/Teacher/dashboard/${subPath}`} replace />;
+};
+
 const App = () => {
   const { currentRole } = useSelector((state) => state.user);
 
   return (
     <Routes>
-      {/* ✅ Public Routes */}
+      {/* Public Routes */}
       <Route path="/" element={<Homepage />} />
       <Route path="/choose" element={<ChooseUser />} />
       <Route path="/Teacherlogin" element={<LoginPage role="Teacher" />} />
       <Route path="/Teacher/register" element={<TeacherRegisterPage />} />
       <Route path="/Studentlogin" element={<LoginPage role="Student" />} />
 
-       {/* Protected Teacher Routes */}
-       {currentRole === "Teacher" && (
+      {/* Protected Teacher Routes */}
+      {currentRole === "Teacher" && (
         <>
+          {/* Main dashboard route */}
           <Route path="/Teacher/dashboard/*" element={<TeacherDashboard />} />
-          <Route path="/Teacher/subjects" element={<ShowSubjects />} />
-          <Route path="/Teacher/subjects/add" element={<AddSubject />} /> 
-          <Route path="/Teacher/subjects/import" element={<ImportSubjects />} />
-          <Route path="/Teacher/subjects/:subjectId/outcomes/import" element={<ImportOutcomes />} />
-          <Route path="/Teacher/students/:studentID/subjects" element={<StudentProgress />} />
+          
+          {/* Wildcard redirect for all other Teacher paths */}
+          <Route path="/Teacher/*" element={<TeacherDashboardRedirect />} />
         </>
       )}
 
-      {/* ✅ Protected Student Routes */}
+      {/* Protected Student Routes */}
       {currentRole === 'Student' && (
         <Route path="/Student/dashboard/*" element={<StudentDashboard />} />
       )}
 
-      {/* ✅ Logout Route */}
+      {/* Logout Route */}
       <Route path="/logout" element={<Logout />} />
 
-      {/* ✅ Catch All: Redirect to Homepage */}
-      <Route path="*" element={<Navigate to="/" />} />
+      {/* Catch All: Show Error Page */}
+      <Route path="*" element={<ErrorPage />} />
     </Routes>
   );
 };

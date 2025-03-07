@@ -1,14 +1,12 @@
-import React, { useEffect, useState } from 'react';
-import { useDispatch, useSelector } from 'react-redux';
-import { useParams } from 'react-router-dom';
-import { getSubjectDetails } from '../../redux/sclassRelated/sclassHandle';
-import { registerUser } from '../../redux/userRelated/userHandle';
+import React, { useState } from 'react';
+import { useDispatch } from 'react-redux';
+import { useNavigate } from 'react-router-dom';
+import { registerTeacher } from '../../redux/teacherRelated/teacherHandle';
 
 const AddTeacher = () => {
-    const params = useParams();
+    
     const dispatch = useDispatch();
-
-    const { subjectDetails } = useSelector((state) => state.sclass);
+    const navigate = useNavigate();
 
     const [fields, setFields] = useState({
         name: '',
@@ -21,14 +19,17 @@ const AddTeacher = () => {
         setFields({ ...fields, [e.target.name]: e.target.value });
     };
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
-        dispatch(registerUser({ ...fields, school: subjectDetails.school, teachSubject: subjectDetails._id }));
+        try {
+            // Use the registerTeacher function from teacherHandle.js
+            await dispatch(registerTeacher(fields));
+            // Navigate back to teachers list or another appropriate page
+            navigate('/Teacher/dashboard/teachers');
+        } catch (error) {
+            console.error("Error registering teacher:", error);
+        }
     };
-
-    useEffect(() => {
-        dispatch(getSubjectDetails(params.id, 'Subject'));
-    }, [dispatch, params.id]);
 
     return (
         <form onSubmit={handleSubmit}>

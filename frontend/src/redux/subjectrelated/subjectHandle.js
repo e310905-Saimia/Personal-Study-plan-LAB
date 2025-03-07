@@ -1,18 +1,29 @@
 import axios from 'axios';
 import { getRequest, getSuccess, getFailed } from './subjectSlice';
 
-const API_BASE_URL = "http://localhost:5000/api/subjects"; // ✅ Correct base URL
-
+const API_BASE_URL = "http://localhost:5000/api/subjects";
 
 export const addSubject = (subjectData) => async (dispatch) => {
     try {
-        const response = await axios.post(API_BASE_URL, subjectData);  // ✅ Corrected endpoint
+        const response = await axios.post(API_BASE_URL, subjectData);
         dispatch(getSubjectList()); 
         return response.data;
     } catch (error) {
         console.error("Error adding subject:", error);
-        dispatch(getFailed(error.message));
-        throw error; // Re-throw to allow component to handle error
+        
+        // Create a proper error object
+        const addSubjectError = new Error(error.response?.data?.message || "Failed to add subject");
+        addSubjectError.isDuplicate = error.response?.status === 409;
+        addSubjectError.status = error.response?.status;
+        addSubjectError.existingSubject = error.response?.data?.existingSubject;
+        
+        if (error.response?.status === 409) {
+            dispatch(getFailed(addSubjectError.message || "A subject with this name already exists"));
+        } else {
+            dispatch(getFailed(addSubjectError.message));
+        }
+        
+        throw addSubjectError;
     }
 };
 
@@ -21,15 +32,17 @@ export const getSubjectDetails = (subjectID) => async () => {
         const response = await axios.get(`${API_BASE_URL}/${subjectID}`);
         return response.data;
     } catch (error) {
-        console.error("Error fetching subject details:", error.response?.data?.message || "Failed to fetch subject details");
-        throw error;
+        const detailsError = new Error(error.response?.data?.message || "Failed to fetch subject details");
+        detailsError.status = error.response?.status;
+        console.error("Error fetching subject details:", detailsError);
+        throw detailsError;
     }
 };
 
 export const getSubjectList = () => async (dispatch) => {
     dispatch(getRequest());
     try {
-        const response = await axios.get("http://localhost:5000/api/subjects");
+        const response = await axios.get(API_BASE_URL);
         
         // Process the data before dispatching to ensure consistent compulsory values
         const processedData = response.data.map(subject => {
@@ -51,33 +64,46 @@ export const getSubjectList = () => async (dispatch) => {
         
         dispatch(getSuccess(processedData));
     } catch (error) {
-        dispatch(getFailed(error.response?.data?.message || "Failed to fetch subjects"));
+        const listError = new Error(error.response?.data?.message || "Failed to fetch subjects");
+        listError.status = error.response?.status;
+        dispatch(getFailed(listError.message));
     }
 };
 
-// ✅ Update Subject
 export const updateSubject = (subjectID, updatedData) => async (dispatch) => {
     try {
         await axios.put(`${API_BASE_URL}/${subjectID}`, updatedData);
-        dispatch(getSubjectList()); // Refresh list
-        return true; // Indicate success
+        dispatch(getSubjectList());
+        return true;
     } catch (error) {
         console.error("Error updating subject:", error);
-        dispatch(getFailed(error.message));
-        throw error;
+        
+        // Create a proper error object
+        const updateError = new Error(error.response?.data?.message || "Failed to update subject");
+        updateError.isDuplicate = error.response?.status === 409;
+        updateError.status = error.response?.status;
+        
+        if (error.response?.status === 409) {
+            dispatch(getFailed(updateError.message || "Cannot update: another subject with this name already exists"));
+        } else {
+            dispatch(getFailed(updateError.message));
+        }
+        
+        throw updateError;
     }
 };
 
-// ✅ Delete Subject
 export const deleteSubject = (subjectID) => async (dispatch) => {
     try {
         await axios.delete(`${API_BASE_URL}/${subjectID}`);
-        dispatch(getSubjectList()); // Refresh list
+        dispatch(getSubjectList());
         return true;
     } catch (error) {
-        console.error("Error deleting subject:", error);
-        dispatch(getFailed(error.message));
-        throw error;
+        const deleteError = new Error(error.message || "Failed to delete subject");
+        deleteError.status = error.response?.status;
+        console.error("Error deleting subject:", deleteError);
+        dispatch(getFailed(deleteError.message));
+        throw deleteError;
     }
 };
 
@@ -89,13 +115,25 @@ export const addOutcome = (subjectID, outcomeData) => async (dispatch) => {
             compulsory: String(outcomeData.compulsory) === 'true' || outcomeData.compulsory === true
         };
         
-        const response = await axios.post(`http://localhost:5000/api/subjects/${subjectID}/outcomes`, processedOutcomeData);
+        const response = await axios.post(`${API_BASE_URL}/${subjectID}/outcomes`, processedOutcomeData);
         dispatch(getSubjectList()); 
         return response.data;
     } catch (error) {
         console.error("Error adding outcome:", error);
-        dispatch(getFailed(error.message));
-        throw error;
+        
+        // Create a proper error object
+        const addOutcomeError = new Error(error.response?.data?.message || "Failed to add outcome");
+        addOutcomeError.isDuplicate = error.response?.status === 409;
+        addOutcomeError.status = error.response?.status;
+        addOutcomeError.outcome = error.response?.data?.outcome;
+        
+        if (error.response?.status === 409) {
+            dispatch(getFailed(addOutcomeError.message || "An outcome with this topic and project already exists"));
+        } else {
+            dispatch(getFailed(addOutcomeError.message));
+        }
+        
+        throw addOutcomeError;
     }
 };
 
@@ -127,8 +165,20 @@ export const updateOutcome = (subjectID, outcomeID, updatedOutcome) => async (di
       return true;
     } catch (error) {
       console.error("Error updating outcome:", error);
-      dispatch(getFailed(error.message));
-      throw error;
+      
+      // Create a proper error object
+      const updateOutcomeError = new Error(error.response?.data?.message || "Failed to update outcome");
+      updateOutcomeError.isDuplicate = error.response?.status === 409;
+      updateOutcomeError.status = error.response?.status;
+      updateOutcomeError.outcome = error.response?.data?.outcome;
+      
+      if (error.response?.status === 409) {
+        dispatch(getFailed(updateOutcomeError.message || "Cannot update: another outcome with this topic and project already exists"));
+      } else {
+        dispatch(getFailed(updateOutcomeError.message));
+      }
+      
+      throw updateOutcomeError;
     }
 };
 
@@ -138,105 +188,173 @@ export const deleteOutcome = (subjectID, outcomeID) => async (dispatch) => {
         dispatch(getSubjectList());
         return true;
     } catch (error) {
-        console.error("Error deleting outcome:", error);
-        dispatch(getFailed(error.message));
-        throw error;
+        const deleteError = new Error(error.message || "Failed to delete outcome");
+        deleteError.status = error.response?.status;
+        console.error("Error deleting outcome:", deleteError);
+        dispatch(getFailed(deleteError.message));
+        throw deleteError;
     }
 };
 
-// ✅ Add Requirement to an Outcome
 export const addRequirement = (subjectID, outcomeID, requirement) => async (dispatch) => {
     try {
         await axios.post(`${API_BASE_URL}/${subjectID}/outcomes/${outcomeID}/requirements`, { requirement });
-        dispatch(getSubjectList()); // Refresh list
+        dispatch(getSubjectList());
         return true;
     } catch (error) {
-        console.error("Error adding requirement:", error);
-        dispatch(getFailed(error.message));
-        throw error;
+        const requirementError = new Error(error.message || "Failed to add requirement");
+        requirementError.status = error.response?.status;
+        console.error("Error adding requirement:", requirementError);
+        dispatch(getFailed(requirementError.message));
+        throw requirementError;
     }
 };
 
-// ✅ Edit an Existing Requirement
 export const editRequirement = (subjectID, outcomeID, requirementIndex, newRequirement) => async (dispatch) => {
     try {
         await axios.put(`${API_BASE_URL}/${subjectID}/outcomes/${outcomeID}/requirements`, { requirementIndex, newRequirement });
         dispatch(getSubjectList());
         return true;
     } catch (error) {
-        console.error("Error updating requirement:", error);
-        dispatch(getFailed(error.message));
-        throw error;
+        const editRequirementError = new Error(error.message || "Failed to update requirement");
+        editRequirementError.status = error.response?.status;
+        console.error("Error updating requirement:", editRequirementError);
+        dispatch(getFailed(editRequirementError.message));
+        throw editRequirementError;
     }
 };
-
 
 export const addProject = (subjectID, outcomeID, projectData) => async (dispatch) => {
     try {
-        await axios.post(`http://localhost:5000/api/subjects/${subjectID}/outcomes/${outcomeID}/projects`, projectData);
-        dispatch(getSubjectList()); // ✅ Refresh subjects after adding a project
-        return true;
+        const response = await axios.post(`${API_BASE_URL}/${subjectID}/outcomes/${outcomeID}/projects`, projectData);
+        dispatch(getSubjectList());
+        return response.data;
     } catch (error) {
-        console.error("Error adding project:", error);
-        throw error;
+        const projectError = new Error(error.message || "Failed to add project");
+        projectError.status = error.response?.status;
+        console.error("Error adding project:", projectError);
+        dispatch(getFailed(projectError.message));
+        throw projectError;
     }
 };
 
-// New function for bulk import of subjects
 export const bulkImportSubjects = (subjects) => async (dispatch) => {
     try {
         dispatch(getRequest());
         
-        // Process each subject one by one
+        const added = [];
+        const updated = [];
+        const failed = [];
+        
         for (const subject of subjects) {
-            // 1. Create the subject
-            const subjectResponse = await axios.post(API_BASE_URL, {
-                name: subject.name,
-                credits: subject.credits
-            });
-            
-            const subjectId = subjectResponse.data.subject._id;
-            
-            // 2. Add outcomes to the subject if there are any
-            if (subject.outcomes && subject.outcomes.length > 0) {
-                for (const outcome of subject.outcomes) {
-                    // Ensure compulsory is a boolean
-                    const compulsoryValue = String(outcome.compulsory) === 'true' || outcome.compulsory === true;
+            try {
+                const existingSubjectsResponse = await axios.get(API_BASE_URL);
+                const existingSubjects = existingSubjectsResponse.data;
+                
+                const existingSubject = existingSubjects.find(existing => 
+                    existing.name.toLowerCase() === subject.name.toLowerCase()
+                );
+                
+                let subjectId;
+                
+                if (existingSubject) {
+                    await axios.put(`${API_BASE_URL}/${existingSubject._id}`, {
+                        name: subject.name,
+                        credits: subject.credits
+                    });
+                    subjectId = existingSubject._id;
+                    updated.push(subject.name);
+                } else {
+                    const subjectResponse = await axios.post(API_BASE_URL, {
+                        name: subject.name,
+                        credits: subject.credits
+                    });
                     
-                    const outcomeResponse = await axios.post(
-                        `${API_BASE_URL}/${subjectId}/outcomes`,
-                        {
-                            topic: outcome.topic,
-                            project: outcome.project,
-                            credits: outcome.credits,
-                            compulsory: compulsoryValue
-                        }
-                    );
+                    subjectId = subjectResponse.data.subject._id;
+                    added.push(subject.name);
+                }
+                
+                if (subject.outcomes && subject.outcomes.length > 0) {
+                    let existingOutcomes = [];
+                    if (existingSubject) {
+                        const subjectDetails = await axios.get(`${API_BASE_URL}/${subjectId}`);
+                        existingOutcomes = subjectDetails.data.outcomes || [];
+                    }
                     
-                    // 3. Add requirements if there are any
-                    if (outcome.requirements && outcome.requirements.length > 0) {
-                        const outcomeId = outcomeResponse.data.subject.outcomes[
-                            outcomeResponse.data.subject.outcomes.length - 1
-                        ]._id;
-                        
-                        await axios.put(
-                            `${API_BASE_URL}/${subjectId}/outcomes/${outcomeId}`,
-                            { 
-                                requirements: outcome.requirements,
-                                compulsory: compulsoryValue 
+                    for (const outcome of subject.outcomes) {
+                        try {
+                            const compulsoryValue = String(outcome.compulsory) === 'true' || outcome.compulsory === true;
+                            
+                            const existingOutcome = existingOutcomes.find(existing => 
+                                existing.topic.toLowerCase() === outcome.topic.toLowerCase() &&
+                                existing.project.toLowerCase() === outcome.project.toLowerCase()
+                            );
+                            
+                            if (existingOutcome) {
+                                await axios.put(
+                                    `${API_BASE_URL}/${subjectId}/outcomes/${existingOutcome._id}`,
+                                    {
+                                        topic: outcome.topic,
+                                        project: outcome.project,
+                                        credits: outcome.credits,
+                                        compulsory: compulsoryValue,
+                                        requirements: outcome.requirements || []
+                                    }
+                                );
+                            } else {
+                                const outcomeResponse = await axios.post(
+                                    `${API_BASE_URL}/${subjectId}/outcomes`,
+                                    {
+                                        topic: outcome.topic,
+                                        project: outcome.project,
+                                        credits: outcome.credits,
+                                        compulsory: compulsoryValue
+                                    }
+                                );
+                                
+                                if (outcome.requirements && outcome.requirements.length > 0) {
+                                    const newOutcomeId = outcomeResponse.data.subject.outcomes[
+                                        outcomeResponse.data.subject.outcomes.length - 1
+                                    ]._id;
+                                    
+                                    await axios.put(
+                                        `${API_BASE_URL}/${subjectId}/outcomes/${newOutcomeId}`,
+                                        { 
+                                            requirements: outcome.requirements,
+                                            compulsory: compulsoryValue 
+                                        }
+                                    );
+                                }
                             }
-                        );
+                        } catch (outcomeError) {
+                            console.error(`Error with outcome ${outcome.topic} for subject ${subject.name}:`, outcomeError);
+                        }
                     }
                 }
+            } catch (subjectError) {
+                console.error(`Error with subject ${subject.name}:`, subjectError);
+                failed.push(subject.name);
             }
         }
         
-        // Refresh the subjects list after bulk import
         dispatch(getSubjectList());
-        return true;
+        
+        return {
+            success: true,
+            stats: {
+                added: added.length,
+                updated: updated.length,
+                failed: failed.length
+            },
+            addedSubjects: added,
+            updatedSubjects: updated,
+            failedSubjects: failed
+        };
     } catch (error) {
-        console.error("Error in bulk import:", error);
-        dispatch(getFailed(error.message || "Failed to import subjects"));
-        throw error;
+        const bulkImportError = new Error(error.message || "Failed to import subjects");
+        bulkImportError.status = error.response?.status;
+        console.error("Error in bulk import:", bulkImportError);
+        dispatch(getFailed(bulkImportError.message));
+        throw bulkImportError;
     }
 };

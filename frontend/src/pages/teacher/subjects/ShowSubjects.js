@@ -120,8 +120,7 @@ const ShowSubjects = () => {
     setSelectedSubjectID(subjectID);
     setNewOutcome({ 
       topic: "", 
-      project: "", 
-      credits: "", 
+      credits: "0.1", // Default to minimum value
       compulsory: outcomeFilter === "compulsory" || outcomeFilter === "all" 
     }); 
     setOpenOutcome(true);
@@ -151,18 +150,30 @@ const ShowSubjects = () => {
   };
 
   const handleSubmitOutcome = () => {
-    if (!newOutcome.topic || !newOutcome.project || !newOutcome.credits) {
+    if (!newOutcome.topic || !newOutcome.credits) {
       alert("Please fill all required fields!");
       return;
     }
+    
+    // Validate credit value is between 0.1 and 10
+    const creditsValue = parseFloat(newOutcome.credits);
+    if (isNaN(creditsValue) || creditsValue < 0.1 || creditsValue > 10) {
+      alert("Credits must be a value between 0.1 and 10!");
+      return;
+    }
+    
+    // Create a modified outcome object with a default value for project
+    const outcomeToSubmit = {
+      ...newOutcome,
+      project: newOutcome.topic // Use topic as project since we removed the project field
+    };
 
-    dispatch(addOutcome(selectedSubjectID, newOutcome))
+    dispatch(addOutcome(selectedSubjectID, outcomeToSubmit))
       .then(() => {
         dispatch(getSubjectList()); // Refresh subjects after adding an outcome
         setOpenOutcome(false);
         setNewOutcome({ 
           topic: "", 
-          project: "", 
           credits: "", 
           compulsory: outcomeFilter === "compulsory" || outcomeFilter === "all" 
         }); 
@@ -176,6 +187,13 @@ const ShowSubjects = () => {
     // Ensure we have a valid subjectID and outcomeID
     if (!editOutcome.subjectID || !editOutcome.outcomeID) {
       console.error("Missing subject ID or outcome ID");
+      return;
+    }
+    
+    // Validate credit value is between 0.1 and 10
+    const creditsValue = parseFloat(editOutcome.credits);
+    if (isNaN(creditsValue) || creditsValue < 0.1 || creditsValue > 10) {
+      alert("Credits must be a value between 0.1 and 10!");
       return;
     }
 
@@ -316,7 +334,6 @@ const ShowSubjects = () => {
                 <TableRow>
                   <TableCell width="5%"></TableCell>
                   <TableCell>Topic</TableCell>
-                  <TableCell align="right">Credits</TableCell>
                   <TableCell align="right">Actions</TableCell>
                 </TableRow>
               </TableHead>
@@ -342,7 +359,6 @@ const ShowSubjects = () => {
                           >
                             {subject.name}
                           </TableCell>
-                          <TableCell align="right">{subject.credits}</TableCell>
                           <TableCell align="right">
                             <Button variant="outlined" color="primary" size="small" onClick={() => handleEdit(subject)}>
                               EDIT
@@ -351,7 +367,7 @@ const ShowSubjects = () => {
                         </TableRow>
 
                         <TableRow>
-                          <TableCell colSpan={4} sx={{ padding: 0, border: "none" }}>
+                          <TableCell colSpan={3} sx={{ padding: 0, border: "none" }}>
                             <Collapse in={expandedSubject === subject._id} timeout="auto" unmountOnExit>
                               <Box sx={{ p: 3, pb: 1 }}>
                                 <Box sx={{ display: "flex", justifyContent: "space-between", mb: 2 }}>
@@ -383,8 +399,8 @@ const ShowSubjects = () => {
                                       <TableHead>
                                         <TableRow>
                                           <TableCell>Topic</TableCell>
-                                          <TableCell>Project</TableCell>
-                                          <TableCell>Credits</TableCell>
+                                          <TableCell>Minimum Credits</TableCell>
+                                          <TableCell>Maximum Credits</TableCell>
                                           <TableCell>Type</TableCell>
                                           <TableCell>Actions</TableCell>
                                         </TableRow>
@@ -398,7 +414,8 @@ const ShowSubjects = () => {
                                             >
                                               {outcome.topic}
                                             </TableCell>
-                                            <TableCell>{outcome.project}</TableCell>
+                                            <TableCell>{outcome.credits}</TableCell>
+                                            
                                             <TableCell>{outcome.credits}</TableCell>
                                             <TableCell>
                                               {/* Use string comparison to avoid type issues */}
@@ -432,7 +449,7 @@ const ShowSubjects = () => {
                   })
                 ) : (
                   <TableRow>
-                    <TableCell colSpan={4} align="center">
+                    <TableCell colSpan={3} align="center">
                       No subjects found.
                     </TableCell>
                   </TableRow>
@@ -491,12 +508,33 @@ const ShowSubjects = () => {
           />
           <TextField
             fullWidth
-            label="Credits"
+            label="Minimum Credits"
             type="number"
             margin="dense"
             value={editOutcome.credits}
             onChange={(e) => setEditOutcome({ ...editOutcome, credits: e.target.value })}
+            inputProps={{ 
+              min: 0.1, 
+              max: 10,
+              step: 0.1
+            }}
+            
           />
+          <TextField
+            fullWidth
+            label="Maximun Credits"
+            type="number"
+            margin="dense"
+            value={editOutcome.credits}
+            onChange={(e) => setEditOutcome({ ...editOutcome, credits: e.target.value })}
+            inputProps={{ 
+              min: 0.1, 
+              max: 10,
+              step: 0.1
+            }}
+           
+          />
+          
           
           {/* Simplified toggle for compulsory status */}
           <Box sx={{ mt: 2, display: 'flex', alignItems: 'center' }}>
@@ -529,16 +567,16 @@ const ShowSubjects = () => {
           />
           <TextField
             fullWidth
-            label="Project"
-            margin="dense"
-            onChange={(e) => setNewOutcome({ ...newOutcome, project: e.target.value })}
-          />
-          <TextField
-            fullWidth
             label="Credits"
             type="number"
             margin="dense"
             onChange={(e) => setNewOutcome({ ...newOutcome, credits: e.target.value })}
+            inputProps={{ 
+              min: 0.1, 
+              max: 10,
+              step: 0.1
+            }}
+            helperText="Enter a value between 0.1 and 10"
           />
           <Box sx={{ mt: 2, display: 'flex', alignItems: 'center' }}>
             <Switch

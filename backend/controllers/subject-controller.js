@@ -120,16 +120,54 @@ const deleteSubject = async (req, res) => {
     }
 };
 
+// const addOutcome = async (req, res) => {
+//     try {
+//         const { topic, project, credits, compulsory } = req.body;
+//         const subject = await Subject.findById(req.params.id);
+//         if (!subject) return res.status(404).json({ message: "Subject not found" });
+
+//         // Check for duplicate outcome (topic and project combination)
+//         const duplicateOutcome = subject.outcomes.find(outcome => 
+//             outcome.topic.toLowerCase() === topic.toLowerCase() && 
+//             outcome.project.toLowerCase() === project.toLowerCase()
+//         );
+
+//         if (duplicateOutcome) {
+//             return res.status(409).json({ 
+//                 message: "An outcome with this topic and project already exists for this subject",
+//                 outcome: duplicateOutcome
+//             });
+//         }
+
+//         // Set compulsory to true by default if not provided
+//         const isCompulsory = compulsory !== undefined ? compulsory : true;
+
+//         subject.outcomes.push({ 
+//             topic, 
+//             project, 
+//             credits, 
+//             compulsory: isCompulsory 
+//         });
+        
+//         await subject.save();
+//         res.status(201).json({ message: "Outcome added successfully", subject });
+//     } catch (error) {
+//         res.status(500).json({ error: error.message });
+//     }
+// };
 const addOutcome = async (req, res) => {
     try {
         const { topic, project, credits, compulsory } = req.body;
         const subject = await Subject.findById(req.params.id);
         if (!subject) return res.status(404).json({ message: "Subject not found" });
 
+        // Use topic as project if project is not provided
+        const effectiveProject = project || topic;
+
         // Check for duplicate outcome (topic and project combination)
         const duplicateOutcome = subject.outcomes.find(outcome => 
             outcome.topic.toLowerCase() === topic.toLowerCase() && 
-            outcome.project.toLowerCase() === project.toLowerCase()
+            outcome.project.toLowerCase() === effectiveProject.toLowerCase()
         );
 
         if (duplicateOutcome) {
@@ -139,13 +177,21 @@ const addOutcome = async (req, res) => {
             });
         }
 
+        // Validate credits range
+        const creditsValue = parseFloat(credits);
+        if (isNaN(creditsValue) || creditsValue < 0.1 || creditsValue > 10) {
+            return res.status(400).json({ 
+                message: "Credits must be a value between 0.1 and 10"
+            });
+        }
+
         // Set compulsory to true by default if not provided
         const isCompulsory = compulsory !== undefined ? compulsory : true;
 
         subject.outcomes.push({ 
             topic, 
-            project, 
-            credits, 
+            project: effectiveProject, 
+            credits: creditsValue, 
             compulsory: isCompulsory 
         });
         
@@ -155,11 +201,60 @@ const addOutcome = async (req, res) => {
         res.status(500).json({ error: error.message });
     }
 };
+// const updateOutcome = async (req, res) => {
+//     try {
+//         const { topic, project, credits, requirements, compulsory } = req.body;
+//         // console.log("Received update request with body:", req.body);
+        
+//         const subject = await Subject.findById(req.params.subjectID);
+//         if (!subject) return res.status(404).json({ message: "Subject not found" });
 
+//         const outcome = subject.outcomes.id(req.params.outcomeID);
+//         if (!outcome) return res.status(404).json({ message: "Outcome not found" });
+
+//         // Check if updating topic and project would create a duplicate
+//         if (topic !== undefined || project !== undefined) {
+//             const newTopic = topic !== undefined ? topic : outcome.topic;
+//             const newProject = project !== undefined ? project : outcome.project;
+            
+//             const duplicateOutcome = subject.outcomes.find(o => 
+//                 o._id.toString() !== req.params.outcomeID && // Skip the current outcome
+//                 o.topic.toLowerCase() === newTopic.toLowerCase() && 
+//                 o.project.toLowerCase() === newProject.toLowerCase()
+//             );
+
+//             if (duplicateOutcome) {
+//                 return res.status(409).json({ 
+//                     message: "Cannot update: another outcome with this topic and project already exists",
+//                     outcome: duplicateOutcome
+//                 });
+//             }
+//         }
+
+//         // Only update the specific outcome properties if they're provided
+//         if (topic !== undefined) outcome.topic = topic;
+//         if (project !== undefined) outcome.project = project;
+//         if (credits !== undefined) outcome.credits = credits;
+//         if (requirements !== undefined) outcome.requirements = requirements; 
+        
+//         // Handle compulsory field explicitly - ensure it's a boolean
+//         if (compulsory !== undefined) {
+//             outcome.compulsory = Boolean(compulsory);
+//             console.log(`Updated compulsory to ${outcome.compulsory} (${typeof outcome.compulsory})`);
+//         }
+
+//         await subject.save();
+        
+
+//         res.status(200).json({ message: "Outcome updated successfully", subject });
+//     } catch (error) {
+//         console.error("Error in updateOutcome:", error);
+//         res.status(500).json({ error: error.message });
+//     }
+// };
 const updateOutcome = async (req, res) => {
     try {
         const { topic, project, credits, requirements, compulsory } = req.body;
-        // console.log("Received update request with body:", req.body);
         
         const subject = await Subject.findById(req.params.subjectID);
         if (!subject) return res.status(404).json({ message: "Subject not found" });
@@ -186,21 +281,29 @@ const updateOutcome = async (req, res) => {
             }
         }
 
+        // Validate credits if provided
+        if (credits !== undefined) {
+            const creditsValue = parseFloat(credits);
+            if (isNaN(creditsValue) || creditsValue < 0.1 || creditsValue > 10) {
+                return res.status(400).json({ 
+                    message: "Credits must be a value between 0.1 and 10"
+                });
+            }
+        }
+
         // Only update the specific outcome properties if they're provided
         if (topic !== undefined) outcome.topic = topic;
         if (project !== undefined) outcome.project = project;
-        if (credits !== undefined) outcome.credits = credits;
+        if (credits !== undefined) outcome.credits = parseFloat(credits);
         if (requirements !== undefined) outcome.requirements = requirements; 
         
         // Handle compulsory field explicitly - ensure it's a boolean
         if (compulsory !== undefined) {
             outcome.compulsory = Boolean(compulsory);
-            console.log(`Updated compulsory to ${outcome.compulsory} (${typeof outcome.compulsory})`);
         }
 
         await subject.save();
         
-
         res.status(200).json({ message: "Outcome updated successfully", subject });
     } catch (error) {
         console.error("Error in updateOutcome:", error);

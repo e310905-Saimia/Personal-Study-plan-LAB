@@ -73,8 +73,9 @@ const ImportOutcomes = () => {
     setLoading(true);
     
     Papa.parse(csvFile, {
-      header: true,
+      header: false,
       skipEmptyLines: true,
+      delimiter: ";", // Use semicolon as delimiter
       complete: (results) => {
         if (results.errors.length > 0) {
           setError(`Error parsing CSV: ${results.errors[0].message}`);
@@ -83,8 +84,73 @@ const ImportOutcomes = () => {
         }
         
         try {
-          // Process the data into our required format
-          const processedOutcomes = processCSVData(results.data);
+          // Check if we have header row and data
+          if (results.data.length < 2) {
+            setError("The CSV file must contain a header row and at least one data row");
+            setLoading(false);
+            return;
+          }
+          
+          // Extract header row - first row of the CSV
+          const headerRow = results.data[0];
+          
+          // Verify expected columns exist
+          const requiredColumns = ["Topic", "Learning Outcomes", "Obligatory or not", "Requirements", "Outcome minimum credits", "Outcome maximun credits"];
+          const missingColumns = requiredColumns.filter(col => !headerRow.includes(col));
+          
+          if (missingColumns.length > 0) {
+            setError(`Missing required columns: ${missingColumns.join(", ")}`);
+            setLoading(false);
+            return;
+          }
+          
+          // Get column indices
+          const topicIndex = headerRow.indexOf("Topic");
+          const learningOutcomesIndex = headerRow.indexOf("Learning Outcomes");
+          const obligatoryIndex = headerRow.indexOf("Obligatory or not");
+          const requirementsIndex = headerRow.indexOf("Requirements");
+          const minCreditsIndex = headerRow.indexOf("Outcome minimum credits");
+          const maxCreditsIndex = headerRow.indexOf("Outcome maximun credits");
+          
+          // Process the data into our required format - skip header row
+          const processedOutcomes = results.data.slice(1).map(row => {
+            // Skip empty rows
+            if (row.every(cell => !cell.trim())) {
+              return null;
+            }
+            
+            // Parse obligatory field correctly
+            let compulsory = true; // default to true
+            if (row[obligatoryIndex]) {
+              const obligatoryValue = row[obligatoryIndex].trim().toLowerCase();
+              compulsory = obligatoryValue === 'true' || obligatoryValue === 'yes' || obligatoryValue === '1';
+            }
+            
+            // Parse credits as number and ensure it's within range
+            let credits = parseFloat(row[minCreditsIndex]) || 0;
+            credits = Math.max(0.1, Math.min(10, credits)); // Clamp between 0.1 and 10
+            
+            // Parse requirements
+            let requirements = [];
+            if (row[requirementsIndex] && row[requirementsIndex].trim()) {
+              requirements = row[requirementsIndex].split(',').map(req => req.trim());
+            }
+            
+            return {
+              topic: row[topicIndex]?.trim() || "",
+              project: row[learningOutcomesIndex]?.trim() || "", // Map Learning Outcomes to project
+              credits: credits,
+              compulsory: compulsory,
+              requirements: requirements
+            };
+          }).filter(Boolean); // Remove null entries
+          
+          if (processedOutcomes.length === 0) {
+            setError("No valid outcome data found in the CSV file");
+            setLoading(false);
+            return;
+          }
+          
           setParsedOutcomes(processedOutcomes);
           setPreviewMode(true);
           setLoading(false);
@@ -97,54 +163,6 @@ const ImportOutcomes = () => {
         setError(`Error parsing CSV: ${error.message}`);
         setLoading(false);
       }
-    });
-  };
-  
-  // Process CSV data into the format needed for outcomes
-  const processCSVData = (data) => {
-    return data.map(row => {
-      // Required fields validation
-      if (!row["Outcome Topic"] || !row["Outcome Project"] || !row["Outcome Credits"]) {
-        throw new Error("Each row must have Outcome Topic, Outcome Project, and Outcome Credits");
-      }
-      
-      // Parse credits
-      const credits = parseInt(row["Outcome Credits"], 10);
-      if (isNaN(credits)) {
-        throw new Error(`Invalid credits value for outcome: ${row["Outcome Topic"]}`);
-      }
-      
-      // Parse compulsory field
-      let compulsory = true; // Default to true
-      if (row["Outcome Compulsory"] !== undefined) {
-        if (typeof row["Outcome Compulsory"] === 'string') {
-          const value = row["Outcome Compulsory"].trim().toLowerCase();
-          compulsory = value !== 'false' && value !== 'no' && value !== '0';
-        } else if (typeof row["Outcome Compulsory"] === 'boolean') {
-          compulsory = row["Outcome Compulsory"];
-        } else if (typeof row["Outcome Compulsory"] === 'number') {
-          compulsory = row["Outcome Compulsory"] !== 0;
-        }
-      }
-      
-      // Create outcome object
-      const outcome = {
-        topic: row["Outcome Topic"].trim(),
-        project: row["Outcome Project"].trim(),
-        credits: credits,
-        compulsory: compulsory,
-        requirements: []
-      };
-      
-      // Add requirements if they exist
-      for (let i = 1; i <= 10; i++) {
-        const requirementKey = `Requirement ${i}`;
-        if (row[requirementKey] && row[requirementKey].trim()) {
-          outcome.requirements.push(row[requirementKey].trim());
-        }
-      }
-      
-      return outcome;
     });
   };
   
@@ -170,7 +188,7 @@ const ImportOutcomes = () => {
       
       // Navigate back to subjects list after a delay
       setTimeout(() => {
-        navigate("/Teacher/subjects");
+        navigate("/Teacher/dashboard/subjects");
       }, 2000);
       
     } catch (err) {
@@ -181,10 +199,10 @@ const ImportOutcomes = () => {
   
   const downloadSampleCSV = () => {
     const csvContent = [
-      "Outcome Topic,Outcome Project,Outcome Credits,Outcome Compulsory,Requirement 1,Requirement 2,Requirement 3",
-      "Algebra,Matrix Operations,2,true,Student can solve linear equations,Student understands matrix multiplication,Student can apply matrices to practical problems",
-      "Calculus,Derivatives,3,true,Student can find derivatives of polynomial functions,Student can apply chain rule,Student understands practical applications",
-      "Geometry,Triangles,2,false,Student can calculate angles,Student understands properties of triangles,Student can apply Pythagorean theorem"
+      "Topic;Learning Outcomes;Obligatory or not;Requirements;Outcome minimum credits;Outcome maximun credits",
+      "Algebra;Matrix Operations;TRUE;Student can solve linear equations,Student understands matrix multiplication;2;5",
+      "Calculus;Derivatives;TRUE;Student can find derivatives of polynomial functions,Student can apply chain rule;3;5",
+      "Geometry;Triangles;FALSE;Student can calculate angles,Student understands properties of triangles;2;5"
     ].join("\n");
     
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
@@ -203,7 +221,7 @@ const ImportOutcomes = () => {
   return (
     <Paper sx={{ padding: 3, maxWidth: "800px", margin: "auto", mt: 3 }}>
       <Box sx={{ display: "flex", alignItems: "center", mb: 3 }}>
-        <IconButton onClick={() => navigate("/Teacher/subjects")} sx={{ mr: 2 }}>
+        <IconButton onClick={() => navigate("/Teacher/dashboard/subjects")} sx={{ mr: 2 }}>
           <ArrowBack />
         </IconButton>
         <Typography variant="h5">
@@ -218,7 +236,7 @@ const ImportOutcomes = () => {
           Upload a CSV file with outcome information for this subject:
         </Typography>
         <Typography variant="body2" color="text.secondary" paragraph>
-          Your CSV file should have the following columns:
+          Your CSV file should have the following columns (semicolon-separated):
         </Typography>
         
         <TableContainer component={Paper} variant="outlined" sx={{ mb: 2 }}>
@@ -232,29 +250,34 @@ const ImportOutcomes = () => {
             </TableHead>
             <TableBody>
               <TableRow>
-                <TableCell>Outcome Topic</TableCell>
+                <TableCell>Topic</TableCell>
                 <TableCell>The topic name for the outcome</TableCell>
                 <TableCell>Yes</TableCell>
               </TableRow>
               <TableRow>
-                <TableCell>Outcome Project</TableCell>
-                <TableCell>The project name for the outcome</TableCell>
+                <TableCell>Learning Outcomes</TableCell>
+                <TableCell>The learning outcomes for the topic</TableCell>
                 <TableCell>Yes</TableCell>
               </TableRow>
               <TableRow>
-                <TableCell>Outcome Credits</TableCell>
-                <TableCell>Number of credits for the outcome</TableCell>
+                <TableCell>Obligatory or not</TableCell>
+                <TableCell>Whether the outcome is required (TRUE/FALSE)</TableCell>
                 <TableCell>Yes</TableCell>
               </TableRow>
               <TableRow>
-                <TableCell>Outcome Compulsory</TableCell>
-                <TableCell>Whether the outcome is compulsory (true/false)</TableCell>
-                <TableCell>No (defaults to true)</TableCell>
-              </TableRow>
-              <TableRow>
-                <TableCell>Requirement 1, 2, 3...</TableCell>
-                <TableCell>Requirements for the outcome</TableCell>
+                <TableCell>Requirements</TableCell>
+                <TableCell>Comma-separated list of requirements</TableCell>
                 <TableCell>No</TableCell>
+              </TableRow>
+              <TableRow>
+                <TableCell>Outcome minimum credits</TableCell>
+                <TableCell>Minimum credit value for the outcome</TableCell>
+                <TableCell>Yes</TableCell>
+              </TableRow>
+              <TableRow>
+                <TableCell>Outcome maximun credits</TableCell>
+                <TableCell>Maximum credit value for the outcome</TableCell>
+                <TableCell>Yes</TableCell>
               </TableRow>
             </TableBody>
           </Table>
@@ -339,8 +362,9 @@ const ImportOutcomes = () => {
               <TableHead>
                 <TableRow sx={{ backgroundColor: "#f5f5f5" }}>
                   <TableCell><strong>Topic</strong></TableCell>
-                  <TableCell><strong>Project</strong></TableCell>
-                  <TableCell><strong>Credits</strong></TableCell>
+                  <TableCell><strong>Learning Outcome</strong></TableCell>
+                  <TableCell><strong>Minimun Credits</strong></TableCell>
+                  <TableCell><strong>Maximun Credits</strong></TableCell>
                   <TableCell><strong>Type</strong></TableCell>
                   <TableCell><strong>Requirements</strong></TableCell>
                 </TableRow>

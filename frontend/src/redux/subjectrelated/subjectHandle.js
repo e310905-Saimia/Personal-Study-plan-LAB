@@ -7,6 +7,8 @@ export const addSubject = (subjectData) => async (dispatch) => {
     try {
         const response = await axios.post(API_BASE_URL, subjectData);
         dispatch(getSubjectList()); 
+        
+        // Return the data in a consistent structure
         return response.data;
     } catch (error) {
         console.error("Error adding subject:", error);
@@ -109,34 +111,89 @@ export const deleteSubject = (subjectID) => async (dispatch) => {
 
 export const addOutcome = (subjectID, outcomeData) => async (dispatch) => {
     try {
-        // Ensure compulsory is a boolean before sending
-        const processedOutcomeData = {
-            ...outcomeData,
-            compulsory: String(outcomeData.compulsory) === 'true' || outcomeData.compulsory === true
-        };
-        
-        const response = await axios.post(`${API_BASE_URL}/${subjectID}/outcomes`, processedOutcomeData);
-        dispatch(getSubjectList()); 
-        return response.data;
-    } catch (error) {
-        console.error("Error adding outcome:", error);
-        
-        // Create a proper error object
-        const addOutcomeError = new Error(error.response?.data?.message || "Failed to add outcome");
-        addOutcomeError.isDuplicate = error.response?.status === 409;
-        addOutcomeError.status = error.response?.status;
-        addOutcomeError.outcome = error.response?.data?.outcome;
-        
-        if (error.response?.status === 409) {
-            dispatch(getFailed(addOutcomeError.message || "An outcome with this topic and project already exists"));
+      // Process the outcomeData to ensure consistent format
+      const processedOutcomeData = { ...outcomeData };
+      
+      // Ensure compulsory is a boolean before sending
+      processedOutcomeData.compulsory = String(outcomeData.compulsory) === 'true' || outcomeData.compulsory === true;
+      
+      // Ensure requirements is a properly formatted array
+      if (outcomeData.requirements !== undefined) {
+        if (!Array.isArray(outcomeData.requirements)) {
+          // If it's not an array, try to convert it
+          let reqArray = [];
+          if (typeof outcomeData.requirements === 'string') {
+            if (outcomeData.requirements.includes('\n')) {
+              reqArray = outcomeData.requirements.split('\n');
+            } else if (outcomeData.requirements.includes(',')) {
+              reqArray = outcomeData.requirements.split(',');
+            } else {
+              reqArray = [outcomeData.requirements];
+            }
+          }
+          processedOutcomeData.requirements = reqArray
+            .map(req => req.trim())
+            .filter(req => req.length > 0);
         } else {
-            dispatch(getFailed(addOutcomeError.message));
+          // If it's already an array, just filter out empty items
+          processedOutcomeData.requirements = outcomeData.requirements
+            .map(req => req.trim ? req.trim() : req)
+            .filter(req => req && (typeof req === 'string' ? req.length > 0 : true));
         }
+        console.log("Requirements after processing:", processedOutcomeData.requirements);
+      }
+      
+      console.log("Sending processed outcome data to API:", processedOutcomeData);
+      
+      const response = await axios.post(`${API_BASE_URL}/${subjectID}/outcomes`, processedOutcomeData);
+      
+      // If requirements were provided but not included in the initial request (due to API limitation),
+      // update the outcome immediately after creation to add requirements
+      if (processedOutcomeData.requirements && 
+          processedOutcomeData.requirements.length > 0 && 
+          response.data && 
+          response.data.subject && 
+          response.data.subject.outcomes) {
+          
+        // Get the ID of the newly created outcome (last one in the array)
+        const newOutcomes = response.data.subject.outcomes;
+        const newOutcomeId = newOutcomes[newOutcomes.length - 1]._id;
         
-        throw addOutcomeError;
+        if (newOutcomeId) {
+          console.log(`Updating newly created outcome ${newOutcomeId} to add requirements:`, 
+            processedOutcomeData.requirements);
+            
+          await axios.put(
+            `${API_BASE_URL}/${subjectID}/outcomes/${newOutcomeId}`, 
+            { 
+              requirements: processedOutcomeData.requirements,
+              compulsory: processedOutcomeData.compulsory
+            }
+          );
+        }
+      }
+      
+      dispatch(getSubjectList()); 
+      return response.data;
+    } catch (error) {
+      console.error("Error adding outcome:", error);
+      
+      // Create a proper error object
+      const addOutcomeError = new Error(error.response?.data?.message || "Failed to add outcome");
+      addOutcomeError.isDuplicate = error.response?.status === 409;
+      addOutcomeError.status = error.response?.status;
+      addOutcomeError.outcome = error.response?.data?.outcome;
+      
+      if (error.response?.status === 409) {
+        dispatch(getFailed(addOutcomeError.message || "An outcome with this topic and project already exists"));
+      } else {
+        dispatch(getFailed(addOutcomeError.message));
+      }
+      
+      throw addOutcomeError;
     }
-};
-
+  };
+  
 export const updateOutcome = (subjectID, outcomeID, updatedOutcome) => async (dispatch) => {
     try {
       console.log("updateOutcome action called with:", {
@@ -154,6 +211,32 @@ export const updateOutcome = (subjectID, outcomeID, updatedOutcome) => async (di
         console.log("Compulsory value after conversion:", processedOutcome.compulsory);
       }
   
+      // Ensure requirements is a properly formatted array
+      if (updatedOutcome.requirements !== undefined) {
+        if (!Array.isArray(updatedOutcome.requirements)) {
+          // If it's not an array, try to convert it
+          let reqArray = [];
+          if (typeof updatedOutcome.requirements === 'string') {
+            if (updatedOutcome.requirements.includes('\n')) {
+              reqArray = updatedOutcome.requirements.split('\n');
+            } else if (updatedOutcome.requirements.includes(',')) {
+              reqArray = updatedOutcome.requirements.split(',');
+            } else {
+              reqArray = [updatedOutcome.requirements];
+            }
+          }
+          processedOutcome.requirements = reqArray
+            .map(req => req.trim())
+            .filter(req => req.length > 0);
+        } else {
+          // If it's already an array, just filter out empty items
+          processedOutcome.requirements = updatedOutcome.requirements
+            .map(req => req.trim ? req.trim() : req)
+            .filter(req => req && (typeof req === 'string' ? req.length > 0 : true));
+        }
+        console.log("Requirements after processing:", processedOutcome.requirements);
+      }
+      
       const response = await axios.put(
         `${API_BASE_URL}/${subjectID}/outcomes/${outcomeID}`,
         processedOutcome
@@ -162,7 +245,7 @@ export const updateOutcome = (subjectID, outcomeID, updatedOutcome) => async (di
       console.log("API response:", response.data);
       
       dispatch(getSubjectList());
-      return true;
+      return response.data;
     } catch (error) {
       console.error("Error updating outcome:", error);
       
@@ -180,7 +263,7 @@ export const updateOutcome = (subjectID, outcomeID, updatedOutcome) => async (di
       
       throw updateOutcomeError;
     }
-};
+  };
 
 export const deleteOutcome = (subjectID, outcomeID) => async (dispatch) => {
     try {

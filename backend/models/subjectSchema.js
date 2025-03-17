@@ -4,6 +4,7 @@ const outcomeSchema = new mongoose.Schema({
   topic: { type: String, required: true },
   project: { type: String, required: true },
   credits: { type: Number, required: true },
+  maxCredits: { type: Number },
   compulsory: { type: Boolean, default: true },
   requirements: [{ type: String }], // ✅ Array of requirements
 });

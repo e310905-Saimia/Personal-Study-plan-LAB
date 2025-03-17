@@ -11,7 +11,7 @@ const AddSubject = () => {
 
     const [subjectData, setSubjectData] = useState({
         name: "",
-        credits: "",
+        credits: 1, // Default credits value that will be sent but not shown in UI
     });
     const [existingSubjects, setExistingSubjects] = useState([]);
     const [error, setError] = useState("");
@@ -48,8 +48,8 @@ const AddSubject = () => {
     // Submit the form
     const handleSubmit = async (e) => {
         e.preventDefault();
-        if (!subjectData.name || !subjectData.credits) {
-            setError("Please fill in all fields.");
+        if (!subjectData.name) {
+            setError("Please enter a subject name.");
             return;
         }
         
@@ -100,16 +100,7 @@ const AddSubject = () => {
                     required
                     error={!!error && error.includes(subjectData.name)}
                 />
-                <TextField
-                    fullWidth
-                    label="Credits"
-                    name="credits"
-                    type="number"
-                    value={subjectData.credits}
-                    onChange={handleChange}
-                    margin="normal"
-                    required
-                />
+                {/* Credits field removed, but default value of 1 is still used */}
                 <Box sx={{ marginTop: 2 }}>
                     <Button variant="contained" color="primary" type="submit">
                         Add Subject

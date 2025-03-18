@@ -432,38 +432,38 @@ const StudentSubjects = () => {
   };
 
   // Improved refreshData function - refreshes from API directly
-  const refreshData = async () => {
-    setRefreshing(true);
-    try {
-      // Get the student ID
-      const studentID = currentUser?._id || currentUser?.student?._id;
+  // const refreshData = async () => {
+  //   setRefreshing(true);
+  //   try {
+  //     // Get the student ID
+  //     const studentID = currentUser?._id || currentUser?.student?._id;
       
-      // Fetch notifications and subjects
-      await dispatch(fetchNotifications());
-      await dispatch(getSubjectList());
+  //     // Fetch notifications and subjects
+  //     await dispatch(fetchNotifications());
+  //     await dispatch(getSubjectList());
       
-      // Also refresh student-specific data if needed
-      if (studentID) {
-        const response = await axios.get(`http://localhost:5000/api/students/${studentID}/subjects`);
-        setStudentData(response.data);
-      }
+  //     // Also refresh student-specific data if needed
+  //     if (studentID) {
+  //       const response = await axios.get(`http://localhost:5000/api/students/${studentID}/subjects`);
+  //       setStudentData(response.data);
+  //     }
       
-      setNotification({
-        open: true,
-        message: "Data refreshed successfully!",
-        severity: "success",
-      });
-    } catch (error) {
-      console.error("Error refreshing data:", error);
-      setNotification({
-        open: true,
-        message: "Failed to refresh data. Please try again.",
-        severity: "error",
-      });
-    } finally {
-      setRefreshing(false);
-    }
-  };
+  //     setNotification({
+  //       open: true,
+  //       message: "Data refreshed successfully!",
+  //       severity: "success",
+  //     });
+  //   } catch (error) {
+  //     console.error("Error refreshing data:", error);
+  //     setNotification({
+  //       open: true,
+  //       message: "Failed to refresh data. Please try again.",
+  //       severity: "error",
+  //     });
+  //   } finally {
+  //     setRefreshing(false);
+  //   }
+  // };
 
   // Status helper functions
   const getStatusColor = (status) => {
@@ -501,14 +501,14 @@ const StudentSubjects = () => {
         <Typography variant="h4" gutterBottom>
           Student Subjects
         </Typography>
-        <Button
+        {/* <Button
           startIcon={<Refresh />}
           onClick={refreshData}
           variant="outlined"
           disabled={refreshing}
         >
           {refreshing ? "Refreshing..." : "Refresh Data"}
-        </Button>
+        </Button> */}
       </Box>
 
       {(subjectsLoading || notificationsLoading) && !refreshing ? (

@@ -337,6 +337,7 @@ const importOutcomes = async (req, res) => {
                     topic: outcome.topic,
                     project: outcome.project,
                     credits: Number(outcome.credits),
+                    maxCredits: Number(outcome.maxCredits) || Number(outcome.credits),
                     compulsory: isCompulsory,
                     requirements: Array.isArray(outcome.requirements) ? outcome.requirements : []
                 };

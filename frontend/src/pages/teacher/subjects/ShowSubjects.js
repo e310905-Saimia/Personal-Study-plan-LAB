@@ -261,22 +261,40 @@ const ShowSubjects = () => {
   };
 
   const handleOutcomeClick = (subjectId, outcome) => {
+    console.log("Clicked outcome with requirements:", outcome.requirements);
     setSelectedOutcome({ ...outcome, subjectId });
-    setRequirementText(outcome.requirements?.join("\n") || "");
+    
+    // Make sure we handle both array and string formats for requirements
+    let requirementsText = "";
+    if (outcome.requirements) {
+      if (Array.isArray(outcome.requirements)) {
+        // Join the array with newlines to display each on its own line
+        requirementsText = outcome.requirements.join("\n");
+      } else if (typeof outcome.requirements === 'string') {
+        // If it's a string, just use it directly
+        requirementsText = outcome.requirements;
+      }
+    }
+    
+    setRequirementText(requirementsText);
     setOpenRequirements(true);
   };
 
   const handleUpdateRequirement = () => {
     if (!selectedOutcome) return;
-
+  
     // Convert text to array before saving
     const updatedRequirements = requirementText
       .split("\n")
-      .filter((req) => req.trim() !== "");
-
+      .filter((req) => req.trim() !== "")
+      // Add deduplication
+      .filter((req, index, self) => self.indexOf(req) === index);
+  
+    console.log("Saving requirements:", updatedRequirements);
+  
     // Preserve the compulsory status using our helper function
     const outcomeCompulsory = isCompulsory(selectedOutcome);
-
+  
     dispatch(
       updateOutcome(selectedOutcome.subjectId, selectedOutcome._id, {
         requirements: updatedRequirements,
@@ -286,7 +304,7 @@ const ShowSubjects = () => {
       setOpenRequirements(false);
       dispatch(getSubjectList()); // Refresh data
     });
-  };
+  };  
 
   // Handle outcome import
   const handleOutcomeImport = async (data) => {
@@ -427,151 +445,182 @@ const ShowSubjects = () => {
   };
 
   // Handle subject import submission
-  const handleSubjectImport = async (data) => {
-    try {
-      setImportSuccess("");
-      setError("");
-  
-      // Validate data
-      if (!data || !Array.isArray(data) || data.length === 0) {
-        setError("No valid subject data to import");
-        return;
+  // Replace the handleSubjectImport function in ShowSubjects.js with this version:
+
+// Enhanced handleSubjectImport function with better requirements handling
+const handleSubjectImport = async (data) => {
+  try {
+    setImportSuccess("");
+    setError("");
+
+
+    console.log("COMPLETE SUBJECT IMPORT DATA:", JSON.stringify(data, null, 2));
+    // Validate data
+    if (!data || !Array.isArray(data) || data.length === 0) {
+      setError("No valid subject data to import");
+      return;
+    }
+
+    console.log("Raw import data from FileImporter:", data);
+    console.log(`Received ${data.length} subjects`);
+    
+    // Debug output for each subject and its outcomes
+    let totalOutcomes = 0;
+    let totalRequirements = 0;
+    data.forEach((subject, index) => {
+      const outcomeCount = subject.outcomes?.length || 0;
+      totalOutcomes += outcomeCount;
+      
+      console.log(`Subject ${index + 1}: ${subject.name} has ${outcomeCount} outcomes`);
+      if (subject.outcomes && subject.outcomes.length > 0) {
+        subject.outcomes.forEach((outcome, i) => {
+          const reqCount = outcome.requirements?.length || 0;
+          totalRequirements += reqCount;
+          
+          console.log(` - Outcome ${i + 1}: ${outcome.topic} (${outcome.credits}-${outcome.maxCredits} credits, ${outcome.compulsory ? 'Compulsory' : 'Optional'})`);
+          console.log(`   Requirements (${reqCount}): ${JSON.stringify(outcome.requirements || [])}`);
+        });
       }
-  
-      console.log("Raw import data:", data);
-  
-      let successCount = 0;
-      let updateCount = 0;
-      let errorCount = 0;
-      let outcomeSuccessCount = 0;
-      let outcomeErrorCount = 0;
-  
-      // Process each subject one by one
-      for (const subject of data) {
-        try {
-          // Validate subject has name
-          if (!subject.name || subject.name.trim() === "") {
-            console.error("Subject missing name, skipping");
+    });
+    console.log(`Total: ${data.length} subjects, ${totalOutcomes} outcomes, ${totalRequirements} requirements`);
+
+    // Stats for tracking progress
+    let successCount = 0;
+    let updateCount = 0;
+    let errorCount = 0;
+    let outcomeSuccessCount = 0;
+    let outcomeErrorCount = 0;
+
+    // Process each subject one by one
+    for (const subject of data) {
+      try {
+        // Validate subject has name
+        if (!subject.name || subject.name.trim() === "") {
+          console.error("Subject missing name, skipping");
+          errorCount++;
+          continue;
+        }
+
+        // Create a simple subject data object (just name and credits)
+        const basicSubjectData = {
+          name: subject.name.trim(),
+          credits: parseInt(subject.credits || 1, 10)
+        };
+
+        console.log(`Processing subject: ${basicSubjectData.name} with ${subject.outcomes?.length || 0} outcomes`);
+
+        // Check if subject already exists
+        const existingSubject = subjects.find(
+          existingSubject => existingSubject.name.toLowerCase() === subject.name.toLowerCase()
+        );
+
+        let subjectId;
+        let actionResult;
+
+        if (existingSubject) {
+          // Update existing subject
+          console.log(`Updating existing subject: ${subject.name}`);
+          actionResult = await dispatch(updateSubject(existingSubject._id, basicSubjectData));
+          
+          // Just use the existing subject ID
+          subjectId = existingSubject._id;
+          updateCount++;
+        } else {
+          // Create new subject
+          console.log(`Creating new subject: ${subject.name}`);
+          actionResult = await dispatch(addSubject(basicSubjectData));
+          
+          // Check response structure - handle different possible response formats
+          if (actionResult && actionResult.subject && actionResult.subject._id) {
+            // Direct structure from API response
+            subjectId = actionResult.subject._id;
+          } else if (actionResult && actionResult.payload && actionResult.payload.subject && actionResult.payload.subject._id) {
+            // Redux toolkit might wrap the response in payload
+            subjectId = actionResult.payload.subject._id;
+          } else if (actionResult && actionResult.payload && actionResult.payload._id) {
+            // Another possible structure
+            subjectId = actionResult.payload._id;
+          } else {
+            console.error("Failed to get subject ID from response:", actionResult);
             errorCount++;
             continue;
           }
-  
-          // Create a simple subject data object (just name and credits)
-          const basicSubjectData = {
-            name: subject.name.trim(),
-            credits: parseInt(subject.credits || 1, 10)
-          };
-  
-          console.log(`Processing subject: ${basicSubjectData.name}`);
-  
-          // Check if subject already exists
-          const existingSubject = subjects.find(
-            existingSubject => existingSubject.name.toLowerCase() === subject.name.toLowerCase()
-          );
-  
-          let subjectId;
-          let actionResult;
-  
-          if (existingSubject) {
-            // Update existing subject
-            console.log(`Updating existing subject: ${subject.name}`);
-            actionResult = await dispatch(updateSubject(existingSubject._id, basicSubjectData));
-            
-            // Just use the existing subject ID
-            subjectId = existingSubject._id;
-            updateCount++;
-          } else {
-            // Create new subject
-            console.log(`Creating new subject: ${subject.name}`);
-            actionResult = await dispatch(addSubject(basicSubjectData));
-            
-            // Check response structure - the fix is here
-            if (actionResult && actionResult.subject && actionResult.subject._id) {
-              // Direct structure from API response
-              subjectId = actionResult.subject._id;
-            } else if (actionResult && actionResult.payload && actionResult.payload.subject && actionResult.payload.subject._id) {
-              // Redux toolkit might wrap the response in payload
-              subjectId = actionResult.payload.subject._id;
-            } else {
-              console.error("Failed to get subject ID from response:", actionResult);
-              errorCount++;
-              continue;
-            }
-            
-            successCount++;
-          }
-  
-          // Now handle outcomes if we have a valid subject ID
-          if (subjectId && subject.outcomes && subject.outcomes.length > 0) {
-            console.log(`Adding ${subject.outcomes.length} outcomes to subject ${subject.name} (ID: ${subjectId})`);
-  
-            // Process outcomes sequentially using for...of to ensure proper async/await
-            for (const outcome of subject.outcomes) {
-              try {
-                if (!outcome.topic) {
-                  console.warn("Skipping outcome with no topic");
-                  outcomeErrorCount++;
-                  continue;
-                }
-                
-                // Format the outcome data
-                const outcomeData = {
-                  topic: outcome.topic,
-                  project: outcome.project || outcome.topic, // Use topic as project if not specified
-                  credits: parseFloat(outcome.credits) || 0.1,
-                  maxCredits: parseFloat(outcome.maxCredits) || parseFloat(outcome.credits) || 0.1,
-                  compulsory: outcome.compulsory !== undefined ? outcome.compulsory : true,
-                  requirements: Array.isArray(outcome.requirements) ? outcome.requirements : []
-                };
-                
-                console.log(`Adding outcome: ${outcomeData.topic} to subject ID ${subjectId}`);
-                
-                // Add the outcome to the subject
-                const outcomeResult = await dispatch(addOutcome(subjectId, outcomeData));
-                
-                if (outcomeResult.error) {
-                  console.error(`Error adding outcome ${outcome.topic}:`, outcomeResult.error);
-                  outcomeErrorCount++;
-                } else {
-                  outcomeSuccessCount++;
-                }
-                
-                // Add a small delay between API calls to avoid overwhelming the server
-                await new Promise(resolve => setTimeout(resolve, 100));
-                
-              } catch (outcomeError) {
-                console.error(`Error processing outcome ${outcome.topic}:`, outcomeError);
-                outcomeErrorCount++;
-              }
-            }
-          }
-        } catch (subjectErr) {
-          console.error(`Error processing subject ${subject.name}:`, subjectErr);
-          errorCount++;
+          
+          successCount++;
         }
+
+        // Now handle outcomes if we have a valid subject ID
+        if (subjectId && subject.outcomes && subject.outcomes.length > 0) {
+          console.log(`Adding ${subject.outcomes.length} outcomes to subject ${subject.name} (ID: ${subjectId})`);
+
+          // Process outcomes sequentially using for...of to ensure proper async/await
+          for (const outcome of subject.outcomes) {
+            try {
+              if (!outcome.topic) {
+                console.warn("Skipping outcome with no topic");
+                outcomeErrorCount++;
+                continue;
+              }
+              
+              // Format the outcome data, ensuring requirements are properly included
+              const outcomeData = {
+                topic: outcome.topic,
+                project: outcome.project || outcome.topic, // Use topic as project if not specified
+                credits: parseFloat(outcome.credits) || 0.1,
+                maxCredits: parseFloat(outcome.maxCredits) || parseFloat(outcome.credits) || 0.1,
+                compulsory: outcome.compulsory !== undefined ? outcome.compulsory : true,
+                requirements: Array.isArray(outcome.requirements) ? outcome.requirements : []
+              };
+              
+              console.log(`Adding outcome: ${outcomeData.topic} to subject ID ${subjectId}`);
+              console.log(`  Requirements (${outcomeData.requirements.length}): ${JSON.stringify(outcomeData.requirements)}`);
+              
+              // Add the outcome to the subject
+              const outcomeResult = await dispatch(addOutcome(subjectId, outcomeData));
+              
+              if (outcomeResult && outcomeResult.error) {
+                console.error(`Error adding outcome ${outcome.topic}:`, outcomeResult.error);
+                outcomeErrorCount++;
+              } else {
+                outcomeSuccessCount++;
+              }
+              
+              // Add a small delay between API calls to avoid overwhelming the server
+              await new Promise(resolve => setTimeout(resolve, 50));
+              
+            } catch (outcomeError) {
+              console.error(`Error processing outcome ${outcome.topic}:`, outcomeError);
+              outcomeErrorCount++;
+            }
+          }
+        }
+      } catch (subjectErr) {
+        console.error(`Error processing subject ${subject.name}:`, subjectErr);
+        errorCount++;
       }
-  
-      // Generate detailed success message
-      let message = "";
-      if (successCount > 0) message += `Added ${successCount} new subjects. `;
-      if (updateCount > 0) message += `Updated ${updateCount} existing subjects. `;
-      if (outcomeSuccessCount > 0) message += `Added ${outcomeSuccessCount} outcomes. `;
-      if (errorCount > 0 || outcomeErrorCount > 0) {
-        message += `Failed to import ${errorCount} subjects and ${outcomeErrorCount} outcomes. `;
-      } else {
-        message += "All subjects and outcomes imported successfully! ";
-      }
-  
-      setImportSuccess(message);
-  
-      // Force a refresh of the subject list
-      await dispatch(getSubjectList());
-      setSubjectImporterOpen(false);
-    } catch (error) {
-      console.error("Import failed:", error);
-      setError(`Import failed: ${error.message || "Unknown error"}`);
     }
-  };
+
+    // Generate detailed success message
+    let message = "";
+    if (successCount > 0) message += `Added ${successCount} new subjects. `;
+    if (updateCount > 0) message += `Updated ${updateCount} existing subjects. `;
+    if (outcomeSuccessCount > 0) message += `Added ${outcomeSuccessCount} outcomes. `;
+    if (errorCount > 0 || outcomeErrorCount > 0) {
+      message += `Failed to import ${errorCount} subjects and ${outcomeErrorCount} outcomes. `;
+    } else {
+      message += "All subjects and outcomes imported successfully! ";
+    }
+
+    setImportSuccess(message);
+
+    // Force a refresh of the subject list
+    await dispatch(getSubjectList());
+    setSubjectImporterOpen(false);
+  } catch (error) {
+    console.error("Import failed:", error);
+    setError(`Import failed: ${error.message || "Unknown error"}`);
+  }
+};
 
   // Filter outcomes based on current filter
   const filterOutcomes = (outcomes) => {
@@ -1089,27 +1138,25 @@ Student can troubleshoot hardware problems";0.2;0.3`;
 
       {/* Subject Import Dialog */}
       <FileImporter
-        open={subjectImporterOpen}
-        onClose={() => setSubjectImporterOpen(false)}
-        title="Import Subjects from CSV"
-        onImport={handleSubjectImport}
-        type="subjects"
-        existingItems={subjects}
-        sampleFileContent={subjectSampleContent}
-      />
+  open={subjectImporterOpen}
+  onClose={() => setSubjectImporterOpen(false)}
+  title="Import Subjects from CSV"
+  onImport={handleSubjectImport}
+  type="subjects"
+  existingItems={subjects}
+/>
 
-      <FileImporter
-        open={outcomeImporterOpen}
-        onClose={() => setOutcomeImporterOpen(false)}
-        title={`Import Outcomes for ${
-          selectedSubjectForImport?.name || "Subject"
-        }`}
-        onImport={handleOutcomeImport}
-        type="outcomes"
-        existingItems={selectedSubjectForImport || { outcomes: [] }}
-        subjectId={selectedSubjectForImport?._id}
-        sampleFileContent={outcomeSampleContent}
-      />
+<FileImporter
+  open={outcomeImporterOpen}
+  onClose={() => setOutcomeImporterOpen(false)}
+  title={`Import Outcomes for ${
+    selectedSubjectForImport?.name || "Subject"
+  }`}
+  onImport={handleOutcomeImport}
+  type="outcomes"
+  existingItems={selectedSubjectForImport || { outcomes: [] }}
+  subjectId={selectedSubjectForImport?._id}
+/>
     </>
   );
 };

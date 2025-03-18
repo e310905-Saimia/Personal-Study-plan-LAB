@@ -10,7 +10,7 @@ import {
   Menu,
   MenuItem,
   ListItemIcon,
-  ListItemText
+  ListItemText,
 } from "@mui/material";
 import MenuIcon from "@mui/icons-material/Menu";
 import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
@@ -29,7 +29,7 @@ import { Authlogout } from "../../redux/userRelated/userSlice";
 const StudentDashboard = () => {
   const [open, setOpen] = useState(true);
   const [anchorEl, setAnchorEl] = useState(null);
-  const { currentRole } = useSelector((state) => state.user);
+  const { currentRole, currentUser } = useSelector((state) => state.user);
   const navigate = useNavigate();
   const dispatch = useDispatch();
 
@@ -59,9 +59,41 @@ const StudentDashboard = () => {
 
   const handleLogout = () => {
     dispatch(Authlogout());
-    navigate('/');
+    navigate("/");
     handleAccountMenuClose();
   };
+
+  const formatNameFromEmail = (email) => {
+    if (!email || typeof email !== 'string') return 'User';
+    
+    // Split the email into name part
+    const namePart = email.split('@')[0];
+    
+    // Handle different email formats
+    const formattedName = namePart
+      .split('.')  // Split by dot for emails like firoz.thapa
+      .map(part => 
+        part.charAt(0).toUpperCase() + part.slice(1).toLowerCase()
+      )
+      .join(' ');
+    
+    return formattedName || 'User';
+  };
+
+  // Get user name function that doesn't use hooks
+  const getUserName = () => {
+    // Check multiple possible locations for the name
+    if (currentUser?.name) return currentUser.name;
+    if (currentUser?.student?.name) return currentUser.student.name;
+    
+    // If no name, format name from email
+    const email = currentUser?.email || 
+                  currentUser?.student?.email || 
+                  'user@example.com';
+    
+    return formatNameFromEmail(email);
+  };
+
 
   return (
     <Box sx={{ display: "flex" }}>
@@ -86,7 +118,19 @@ const StudentDashboard = () => {
           >
             Student
           </Typography>
-          
+
+          <Typography
+            variant="body2"
+            color="inherit"
+            sx={{
+              mr: 2,
+              display: "flex",
+              alignItems: "center",
+            }}
+          >
+            {getUserName()}
+          </Typography>
+
           {/* NotificationBell component removed */}
           <IconButton
             size="large"
@@ -102,13 +146,13 @@ const StudentDashboard = () => {
             id="menu-appbar"
             anchorEl={anchorEl}
             anchorOrigin={{
-              vertical: 'bottom',
-              horizontal: 'right',
+              vertical: "bottom",
+              horizontal: "right",
             }}
             keepMounted
             transformOrigin={{
-              vertical: 'top',
-              horizontal: 'right',
+              vertical: "top",
+              horizontal: "right",
             }}
             open={Boolean(anchorEl)}
             onClose={handleAccountMenuClose}

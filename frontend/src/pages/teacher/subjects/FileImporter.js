@@ -22,7 +22,6 @@ import {
 } from "@mui/material";
 import {
   Upload as UploadIcon,
-  Download as DownloadIcon,
   Visibility as VisibilityIcon,
 } from "@mui/icons-material";
 
@@ -34,7 +33,6 @@ const FileImporter = ({
   type,
   existingItems = [],
   subjectId = null,
-  sampleFileContent,
 }) => {
   const [csvFile, setCsvFile] = useState(null);
   const [parsedData, setParsedData] = useState([]);
@@ -195,13 +193,34 @@ const FileImporter = ({
       let duplicates = [];
   
       if (type === "subjects") {
+        console.log("Processing data as subjects with potentially multiple outcomes per subject");
         processedData = processSubjectsData(results.data);
+        console.log(`Processed ${processedData.length} subjects with a total of ${processedData.reduce((acc, subj) => acc + subj.outcomes.length, 0)} outcomes`);
+        
+        // Debug: Check outcomes and requirements for each subject
+        processedData.forEach((subject, i) => {
+          console.log(`Subject ${i+1}: ${subject.name} has ${subject.outcomes.length} outcomes`);
+          subject.outcomes.forEach((outcome, j) => {
+            console.log(`  Outcome ${j+1}: ${outcome.topic} has ${outcome.requirements.length} requirements`);
+            console.log(`  Requirements: ${JSON.stringify(outcome.requirements)}`);
+          });
+        });
+        
         duplicates = findDuplicateSubjects(processedData);
       } else if (type === "outcomes") {
         if (!subjectId) {
           throw new Error("No subject selected for importing outcomes");
         }
+        console.log("Processing data as outcomes for subject ID:", subjectId);
         processedData = processOutcomesData(results.data);
+        console.log(`Processed ${processedData.length} outcomes`);
+        
+        // Debug: Check requirements for each outcome
+        processedData.forEach((outcome, i) => {
+          console.log(`Outcome ${i+1}: ${outcome.topic} has ${outcome.requirements.length} requirements`);
+          console.log(`Requirements: ${JSON.stringify(outcome.requirements)}`);
+        });
+        
         duplicates = findDuplicateOutcomes(processedData);
       }
   
@@ -237,8 +256,10 @@ const FileImporter = ({
     setLoading(false);
   };
    
-  // Process subjects data from CSV with improved error handling
+
   const processSubjectsData = (data) => {
+    console.log("Starting processSubjectsData with", data.length, "rows");
+    
     // Ensure we have data to process
     if (!data || data.length < 2) {
       throw new Error("CSV file has no data or is missing header row");
@@ -248,13 +269,13 @@ const FileImporter = ({
     const headerRow = data[0];
     console.log("Header row:", headerRow);
   
-    // If headers are in a single column (e.g., semicolon-delimited in a comma CSV), split them
+    // Process headers consistently
     let headers = headerRow;
     if (headerRow.length === 1 && headerRow[0].includes(';')) {
       headers = headerRow[0].split(';');
       console.log("Detected semicolon-separated headers in a single column, split to:", headers);
       
-      // We need to reformat all data rows as well
+      // Reformat all data rows as well
       data = data.map(row => {
         if (row.length === 1 && row[0].includes(';')) {
           return row[0].split(';');
@@ -265,7 +286,7 @@ const FileImporter = ({
     
     console.log("Headers being used:", headers);
   
-    // Try to find column indices using flexible matching
+    // Find column indices using flexible matching
     const topicIndex = findColumnIndex(headers, ["topic", "subject", "subject name"]);
     const outcomeIndex = findColumnIndex(headers, ["learning outcomes", "outcome", "learning outcome"]);
     const compulsoryIndex = findColumnIndex(headers, ["compulsary or not", "compulsory", "required", "obligatory"]);
@@ -277,172 +298,185 @@ const FileImporter = ({
       topicIndex, outcomeIndex, compulsoryIndex, requirementsIndex, minCreditsIndex, maxCreditsIndex
     });
   
-    // If we couldn't find critical columns, throw an error
-    if (topicIndex === -1) {
-      throw new Error("Could not find a column for Subject/Topic in the CSV");
-    }
-    
-    if (outcomeIndex === -1) {
-      throw new Error("Could not find a column for Learning Outcomes in the CSV");
-    }
-  
     // Skip header row
     const dataRows = data.slice(1);
+    
+    // First pass: Group rows by subject and outcome to collect all requirements
     const subjectMap = new Map();
+    const outcomeGroups = [];
+    let currentSubject = null;
+    let currentOutcome = null;
+    let currentTopic = ""; // Track current topic name
   
-    dataRows.forEach((row, rowIndex) => {
+    for (let rowIndex = 0; rowIndex < dataRows.length; rowIndex++) {
+      const row = dataRows[rowIndex];
+      
       // Skip empty rows
       if (!row || row.length === 0 || (row.length === 1 && !row[0])) {
-        console.warn("Skipping empty row");
-        return;
+        console.warn(`Skipping empty row at index ${rowIndex + 1}`);
+        continue;
       }
   
-      try {
-        // Get the required fields
-        const topic = getValueAt(row, topicIndex, "").trim();
-        const learningOutcome = getValueAt(row, outcomeIndex, "").trim();
-        
-        // Skip rows without required data
-        if (!topic) {
-          console.warn(`Skipping row ${rowIndex + 2} with no topic`);
-          return;
-        }
-        
-        if (!learningOutcome) {
-          console.warn(`Skipping row ${rowIndex + 2} with no learning outcome`);
-          return;
-        }
-        
-        // Get the optional fields with defaults
-        const compulsoryStr = getValueAt(row, compulsoryIndex, "true");
-        const requirementsStr = getValueAt(row, requirementsIndex, "");
-        const minCreditsStr = getValueAt(row, minCreditsIndex, "0.1");
-        const maxCreditsStr = getValueAt(row, maxCreditsIndex, minCreditsStr);
-        
-        console.log(`Processing row ${rowIndex + 2}:`, {
-          topic, learningOutcome, compulsoryStr, requirementsStr, minCreditsStr, maxCreditsStr
-        });
+      // Extract all fields
+      const topic = getValueAt(row, topicIndex, "").trim();
+      const learningOutcome = getValueAt(row, outcomeIndex, "").trim();
+      const compulsoryStr = getValueAt(row, compulsoryIndex, "true");
+      const requirementStr = getValueAt(row, requirementsIndex, "").trim();
+      const minCreditsStr = getValueAt(row, minCreditsIndex, "0.1");
+      const maxCreditsStr = getValueAt(row, maxCreditsIndex, minCreditsStr);
+      
+      console.log(`Row ${rowIndex + 2}:`, {
+        topic, learningOutcome, compulsoryStr, requirementStr, minCreditsStr, maxCreditsStr
+      });
   
-        // Create or get the subject
-        if (!subjectMap.has(topic)) {
-          subjectMap.set(topic, {
-            name: topic,
-            credits: 1, // Default credit value
-            outcomes: []
-          });
-        }
+      // Use current topic if this row doesn't specify one
+      const effectiveTopic = topic || currentTopic;
+      
+      // Update current topic if we have a non-empty one
+      if (topic) {
+        currentTopic = topic;
+      }
+  
+      // Check if this is a continuation row (empty subject and outcome but has requirement)
+      const isContinuationRow = (!topic || topic === "") && 
+                               (!learningOutcome || learningOutcome === "") && 
+                               requirementStr && requirementStr !== "";
+      
+      if (isContinuationRow) {
+        console.log(`Row ${rowIndex + 2}: Found continuation row with requirement: "${requirementStr}"`);
         
-        const subject = subjectMap.get(topic);
-  
-        // Parse compulsory status
-        let compulsory = true; // Default to true
-        if (compulsoryStr) {
-          // Convert various representations to boolean
-          compulsory = !['false', 'no', '0', 'n', 'false', 'f'].includes(
-            String(compulsoryStr).toLowerCase().trim()
-          );
-        }
-  
-        // Parse credits
-        let minCredits = 0.1; // Default
-        try {
-          const parsed = parseFloat(minCreditsStr);
-          if (!isNaN(parsed)) {
-            minCredits = Math.max(0.1, Math.min(parsed, 10)); // Clamp between 0.1 and 10
+        // If we have a current outcome, add this requirement to it
+        if (currentOutcome) {
+          if (!currentOutcome.requirements.includes(requirementStr)) {
+            currentOutcome.requirements.push(requirementStr);
+            console.log(`Added requirement "${requirementStr}" to outcome "${currentOutcome.topic}" of subject "${currentSubject.name}"`);
           }
-        } catch (e) {
-          console.warn(`Invalid min credits: ${minCreditsStr}, using default 0.1`);
-        }
-  
-        let maxCredits = minCredits; // Default to min
-        try {
-          const parsed = parseFloat(maxCreditsStr);
-          if (!isNaN(parsed)) {
-            maxCredits = Math.max(0.1, Math.min(parsed, 10));
-          }
-        } catch (e) {
-          console.warn(`Invalid max credits: ${maxCreditsStr}, using min credits ${minCredits}`);
-        }
-  
-        // Parse requirements - handle quoted strings and different separators
-        let requirements = [];
-        if (requirementsStr) {
-          console.log(`Processing requirements: "${requirementsStr}"`);
-          
-          // Handle quoted strings
-          let cleanedStr = requirementsStr;
-          if ((cleanedStr.startsWith('"') && cleanedStr.endsWith('"')) || 
-              (cleanedStr.startsWith("'") && cleanedStr.endsWith("'"))) {
-            cleanedStr = cleanedStr.substring(1, cleanedStr.length - 1);
-          }
-          
-          // Try to intelligently split requirements
-          if (cleanedStr.includes(',')) {
-            requirements = cleanedStr.split(',');
-          } else if (cleanedStr.includes('\n')) {
-            requirements = cleanedStr.split(/\r?\n/);
-          } else {
-            requirements = [cleanedStr];
-          }
-          
-          // Clean up and remove empty items
-          requirements = requirements
-            .map(req => req.trim())
-            .filter(req => req.length > 0);
-          
-          console.log("Parsed requirements:", requirements);
-        }
-  
-        // Check for duplicate outcomes
-        const isDuplicateOutcome = subject.outcomes.some(
-          existing => existing.topic.toLowerCase() === learningOutcome.toLowerCase()
-        );
-  
-        if (!isDuplicateOutcome) {
-          const outcome = {
-            topic: learningOutcome,
-            project: learningOutcome, // Use learning outcome as project by default
-            credits: minCredits,
-            maxCredits: maxCredits,
-            compulsory: compulsory,
-            requirements: requirements
-          };
-  
-          subject.outcomes.push(outcome);
-          console.log(`Added outcome: ${learningOutcome} to subject: ${topic}`);
         } else {
-          console.warn(`Skipping duplicate outcome: ${learningOutcome} for subject: ${topic}`);
+          console.warn("Found requirement row but no current outcome to attach it to");
         }
-      } catch (err) {
-        console.error(`Error processing row ${rowIndex + 2}:`, err);
+        
+        continue;
       }
-    });
+      
+      // If we've reached here, this is a new outcome row
+      
+      // Skip rows without a learning outcome
+      if (!learningOutcome || learningOutcome === "") {
+        console.warn(`Skipping row ${rowIndex + 2} - no learning outcome`);
+        continue;
+      }
+  
+      // Create or get the subject
+      if (!subjectMap.has(effectiveTopic)) {
+        console.log(`Creating new subject: ${effectiveTopic}`);
+        const newSubject = {
+          name: effectiveTopic,
+          credits: 1, // Default credit value
+          outcomes: []
+        };
+        subjectMap.set(effectiveTopic, newSubject);
+        currentSubject = newSubject;
+      } else {
+        currentSubject = subjectMap.get(effectiveTopic);
+      }
+  
+      // Parse compulsory status
+      let compulsory = true; // Default to true
+      if (compulsoryStr) {
+        // Convert various representations to boolean
+        compulsory = !['false', 'no', '0', 'n', 'f'].includes(
+          String(compulsoryStr).toLowerCase().trim()
+        );
+      }
+  
+      // Parse credits
+      let minCredits = 0.1; // Default
+      try {
+        const parsed = parseFloat(minCreditsStr);
+        if (!isNaN(parsed)) {
+          minCredits = Math.max(0.1, Math.min(parsed, 10)); // Clamp between 0.1 and 10
+        }
+      } catch (e) {
+        console.warn(`Invalid min credits: ${minCreditsStr}, using default 0.1`);
+      }
+  
+      let maxCredits = minCredits; // Default to min
+      try {
+        const parsed = parseFloat(maxCreditsStr);
+        if (!isNaN(parsed)) {
+          maxCredits = Math.max(0.1, Math.min(parsed, 10));
+        }
+      } catch (e) {
+        console.warn(`Invalid max credits: ${maxCreditsStr}, using min credits ${minCredits}`);
+      }
+  
+      // Initialize requirements array with the first requirement from this row
+      let requirements = [];
+      if (requirementStr) {
+        requirements = [requirementStr];
+      }
+  
+      // Create a new outcome
+      const outcome = {
+        topic: learningOutcome,
+        project: learningOutcome, // Use learning outcome as project by default
+        credits: minCredits,
+        maxCredits: maxCredits,
+        compulsory: compulsory,
+        requirements: requirements
+      };
+  
+      // Add outcome to current subject
+      currentSubject.outcomes.push(outcome);
+      console.log(`Added outcome: ${learningOutcome} to subject: ${effectiveTopic} with initial requirement: "${requirementStr}"`);
+      
+      // Update current outcome tracker
+      currentOutcome = outcome;
+    }
   
     // Convert map to array of subjects
     const result = Array.from(subjectMap.values());
     
-    // Final validation
+    // Validate results
     if (result.length === 0) {
       throw new Error("No valid subjects found in the CSV file");
     }
     
-    console.log("Final parsed subjects:", result);
+    console.log("Subject map created with", subjectMap.size, "subjects");
+    
+    // Final validation and deduplication of requirements
+    let totalRequirements = 0;
+    for (const subject of result) {
+      console.log(`Subject "${subject.name}" has ${subject.outcomes.length} outcomes`);
+      
+      for (const outcome of subject.outcomes) {
+        // Deduplicate requirements
+        outcome.requirements = [...new Set(outcome.requirements.filter(req => req.trim() !== ""))];
+        totalRequirements += outcome.requirements.length;
+        
+        console.log(`  Outcome "${outcome.topic}" has ${outcome.requirements.length} requirements`);
+        for (let i = 0; i < outcome.requirements.length; i++) {
+          console.log(`    Requirement ${i+1}: "${outcome.requirements[i]}"`);
+        }
+      }
+    }
+    
+    console.log(`Total requirements processed: ${totalRequirements}`);
+    
     return result;
   };
-
-  // Process outcomes data from CSV
-  // Enhanced processOutcomesData function with improved requirements handling
+  // Completely revised processOutcomesData function with better requirement tracking
 const processOutcomesData = (data) => {
   // Ensure we have data to process
   if (!data || data.length < 2) {
     throw new Error("CSV file has no data or is missing header row");
   }
 
-  // Get the header row and validate it
+  // Get the header row
   const headerRow = data[0];
   console.log("Header row for outcomes:", headerRow);
 
-  // If the header is a single column with semicolons, split it
+  // Process headers as before
   let headers = headerRow;
   if (headerRow.length === 1 && headerRow[0].includes(';')) {
     headers = headerRow[0].split(';');
@@ -457,12 +491,12 @@ const processOutcomesData = (data) => {
     });
   }
   
-  console.log("Processed outcomes data structure:", data);
-
+  console.log("Data structure after preprocessing:", data.slice(0, Math.min(5, data.length)));
+  
   // Determine column indices based on headers
   const topicIndex = findColumnIndex(headers, ["topic", "subject", "subject name"]);
   const outcomeIndex = findColumnIndex(headers, ["learning outcomes", "outcome", "learning outcome"]);
-  const compulsoryIndex = findColumnIndex(headers, ["compulsary or not", "compulsory", "required", "obligatory or not"]);
+  const compulsoryIndex = findColumnIndex(headers, ["compulsary or not", "compulsory", "required", "obligatory"]);
   const requirementsIndex = findColumnIndex(headers, ["requirements", "requirement"]);
   const minCreditsIndex = findColumnIndex(headers, ["outcome minimum credits", "min credits", "minimum credits"]);
   const maxCreditsIndex = findColumnIndex(headers, ["outcome maximun credits", "outcome maximum credits", "max credits", "maximum credits"]);
@@ -478,112 +512,94 @@ const processOutcomesData = (data) => {
 
   // Skip header row
   const dataRows = data.slice(1);
-  const outcomes = [];
+  
+  // First pass: Group rows by outcome to collect all requirements
+  const outcomeGroups = [];
+  let currentGroup = null;
 
-  dataRows.forEach((row, rowIndex) => {
+  for (let rowIndex = 0; rowIndex < dataRows.length; rowIndex++) {
+    const row = dataRows[rowIndex];
+    
     // Skip empty rows
     if (!row || row.length === 0 || (row.length === 1 && !row[0])) {
-      console.warn("Skipping empty row");
-      return;
+      console.warn(`Skipping empty row at index ${rowIndex + 1}`);
+      continue;
     }
 
-    // Extract fields based on determined indices
-    const topic = getValueAt(row, topicIndex, "").trim();
+    // Extract fields from row
     const learningOutcome = getValueAt(row, outcomeIndex, "").trim();
-    const compulsoryStr = getValueAt(row, compulsoryIndex, "true");
-    const requirementsStr = getValueAt(row, requirementsIndex, "");
-    const minCreditsStr = getValueAt(row, minCreditsIndex, "0.1");
-    const maxCreditsStr = getValueAt(row, maxCreditsIndex, minCreditsStr);
+    const requirementStr = getValueAt(row, requirementsIndex, "").trim();
 
-    console.log(`Outcome data extraction for row ${rowIndex + 2}:`, {
-      topic,
-      learningOutcome,
-      compulsoryStr,
-      requirementsStr,
-      minCreditsStr,
-      maxCreditsStr
-    });
+    // Check if this is a continuation row (empty outcome but has requirement)
+    const isContinuationRow = (!learningOutcome || learningOutcome === "") && 
+                              requirementStr && requirementStr !== "";
 
-    // For outcome import, we need to ensure we have a learning outcome
-    if (!learningOutcome) {
-      console.warn(`Skipping row ${rowIndex + 2} with no learning outcome:`, row);
-      return;
-    }
-
-    // Parse compulsory status
-    const compulsory = !['false', 'no', '0', 'n', 'false', 'f'].includes(
-      String(compulsoryStr).toLowerCase().trim()
-    );
-
-    // Parse credits
-    const minCredits = parseFloat(minCreditsStr) || 0.1;
-    const maxCredits = parseFloat(maxCreditsStr) || minCredits;
-
-    // Parse requirements - ENHANCED HANDLING
-    let requirements = [];
-    if (requirementsStr) {
-      console.log(`Processing requirements string: "${requirementsStr}"`);
-      
-      // Remove any surrounding quotes
-      let cleanedStr = requirementsStr;
-      if ((cleanedStr.startsWith('"') && cleanedStr.endsWith('"')) || 
-          (cleanedStr.startsWith("'") && cleanedStr.endsWith("'"))) {
-        cleanedStr = cleanedStr.substring(1, cleanedStr.length - 1);
+    if (isContinuationRow && currentGroup) {
+      // This is a continuation row - add requirement to current group
+      console.log(`Row ${rowIndex + 2}: Found continuation row with requirement: "${requirementStr}"`);
+      if (!currentGroup.requirements.includes(requirementStr)) {
+        currentGroup.requirements.push(requirementStr);
+        console.log(`Added requirement "${requirementStr}" to outcome "${currentGroup.learningOutcome}"`);
       }
+    } else if (learningOutcome) {
+      // This is a new outcome row
+      const topic = getValueAt(row, topicIndex, "").trim();
+      const compulsoryStr = getValueAt(row, compulsoryIndex, "true");
+      const minCreditsStr = getValueAt(row, minCreditsIndex, "0.1");
+      const maxCreditsStr = getValueAt(row, maxCreditsIndex, minCreditsStr);
       
-      // Try different approaches to split requirements
-      if (cleanedStr.includes('\n')) {
-        // If it contains newlines, split by them first
-        requirements = cleanedStr.split(/\r?\n/);
-      } else if (cleanedStr.includes(',')) {
-        // Then try comma splitting
-        requirements = cleanedStr.split(',');
-      } else if (cleanedStr.includes(';')) {
-        // Then try semicolon splitting
-        requirements = cleanedStr.split(';');
-      } else {
-        // If no delimiter found, treat as a single requirement
-        requirements = [cleanedStr];
-      }
+      console.log(`Row ${rowIndex + 2}: New outcome row: "${learningOutcome}" with requirement: "${requirementStr}"`);
       
-      // Clean up the requirements and remove empty ones
-      requirements = requirements
-        .map(req => req.trim())
-        .filter(req => req.length > 0);
-      
-      console.log("Final parsed requirements:", requirements);
-    }
+      // Parse compulsory status
+      const compulsory = !['false', 'no', '0', 'n', 'f'].includes(
+        String(compulsoryStr).toLowerCase().trim()
+      );
 
-    // Check for duplicate outcomes
-    const isDuplicateOutcome = outcomes.some(
-      existing => existing.topic.toLowerCase() === learningOutcome.toLowerCase()
-    );
-
-    if (!isDuplicateOutcome) {
-      // Create outcome object with all details
-      const outcome = {
-        topic: learningOutcome,
-        project: learningOutcome, // Use learning outcome as project by default
-        credits: Math.max(0.1, Math.min(minCredits, 10)),
-        maxCredits: Math.max(0.1, Math.min(maxCredits, 10)),
-        compulsory: compulsory,
-        requirements: requirements
+      // Create a new group for this outcome
+      currentGroup = {
+        topic,
+        learningOutcome,
+        compulsory,
+        credits: parseFloat(minCreditsStr) || 0.1,
+        maxCredits: parseFloat(maxCreditsStr) || parseFloat(minCreditsStr) || 0.1,
+        requirements: []
       };
-
-      // Log the full outcome object
-      console.log("Adding outcome with full data:", outcome);
-
-      outcomes.push(outcome);
-      console.log(`Added outcome '${learningOutcome}' with ${requirements.length} requirements`);
-    } else {
-      console.warn(`Skipping duplicate outcome '${learningOutcome}'`);
+      
+      // Add the first requirement if it exists
+      if (requirementStr) {
+        currentGroup.requirements.push(requirementStr);
+        console.log(`Added initial requirement "${requirementStr}" to outcome "${learningOutcome}"`);
+      }
+      
+      outcomeGroups.push(currentGroup);
     }
+  }
+
+  console.log(`Parsed ${outcomeGroups.length} outcome groups`);
+  
+  // Second pass: Convert grouped data to outcomes array
+  const outcomes = outcomeGroups.map(group => {
+    // Filter out any empty or duplicate requirements
+    const uniqueRequirements = [...new Set(group.requirements.filter(req => req.trim() !== ""))];
+    
+    return {
+      topic: group.learningOutcome,
+      project: group.learningOutcome, // Use learningOutcome as project by default
+      credits: Math.max(0.1, Math.min(group.credits, 10)),
+      maxCredits: Math.max(0.1, Math.min(group.maxCredits, 10)),
+      compulsory: group.compulsory,
+      requirements: uniqueRequirements
+    };
   });
 
-  console.log("Final outcomes to import:", outcomes);
+  // Log each outcome and its requirements
+  outcomes.forEach((outcome, index) => {
+    console.log(`Outcome ${index+1}: ${outcome.topic} (${outcome.compulsory ? 'Compulsory' : 'Optional'}, ${outcome.credits}-${outcome.maxCredits} credits)`);
+    console.log(`  Requirements (${outcome.requirements.length}): ${JSON.stringify(outcome.requirements)}`);
+  });
+
   return outcomes;
 };
-
   // Find duplicate subjects
   const findDuplicateSubjects = (newSubjects) => {
     return newSubjects.filter(newSubject =>
@@ -657,25 +673,8 @@ const processOutcomesData = (data) => {
       message: "",
     });
   };
-
-  // Download sample CSV
-  const downloadSampleCSV = () => {
-    const blob = new Blob([sampleFileContent], {
-      type: "text/csv;charset=utf-8;",
-    });
-    const link = document.createElement("a");
-
-    const url = URL.createObjectURL(blob);
-    link.setAttribute("href", url);
-    link.setAttribute("download", `${type}_import_template.csv`);
-    link.style.visibility = "hidden";
-
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  };
   
-  // Handle the main import function with better error handling
+  // Enhanced handleImport function with more detailed logging
   const handleImport = () => {
     if (parsedData.length === 0) {
       setError(`No ${type} to import`);
@@ -690,36 +689,97 @@ const processOutcomesData = (data) => {
         
         // Make sure the data structure matches what ShowSubjects.handleSubjectImport expects
         const subjectsWithOutcomes = parsedData.map(subject => {
+          console.log(`Processing subject "${subject.name}" with ${subject.outcomes.length} outcomes`);
           return {
             name: subject.name,
             credits: subject.credits || 1,
-            outcomes: (subject.outcomes || []).map(outcome => ({
-              topic: outcome.topic,
-              project: outcome.project || outcome.topic,
-              credits: parseFloat(outcome.credits) || 0.1,
-              maxCredits: parseFloat(outcome.maxCredits) || parseFloat(outcome.credits) || 0.1,
-              compulsory: outcome.compulsory !== undefined ? outcome.compulsory : true,
-              requirements: Array.isArray(outcome.requirements) ? outcome.requirements : []
-            }))
+            outcomes: (subject.outcomes || []).map(outcome => {
+              // Make sure requirements is an array and all items are strings
+              let requirements = [];
+              if (outcome.requirements) {
+                if (Array.isArray(outcome.requirements)) {
+                  requirements = outcome.requirements
+                    .filter(req => req && req.toString && req.toString().trim() !== "")
+                    .map(req => req.toString().trim());
+                } else if (typeof outcome.requirements === 'string') {
+                  // Handle case where requirements might be a string
+                  requirements = outcome.requirements.split(/\n|,/)
+                    .map(req => req.trim())
+                    .filter(req => req !== "");
+                }
+              }
+              
+              console.log(` - Outcome "${outcome.topic}" with ${requirements.length} requirements`);
+              console.log(`   Requirements: ${JSON.stringify(requirements)}`);
+              
+              return {
+                topic: outcome.topic,
+                project: outcome.project || outcome.topic,
+                credits: parseFloat(outcome.credits) || 0.1,
+                maxCredits: parseFloat(outcome.maxCredits) || parseFloat(outcome.credits) || 0.1,
+                compulsory: outcome.compulsory !== undefined ? outcome.compulsory : true,
+                requirements: requirements
+              };
+            })
           };
         });
         
-        console.log("Final subjects data structure:", subjectsWithOutcomes);
+        // Verify the data structure before sending
+        console.log("=== FINAL DATA STRUCTURE CHECK ===");
+        let totalRequirements = 0;
+        
+        subjectsWithOutcomes.forEach((subject, i) => {
+          console.log(`Subject ${i+1}: ${subject.name}`);
+          (subject.outcomes || []).forEach((outcome, j) => {
+            console.log(`  Outcome ${j+1}: ${outcome.topic}`);
+            console.log(`    Requirements (${outcome.requirements?.length || 0}): ${JSON.stringify(outcome.requirements || [])}`);
+            totalRequirements += outcome.requirements?.length || 0;
+          });
+        });
+        
+        console.log(`Total requirements to be imported: ${totalRequirements}`);
+        console.log("Final data to be sent to handleSubjectImport:", JSON.stringify(subjectsWithOutcomes, null, 2));
         onImport(subjectsWithOutcomes);
       } else if (type === "outcomes") {
         // For outcomes, ensure requirements and other fields are properly included
         console.log("Importing outcomes with requirements:", parsedData);
         
-        const outcomesWithRequirements = parsedData.map(outcome => ({
-          topic: outcome.topic,
-          project: outcome.project || outcome.topic,
-          credits: parseFloat(outcome.credits) || 0.1,
-          maxCredits: parseFloat(outcome.maxCredits) || parseFloat(outcome.credits) || 0.1,
-          compulsory: outcome.compulsory !== undefined ? outcome.compulsory : true,
-          requirements: Array.isArray(outcome.requirements) ? outcome.requirements : []
-        }));
+        const outcomesWithRequirements = parsedData.map(outcome => {
+          // Make sure requirements is an array and all items are strings
+          let requirements = [];
+          if (outcome.requirements) {
+            if (Array.isArray(outcome.requirements)) {
+              requirements = outcome.requirements
+                .filter(req => req && req.toString && req.toString().trim() !== "")
+                .map(req => req.toString().trim());
+            } else if (typeof outcome.requirements === 'string') {
+              // Handle case where requirements might be a string
+              requirements = outcome.requirements.split(/\n|,/)
+                .map(req => req.trim())
+                .filter(req => req !== "");
+            }
+          }
+          
+          console.log(`Processing outcome "${outcome.topic}" with ${requirements.length} requirements`);
+          console.log(`Requirements: ${JSON.stringify(requirements)}`);
+          
+          return {
+            topic: outcome.topic,
+            project: outcome.project || outcome.topic,
+            credits: parseFloat(outcome.credits) || 0.1,
+            maxCredits: parseFloat(outcome.maxCredits) || parseFloat(outcome.credits) || 0.1,
+            compulsory: outcome.compulsory !== undefined ? outcome.compulsory : true,
+            requirements: requirements
+          };
+        });
         
-        console.log("Final outcomes data structure:", outcomesWithRequirements);
+        // Log total requirements being sent
+        const totalRequirements = outcomesWithRequirements.reduce(
+          (sum, outcome) => sum + (outcome.requirements?.length || 0), 0
+        );
+        
+        console.log(`Total requirements to be imported: ${totalRequirements}`);
+        console.log("Final data to be sent to handleOutcomeImport:", JSON.stringify(outcomesWithRequirements, null, 2));
         onImport(outcomesWithRequirements);
       } else {
         onImport(parsedData);
@@ -799,14 +859,6 @@ const processOutcomesData = (data) => {
                   disabled={!csvFile || loading}
                 >
                   {loading ? <CircularProgress size={24} /> : "Preview Data"}
-                </Button>
-                
-                <Button
-                  variant="outlined"
-                  startIcon={<DownloadIcon />}
-                  onClick={downloadSampleCSV}
-                >
-                  Download Template
                 </Button>
               </Box>
             </Box>

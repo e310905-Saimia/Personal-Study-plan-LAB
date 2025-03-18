@@ -8,7 +8,7 @@ const complainSchema = new mongoose.Schema({
     },
     date: {
         type: Date,
-        required: true
+        required: truREF
     },
     complaint: {
         type: String,

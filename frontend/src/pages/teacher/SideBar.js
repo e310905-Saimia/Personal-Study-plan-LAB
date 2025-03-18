@@ -24,7 +24,7 @@ const SideBar = () => {
   const [unreadCount, setUnreadCount] = useState(0);
 
   useEffect(() => {
-    console.log("Current User in Sidebar:", currentUser);
+    // Removed console.log here
     
     if (currentUser?.role === "Teacher") {
       dispatch(getNotifications());
@@ -41,20 +41,11 @@ const SideBar = () => {
   }, [dispatch, currentUser]);
 
   useEffect(() => {
-    console.log("Notifications in Sidebar:", notifications);
-    
-    // Detailed logging of notification properties
-    notifications.forEach((notif, index) => {
-      console.log(`Notification ${index}:`, {
-        id: notif._id,
-        read: notif.read,
-        isRead: notif.isRead
-      });
-    });
+    // Removed console logs here
     
     // Use 'read' property for unread count
     const count = notifications.filter((notif) => !notif.read).length;
-    console.log("Unread Count:", count);
+    // Removed console.log for unread count
     
     setUnreadCount(count);
   }, [notifications]);

@@ -11,7 +11,7 @@ import {
   Menu,
   MenuItem,
   ListItemIcon,
-  ListItemText
+  ListItemText,
 } from "@mui/material";
 import MenuIcon from "@mui/icons-material/Menu";
 import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
@@ -28,8 +28,8 @@ import ShowNotices from "./notices/ShowNotices";
 import ShowSubjects from "./subjects/ShowSubjects";
 import SubjectForm from "./subjects/SubjectForm";
 import AddSubject from "./subjects/AddSubject";
-import ImportSubjects from './subjects/ImportSubjects';
-import ImportOutcomes from './subjects/ImportOutcomes';
+import ImportSubjects from "./subjects/ImportSubjects";
+import ImportOutcomes from "./subjects/ImportOutcomes";
 import StudentProgress from "./students/StudentProgress";
 import NotificationBell from "../../components/NotificationBell";
 import { Authlogout } from "../../redux/userRelated/userSlice";
@@ -49,7 +49,7 @@ import { getAllStudents } from "../../redux/studentRelated/studentHandle";
 import { getAllTeachers } from "../../redux/teacherRelated/teacherHandle";
 import TeacherHomePage from "./TeacherHomepage";
 
-import StudentCompetencies from './students/StudentCompetencies';
+import StudentCompetencies from "./students/StudentCompetencies";
 import TeacherViewStudent from "./TeacherViewStudent";
 import AddTeacher from "./AddTeacher";
 
@@ -98,7 +98,7 @@ const TeacherDashboard = () => {
 
   const handleLogout = () => {
     dispatch(Authlogout());
-    navigate('/');
+    navigate("/");
     handleAccountMenuClose();
   };
 
@@ -134,8 +134,11 @@ const TeacherDashboard = () => {
           >
             Teacher
           </Typography>
-          
+          <Typography variant="body1" color="inherit" sx={{ mr: 2 }}>
+            {currentUser?.name || currentUser?.teacher?.name || "User"}
+          </Typography>
           <NotificationBell />
+
           <IconButton
             size="large"
             aria-label="account of current user"
@@ -150,13 +153,13 @@ const TeacherDashboard = () => {
             id="menu-appbar"
             anchorEl={anchorEl}
             anchorOrigin={{
-              vertical: 'bottom',
-              horizontal: 'right',
+              vertical: "bottom",
+              horizontal: "right",
             }}
             keepMounted
             transformOrigin={{
-              vertical: 'top',
-              horizontal: 'right',
+              vertical: "top",
+              horizontal: "right",
             }}
             open={Boolean(anchorEl)}
             onClose={handleAccountMenuClose}
@@ -214,35 +217,46 @@ const TeacherDashboard = () => {
           />
           <Route path="profile" element={<TeacherProfile />} />
           <Route path="home" element={<TeacherHomePage />} />
-          
+
           {/* Student Routes */}
           <Route path="addstudents" element={<AddStudent />} />
           <Route path="students" element={<ShowStudents />} />
           <Route path="students/:id" element={<TeacherViewStudent />} />
-          <Route path="students/:studentID/subjects" element={<StudentProgress />} />
-          <Route path="students/:studentID/competencies" element={<StudentCompetencies />} />
-          
+          <Route
+            path="students/:studentID/subjects"
+            element={<StudentProgress />}
+          />
+          <Route
+            path="students/:studentID/competencies"
+            element={<StudentCompetencies />}
+          />
+
           {/* Notice Routes */}
           <Route path="addnotice" element={<AddNotice />} />
           <Route path="notices" element={<ShowNotices />} />
-          
+
           {/* Subject Routes */}
           <Route path="subjects" element={<ShowSubjects />} />
           <Route path="subjects/add" element={<AddSubject />} />
           <Route path="subjects/import" element={<ImportSubjects />} />
-          <Route path="subjects/:subjectId/outcomes/import" element={<ImportOutcomes />} />
+          <Route
+            path="subjects/:subjectId/outcomes/import"
+            element={<ImportOutcomes />}
+          />
           <Route path="addsubject" element={<SubjectForm />} />
           <Route path="addsubject/:classId" element={<SubjectForm />} />
-          
+
           {/* Teacher Routes - some components commented out due to import errors */}
           {/* <Route path="teachers" element={<ShowTeachers />} /> */}
           <Route path="teachers/add" element={<AddTeacher />} />
           {/* <Route path="teachers/chooseclass/:situation" element={<ChooseClass />} /> */}
           {/* <Route path="teachers/choosesubject/:classID/:teacherID" element={<ChooseSubject />} /> */}
 
-          
           {/* Fallback - redirect to dashboard home */}
-          <Route path="*" element={<Navigate to="/Teacher/dashboard/home" replace />} />
+          <Route
+            path="*"
+            element={<Navigate to="/Teacher/dashboard/home" replace />}
+          />
         </Routes>
       </Box>
     </Box>

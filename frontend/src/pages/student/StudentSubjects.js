@@ -6,7 +6,9 @@ import {
   fetchNotifications,
 } from "../../redux/noticeRelated/notificationSlice";
 import { getSubjectList } from "../../redux/subjectrelated/subjectHandle";
-import { submitStudentProject, getStudentSubjects } from "../../redux/studentRelated/studentHandle";
+import {
+  submitStudentProject,
+} from "../../redux/studentRelated/studentHandle";
 import {
   Paper,
   Box,
@@ -40,14 +42,10 @@ import {
   Delete,
   Add,
   Visibility,
-  Refresh,
 } from "@mui/icons-material";
 
 const StudentSubjects = () => {
   const dispatch = useDispatch();
-  const { subjects = [], loading: subjectsLoading } = useSelector(
-    (state) => state.subject
-  );
   const { notifications = [], loading: notificationsLoading } = useSelector(
     (state) => state.notification
   );
@@ -61,9 +59,9 @@ const StudentSubjects = () => {
     message: "",
     severity: "success",
   });
-  const [refreshing, setRefreshing] = useState(false);
-  const [studentData, setStudentData] = useState(null);
-  // New state variables for delete confirmation
+  const [studentData, setStudentData] = useState([]);
+  const [loading, setLoading] = useState(true);
+  // State variables for delete confirmation
   const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
   const [projectToDelete, setProjectToDelete] = useState(null);
   const [currentOutcome, setCurrentOutcome] = useState(null);
@@ -73,18 +71,20 @@ const StudentSubjects = () => {
     // Try to get the name from various possible locations
     if (currentUser?.name) return currentUser.name;
     if (currentUser?.student?.name) return currentUser.student.name;
-    
+
     // If no name found, try to format name from email
     const email = currentUser?.email || currentUser?.student?.email;
     if (email) {
       // Format name from email (e.g., john.doe@example.com -> John Doe)
-      const namePart = email.split('@')[0];
+      const namePart = email.split("@")[0];
       return namePart
-        .split('.')
-        .map(part => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
-        .join(' ');
+        .split(".")
+        .map(
+          (part) => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase()
+        )
+        .join(" ");
     }
-    
+
     // If all else fails
     return "Student";
   };
@@ -96,57 +96,63 @@ const StudentSubjects = () => {
 
   useEffect(() => {
     const fetchStudentData = async () => {
+      setLoading(true);
       try {
         const studentID = currentUser?._id || currentUser?.student?._id;
         if (studentID) {
           console.log("Fetching data for student ID:", studentID);
-          
-          // Use direct axios call instead of going through Redux
-          // This matches how data is fetched after adding a project
-          const response = await axios.get(`http://localhost:5000/api/students/${studentID}/subjects`);
+          const response = await axios.get(
+            `http://localhost:5000/api/students/${studentID}/subjects`
+          );
           console.log("Student data received:", response.data);
-          
-          // Set the data directly without going through Redux
           setStudentData(response.data);
-          
-          // Also dispatch to Redux to keep state in sync
-          dispatch(getStudentSubjects(studentID));
         }
       } catch (error) {
         console.error("Error fetching student subjects:", error);
+        setNotification({
+          open: true,
+          message: "Failed to load subjects. Please try again.",
+          severity: "error",
+        });
+      } finally {
+        setLoading(false);
       }
     };
-    
-    // Call the fetch function
+
     fetchStudentData();
-    
-    // Add a second fetch after a short delay to ensure data is loaded
-    // This helps with some race conditions that might be occurring
-    const timer = setTimeout(() => {
-      fetchStudentData();
-    }, 1000);
-    
-    return () => clearTimeout(timer);
+    dispatch(fetchNotifications());
   }, [dispatch, currentUser]);
-  
-  // Add this debugging useEffect to track when studentData changes
+
+  // Add this debugging useEffect to log approved projects
   useEffect(() => {
-    if (studentData) {
-      console.log("studentData updated, contains", studentData.length, "subjects");
-      
-      // Check if any projects exist in the data
-      let totalProjects = 0;
+    if (studentData && studentData.length > 0) {
+      console.log("Checking approved projects and credits:");
       studentData.forEach(subject => {
+        console.log(`Subject: ${subject.name}`);
+        let subjectTotalCredits = 0;
+        
         subject.outcomes?.forEach(outcome => {
-          if (outcome.projects && outcome.projects.length > 0) {
-            totalProjects += outcome.projects.length;
-          }
+          console.log(`  Outcome: ${outcome.topic}`);
+          
+          const approvedProjects = outcome.projects?.filter(
+            p => p.status && p.status.toLowerCase() === "approved"
+          ) || [];
+          
+          approvedProjects.forEach(project => {
+            const credit = project.approvedCredit !== undefined ? 
+              Number(project.approvedCredit) : 
+              Number(project.requestedCredit);
+            
+            console.log(`    Approved Project: ${project.name}, Credit: ${credit}`);
+            subjectTotalCredits += !isNaN(credit) ? credit : 0;
+          });
         });
+        
+        console.log(`  Total approved credits for subject: ${subjectTotalCredits}`);
       });
-      
-      console.log("Total projects found in studentData:", totalProjects);
     }
   }, [studentData]);
+
   // Process notifications to get project status
   useEffect(() => {
     if (notifications.length > 0) {
@@ -204,32 +210,32 @@ const StudentSubjects = () => {
   }, [notifications]);
 
   const getStudentProjects = (subjectId, outcomeId) => {
-    if (!studentData) {
+    if (!studentData || studentData.length === 0) {
       return [];
     }
     
     // Convert IDs to strings for safer comparison
     const subjectIdStr = String(subjectId);
     const outcomeIdStr = String(outcomeId);
-    
+
     // Find the subject in student data
     const studentSubject = studentData.find(
-      subject => String(subject.subjectId) === subjectIdStr
+      (subject) => String(subject.subjectId) === subjectIdStr
     );
-    
+
     if (!studentSubject) {
       return [];
     }
-    
+
     // Find the outcome in the subject
     const outcome = studentSubject.outcomes.find(
-      outcome => String(outcome.outcomeId) === outcomeIdStr
+      (outcome) => String(outcome.outcomeId) === outcomeIdStr
     );
-    
+
     if (!outcome) {
       return [];
     }
-    
+
     // Return the projects for this outcome (with safeguard)
     return outcome.projects || [];
   };
@@ -245,10 +251,13 @@ const StudentSubjects = () => {
     }));
   };
 
-  // Improved handleAddProject function
+  // Improved handleAddProject function with consistent ID handling
   const handleAddProject = async (outcome, subject) => {
-    // Validate project details
-    if (!projects[outcome._id]?.name || !projects[outcome._id]?.credit) {
+    const outcomeId = outcome.outcomeId;
+    const subjectId = subject.subjectId;
+    
+    // Validation checks
+    if (!projects[outcomeId]?.name || !projects[outcomeId]?.credit) {
       setNotification({
         open: true,
         message: "Please fill in all fields!",
@@ -256,9 +265,9 @@ const StudentSubjects = () => {
       });
       return;
     }
-  
+
     // Validate credit is a positive number
-    const creditValue = Number(projects[outcome._id]?.credit);
+    const creditValue = Number(projects[outcomeId]?.credit);
     if (isNaN(creditValue) || creditValue <= 0) {
       setNotification({
         open: true,
@@ -267,9 +276,9 @@ const StudentSubjects = () => {
       });
       return;
     }
-  
+
     const studentID = currentUser?._id || currentUser?.student?._id;
-    
+
     // Error handling for missing studentID
     if (!studentID) {
       setNotification({
@@ -279,71 +288,76 @@ const StudentSubjects = () => {
       });
       return;
     }
-  
-    // Show loading state
-    setRefreshing(true);
-  
+
+    // Set loading
+    setLoading(true);
+
     try {
       // STEP 1: First create the actual project in the student's record
       console.log("Submitting project with data:", {
-        name: projects[outcome._id].name,
-        requestedCredit: creditValue
+        name: projects[outcomeId].name,
+        requestedCredit: creditValue,
       });
-      
+
       await dispatch(
-        submitStudentProject(studentID, subject._id, outcome._id, {
-          name: projects[outcome._id].name,
-          requestedCredit: creditValue
+        submitStudentProject(studentID, subjectId, outcomeId, {
+          name: projects[outcomeId].name,
+          requestedCredit: creditValue,
         })
       );
-  
+
       // STEP 2: Then create the notification for the teacher
       const notificationData = {
-        message: `${getStudentName(currentUser)} submitted project "${projects[outcome._id].name}" for ${outcome.topic} in ${subject.name}`,
+        message: `${getStudentName(currentUser)} submitted project "${
+          projects[outcomeId].name
+        }" for ${outcome.topic} in ${subject.name}`,
         studentID: studentID,
-        subjectID: subject._id,
-        outcomeID: outcome._id,
-        projectName: projects[outcome._id].name,
+        subjectID: subjectId,
+        outcomeID: outcomeId,
+        projectName: projects[outcomeId].name,
         creditRequested: creditValue,
         read: false,
-        date: new Date().toISOString()
+        date: new Date().toISOString(),
       };
-      
+
       await dispatch(createNotification(notificationData));
-  
+
       // Update local state and show success message
       setProjects((prev) => ({
         ...prev,
-        [outcome._id]: {
-          ...prev[outcome._id],
+        [outcomeId]: {
+          ...prev[outcomeId],
           name: "",
           credit: "",
         },
       }));
-  
+
       setNotification({
         open: true,
         message: "Project submitted successfully! Teacher has been notified.",
         severity: "success",
       });
-      
+
       // Refresh student data directly
-      const response = await axios.get(`http://localhost:5000/api/students/${studentID}/subjects`);
+      const response = await axios.get(
+        `http://localhost:5000/api/students/${studentID}/subjects`
+      );
       setStudentData(response.data);
-      
+
       // Refresh other data too
       dispatch(getSubjectList());
       dispatch(fetchNotifications());
-      
     } catch (error) {
       console.error("Project submission error:", error);
       setNotification({
         open: true,
-        message: `Failed to submit project: ${error?.response?.data?.message || error.message || "Unknown error"}`,
+        message: `Failed to submit project: ${
+          error?.response?.data?.message || error.message || "Unknown error"
+        }`,
         severity: "error",
       });
     } finally {
-      setRefreshing(false);
+      setLoading(false);
     }
   };
 
@@ -355,13 +369,13 @@ const StudentSubjects = () => {
     setConfirmDialogOpen(true);
   };
 
-  // New confirmDeleteProject function that actually performs the deletion
+  // Updated confirmDeleteProject function with consistent ID handling
   const confirmDeleteProject = async () => {
     if (!projectToDelete || !currentOutcome || !currentSubject) {
       setConfirmDialogOpen(false);
       return;
     }
-    
+
     const studentID = currentUser?._id || currentUser?.student?._id;
     if (!studentID) {
       setNotification({
@@ -372,23 +386,25 @@ const StudentSubjects = () => {
       setConfirmDialogOpen(false);
       return;
     }
-    
-    setRefreshing(true);
+
+    setLoading(true);
     try {
       // Call the API to delete the project
       await axios.delete(
-        `http://localhost:5000/api/students/${studentID}/subjects/${currentSubject._id}/outcomes/${currentOutcome._id}/projects/${projectToDelete._id}`
+        `http://localhost:5000/api/students/${studentID}/subjects/${currentSubject.subjectId}/outcomes/${currentOutcome.outcomeId}/projects/${projectToDelete._id}`
       );
-      
+
       // Update the local studentData state
       if (studentData) {
-        const updatedData = studentData.map(subject => {
-          if (subject.subjectId.toString() === currentSubject._id.toString()) {
-            const updatedOutcomes = subject.outcomes.map(outcome => {
-              if (outcome.outcomeId.toString() === currentOutcome._id.toString()) {
+        const updatedData = studentData.map((subject) => {
+          if (subject.subjectId === currentSubject.subjectId) {
+            const updatedOutcomes = subject.outcomes.map((outcome) => {
+              if (outcome.outcomeId === currentOutcome.outcomeId) {
                 return {
                   ...outcome,
-                  projects: outcome.projects.filter(p => p._id !== projectToDelete._id)
+                  projects: outcome.projects.filter(
+                    (p) => p._id !== projectToDelete._id
+                  ),
                 };
               }
               return outcome;
@@ -397,10 +413,10 @@ const StudentSubjects = () => {
           }
           return subject;
         });
-        
+
         setStudentData(updatedData);
       }
-      
+
       setNotification({
         open: true,
         message: "Project deleted successfully!",
@@ -410,11 +426,13 @@ const StudentSubjects = () => {
       console.error("Error deleting project:", error);
       setNotification({
         open: true,
-        message: `Failed to delete project: ${error?.response?.data?.message || error.message || "Unknown error"}`,
+        message: `Failed to delete project: ${
+          error?.response?.data?.message || error.message || "Unknown error"
+        }`,
         severity: "error",
       });
     } finally {
-      setRefreshing(false);
+      setLoading(false);
       setConfirmDialogOpen(false);
       setProjectToDelete(null);
       setCurrentOutcome(null);
@@ -430,40 +448,6 @@ const StudentSubjects = () => {
   const handleCloseNotification = () => {
     setNotification({ ...notification, open: false });
   };
-
-  // Improved refreshData function - refreshes from API directly
-  // const refreshData = async () => {
-  //   setRefreshing(true);
-  //   try {
-  //     // Get the student ID
-  //     const studentID = currentUser?._id || currentUser?.student?._id;
-      
-  //     // Fetch notifications and subjects
-  //     await dispatch(fetchNotifications());
-  //     await dispatch(getSubjectList());
-      
-  //     // Also refresh student-specific data if needed
-  //     if (studentID) {
-  //       const response = await axios.get(`http://localhost:5000/api/students/${studentID}/subjects`);
-  //       setStudentData(response.data);
-  //     }
-      
-  //     setNotification({
-  //       open: true,
-  //       message: "Data refreshed successfully!",
-  //       severity: "success",
-  //     });
-  //   } catch (error) {
-  //     console.error("Error refreshing data:", error);
-  //     setNotification({
-  //       open: true,
-  //       message: "Failed to refresh data. Please try again.",
-  //       severity: "error",
-  //     });
-  //   } finally {
-  //     setRefreshing(false);
-  //   }
-  // };
 
   // Status helper functions
   const getStatusColor = (status) => {
@@ -487,6 +471,34 @@ const StudentSubjects = () => {
         return "Pending";
     }
   };
+  
+  // Helper function to calculate total approved credits for a subject
+  const calculateTotalApprovedCredits = (subject) => {
+    if (!subject || !subject.outcomes) return 0;
+    
+    let totalApprovedCredits = 0;
+    subject.outcomes.forEach(outcome => {
+      if (outcome.projects && outcome.projects.length > 0) {
+        outcome.projects.forEach(project => {
+          // Only count projects that have "Approved" status (case insensitive)
+          if (project.status && project.status.toLowerCase() === "approved") {
+            // First try to use approvedCredit, if not available use requestedCredit
+            const creditValue = project.approvedCredit !== undefined ? 
+              Number(project.approvedCredit) : 
+              Number(project.requestedCredit);
+              
+            // Add to total only if it's a valid number
+            if (!isNaN(creditValue)) {
+              totalApprovedCredits += creditValue;
+            }
+          }
+        });
+      }
+    });
+    
+    // Return the total with maximum 2 decimal places
+    return parseFloat(totalApprovedCredits.toFixed(2));
+  };
 
   return (
     <Box sx={{ padding: 3 }}>
@@ -501,17 +513,9 @@ const StudentSubjects = () => {
         <Typography variant="h4" gutterBottom>
           Student Subjects
         </Typography>
-        {/* <Button
-          startIcon={<Refresh />}
-          onClick={refreshData}
-          variant="outlined"
-          disabled={refreshing}
-        >
-          {refreshing ? "Refreshing..." : "Refresh Data"}
-        </Button> */}
       </Box>
 
-      {(subjectsLoading || notificationsLoading) && !refreshing ? (
+      {loading || notificationsLoading ? (
         <Box sx={{ display: "flex", justifyContent: "center", my: 4 }}>
           <CircularProgress />
         </Box>
@@ -527,19 +531,22 @@ const StudentSubjects = () => {
                 </TableRow>
               </TableHead>
               <TableBody>
-                {subjects.length > 0 &&
-                  subjects.map((subject) => (
-                    <React.Fragment key={subject._id}>
+                {studentData &&
+                  studentData.length > 0 &&
+                  studentData.map((subject) => (
+                    <React.Fragment key={subject.subjectId}>
                       <TableRow>
                         <TableCell>
                           <IconButton
-                            onClick={() => toggleExpandSubject(subject._id)}
+                            onClick={() => toggleExpandSubject(subject.subjectId)}
                           >
                             <ExpandMore />
                           </IconButton>
                         </TableCell>
                         <TableCell>{subject.name}</TableCell>
-                        <TableCell align="right">{subject.credits}</TableCell>
+                        <TableCell align="right">
+                        {calculateTotalApprovedCredits(subject)}
+                      </TableCell>
                       </TableRow>
 
                       <TableRow>
@@ -548,7 +555,7 @@ const StudentSubjects = () => {
                           sx={{ padding: 0, border: "none" }}
                         >
                           <Collapse
-                            in={expandedSubject === subject._id}
+                            in={expandedSubject === subject.subjectId}
                             timeout="auto"
                             unmountOnExit
                           >
@@ -570,7 +577,7 @@ const StudentSubjects = () => {
                               {subject.outcomes.length > 0 &&
                                 subject.outcomes.map((outcome) => (
                                   <Accordion
-                                    key={outcome._id}
+                                    key={outcome.outcomeId}
                                     sx={{ marginBottom: 1 }}
                                   >
                                     <AccordionSummary
@@ -643,12 +650,12 @@ const StudentSubjects = () => {
                                                 variant="outlined"
                                                 size="small"
                                                 value={
-                                                  projects[outcome._id]?.name ||
+                                                  projects[outcome.outcomeId]?.name ||
                                                   ""
                                                 }
                                                 onChange={(e) =>
                                                   handleProjectChange(
-                                                    outcome._id,
+                                                    outcome.outcomeId,
                                                     "name",
                                                     e.target.value
                                                   )
@@ -660,12 +667,12 @@ const StudentSubjects = () => {
                                                 type="number"
                                                 size="small"
                                                 value={
-                                                  projects[outcome._id]
+                                                  projects[outcome.outcomeId]
                                                     ?.credit || ""
                                                 }
                                                 onChange={(e) =>
                                                   handleProjectChange(
-                                                    outcome._id,
+                                                    outcome.outcomeId,
                                                     "credit",
                                                     e.target.value
                                                   )
@@ -718,61 +725,114 @@ const StudentSubjects = () => {
                                                 </TableHead>
                                                 <TableBody>
                                                   {(() => {
-                                                    const studentProjects = getStudentProjects(subject._id, outcome._id);
-                                                    return studentProjects.length > 0 ? (
-                                                      studentProjects.map((project, index) => (
-                                                        <TableRow key={project._id || index}>
-                                                          <TableCell>{index + 1}</TableCell>
-                                                          <TableCell>{project.name}</TableCell>
-                                                          <TableCell>{project.requestedCredit}</TableCell>
-                                                          <TableCell>
-                                                            <Chip
-                                                              size="small"
-                                                              label={getStatusLabel(project.status)}
-                                                              color={getStatusColor(project.status)}
-                                                            />
-                                                          </TableCell>
-                                                          <TableCell>
-                                                            {project.status === "Approved" || project.status === "Rejected" ? (
-                                                              <Box>
-                                                                <Typography variant="body2">
-                                                                  By: {project.assessedBy || "Teacher"}
-                                                                </Typography>
-                                                                {project.assessment && (
-                                                                  <Typography
-                                                                    variant="body2"
-                                                                    sx={{ mt: 0.5 }}
-                                                                  >
-                                                                    "{project.assessment}"
-                                                                  </Typography>
+                                                    const studentProjects =
+                                                      getStudentProjects(
+                                                        subject.subjectId,
+                                                        outcome.outcomeId
+                                                      );
+                                                    return studentProjects.length >
+                                                      0 ? (
+                                                      studentProjects.map(
+                                                        (project, index) => (
+                                                          <TableRow
+                                                            key={
+                                                              project._id ||
+                                                              index
+                                                            }
+                                                          >
+                                                            <TableCell>
+                                                              {index + 1}
+                                                            </TableCell>
+                                                            <TableCell>
+                                                              {project.name}
+                                                            </TableCell>
+                                                            <TableCell>
+                                                              {
+                                                                project.requestedCredit
+                                                              }
+                                                            </TableCell>
+                                                            <TableCell>
+                                                              <Chip
+                                                                size="small"
+                                                                label={getStatusLabel(
+                                                                  project.status
                                                                 )}
-                                                              </Box>
-                                                            ) : (
-                                                              <Typography>Awaiting assessment</Typography>
-                                                            )}
-                                                          </TableCell>
-                                                          <TableCell>
-                                                            {project.submissionDate
-                                                              ? new Date(project.submissionDate).toISOString().split("T")[0]
-                                                              : "-"}
-                                                          </TableCell>
-                                                          <TableCell>
-                                                            {(project.status === "Pending" || !project.status) && (
-                                                              <IconButton
-                                                                onClick={() =>
-                                                                  handleDeleteProject(project, outcome, subject)
-                                                                }
-                                                              >
-                                                                <Delete color="error" />
-                                                              </IconButton>
-                                                            )}
-                                                          </TableCell>
-                                                        </TableRow>
-                                                      ))
+                                                                color={getStatusColor(
+                                                                  project.status
+                                                                )}
+                                                              />
+                                                            </TableCell>
+                                                            <TableCell>
+                                                              {project.status ===
+                                                                "Approved" ||
+                                                              project.status ===
+                                                                "Rejected" ? (
+                                                                <Box>
+                                                                  <Typography variant="body2">
+                                                                    By:{" "}
+                                                                    {project.assessedBy ||
+                                                                      "Teacher"}
+                                                                  </Typography>
+                                                                  {project.assessment && (
+                                                                    <Typography
+                                                                      variant="body2"
+                                                                      sx={{
+                                                                        mt: 0.5,
+                                                                      }}
+                                                                    >
+                                                                      "
+                                                                      {
+                                                                        project.assessment
+                                                                      }
+                                                                      "
+                                                                    </Typography>
+                                                                  )}
+                                                                </Box>
+                                                              ) : (
+                                                                <Typography>
+                                                                  Awaiting
+                                                                  assessment
+                                                                </Typography>
+                                                              )}
+                                                            </TableCell>
+                                                            <TableCell>
+                                                              {project.submissionDate
+                                                                ? new Date(project.submissionDate)
+                                                                    .toLocaleDateString('en-GB', {
+                                                                      day: '2-digit',
+                                                                      month: '2-digit',
+                                                                      year: 'numeric'
+                                                                    }).split('/').join('.')
+                                                                : "-"}
+                                                            </TableCell>
+                                                            <TableCell>
+                                                              {(project.status ===
+                                                                "Pending" ||
+                                                                !project.status) && (
+                                                                <IconButton
+                                                                  onClick={() =>
+                                                                    handleDeleteProject(
+                                                                      project,
+                                                                      outcome,
+                                                                      subject
+                                                                    )
+                                                                  }
+                                                                >
+                                                                  <Delete color="error" />
+                                                                </IconButton>
+                                                              )}
+                                                            </TableCell>
+                                                          </TableRow>
+                                                        )
+                                                      )
                                                     ) : (
                                                       <TableRow>
-                                                        <TableCell colSpan={7} align="center">
-                                                          No projects submitted yet.
+                                                        <TableCell
+                                                          colSpan={7}
+                                                          align="center"
+                                                        >
+                                                          No projects submitted
+                                                          yet.
                                                         </TableCell>
                                                       </TableRow>
                                                     );
@@ -792,6 +852,13 @@ const StudentSubjects = () => {
                       </TableRow>
                     </React.Fragment>
                   ))}
+                {(!studentData || studentData.length === 0) && (
+                  <TableRow>
+                    <TableCell colSpan={3} align="center">
+                      No subjects assigned to you yet.
+                    </TableCell>
+                  </TableRow>
+                )}
               </TableBody>
             </Table>
           </TableContainer>
@@ -830,16 +897,17 @@ const StudentSubjects = () => {
         </DialogTitle>
         <DialogContent>
           <Typography>
-            Are you sure you want to delete this project? This action cannot be undone.
+            Are you sure you want to delete this project? This action cannot be
+            undone.
           </Typography>
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setConfirmDialogOpen(false)}>Cancel</Button>
-          <Button 
-            onClick={confirmDeleteProject} 
-            color="error" 
-            disabled={refreshing}
-            startIcon={refreshing ? <CircularProgress size={20} /> : <Delete />}
+          <Button
+            onClick={confirmDeleteProject}
+            color="error"
+            disabled={loading}
+            startIcon={loading ? <CircularProgress size={20} /> : <Delete />}
           >
             Delete
           </Button>

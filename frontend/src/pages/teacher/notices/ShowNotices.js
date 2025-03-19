@@ -2,7 +2,6 @@ import React, { useEffect, useState, useCallback } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import {
   getNotifications,
-  clearNotifications,
 } from "../../../redux/noticeRelated/notificationHandle";
 import { processProjectNotification } from "../../../redux/noticeRelated/notificationSlice";
 
@@ -16,8 +15,6 @@ import {
   TableHead,
   TableRow,
   Typography,
-  IconButton,
-  Tooltip,
   Button,
   Dialog,
   DialogTitle,
@@ -29,10 +26,8 @@ import {
   Tab,
   Chip,
 } from "@mui/material";
-import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import CheckIcon from "@mui/icons-material/Check";
 import CloseIcon from "@mui/icons-material/Close";
-import RefreshIcon from "@mui/icons-material/Refresh";
 import FilterListIcon from "@mui/icons-material/FilterList";
 
 // Utility function to format name from email (same as in TeacherProfile.js)
@@ -61,7 +56,6 @@ const ShowNotices = () => {
   const [selectedNotification, setSelectedNotification] = useState(null);
   const [approvedCredits, setApprovedCredits] = useState("");
   const [teacherComment, setTeacherComment] = useState("");
-  const [refreshing, setRefreshing] = useState(false);
   
   // Add filter state
   const [filterStatus, setFilterStatus] = useState("all");
@@ -82,15 +76,12 @@ const ShowNotices = () => {
 
   // Function to fetch notifications
   const fetchNotifications = useCallback(() => {
-    setRefreshing(true);
     dispatch(getNotifications())
       .then(() => {
         console.log("Notifications fetched successfully");
-        setRefreshing(false);
       })
       .catch((error) => {
         console.error("Error fetching notifications:", error);
-        setRefreshing(false);
       });
   }, [dispatch]);
 
@@ -107,10 +98,6 @@ const ShowNotices = () => {
     // Clean up interval on component unmount
     return () => clearInterval(refreshInterval);
   }, [fetchNotifications]);
-
-  const handleClearNotifications = () => {
-    dispatch(clearNotifications());
-  };
 
   const handleProcessNotification = async (status) => {
     if (!selectedNotification) return;
@@ -197,22 +184,6 @@ const ShowNotices = () => {
         <Typography variant="h4">
           Notifications
         </Typography>
-        <Box>
-          <Tooltip title="Mark all as read">
-            <IconButton onClick={handleClearNotifications} sx={{ ml: 1 }}>
-              <CheckCircleIcon color="primary" />
-            </IconButton>
-          </Tooltip>
-          <Tooltip title="Refresh notifications">
-            <IconButton
-              onClick={fetchNotifications}
-              sx={{ ml: 1 }}
-              disabled={refreshing}
-            >
-              <RefreshIcon color={refreshing ? "disabled" : "primary"} />
-            </IconButton>
-          </Tooltip>
-        </Box>
       </Box>
       
       {/* Filter tabs with counts */}

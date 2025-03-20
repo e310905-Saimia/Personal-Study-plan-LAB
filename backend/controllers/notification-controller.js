@@ -164,6 +164,7 @@ const processProjectNotification = async (req, res) => {
       
       // Update other fields based on approval status
       if (status === 'approved') {
+        // IMPORTANT FIX: Use the teacher's approved credit value instead of the requested value
         project.approvedCredit = Number(approvedCredits);
         // Mark outcome as completed
         student.assignedSubjects[subjectIndex].outcomes[outcomeIndex].completed = true;
@@ -209,7 +210,6 @@ const processProjectNotification = async (req, res) => {
     });
   }
 };
-
 // Mark a Single Notification as Read
 const markAsRead = async (req, res) => {
   try {

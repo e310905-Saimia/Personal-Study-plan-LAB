@@ -52,6 +52,7 @@ import TeacherHomePage from "./TeacherHomepage";
 import StudentCompetencies from "./students/StudentCompetencies";
 import TeacherViewStudent from "./TeacherViewStudent";
 import AddTeacher from "./AddTeacher";
+import ManageProjects from "./projects/ManageProjects";
 
 const TeacherDashboard = () => {
   const [open, setOpen] = useState(false);
@@ -251,13 +252,17 @@ const TeacherDashboard = () => {
           <Route path="teachers/add" element={<AddTeacher />} />
           {/* <Route path="teachers/chooseclass/:situation" element={<ChooseClass />} /> */}
           {/* <Route path="teachers/choosesubject/:classID/:teacherID" element={<ChooseSubject />} /> */}
-
+            
+            {/* Project Routes */}
+            <Route path="projects" element={<ManageProjects />} />
           {/* Fallback - redirect to dashboard home */}
           <Route
             path="*"
             element={<Navigate to="/Teacher/dashboard/home" replace />}
           />
         </Routes>
+
+        
       </Box>
     </Box>
   );

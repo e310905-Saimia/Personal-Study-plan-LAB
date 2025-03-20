@@ -8,7 +8,10 @@ import {
 } from "@mui/material";
 import { Link, useLocation } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
-import { getNotifications, clearNotifications } from "../../redux/noticeRelated/notificationHandle";
+import {
+  getNotifications,
+  clearNotifications,
+} from "../../redux/noticeRelated/notificationHandle";
 
 import HomeIcon from "@mui/icons-material/Home";
 import ExitToAppIcon from "@mui/icons-material/ExitToApp";
@@ -25,7 +28,7 @@ const SideBar = () => {
 
   useEffect(() => {
     // Removed console.log here
-    
+
     if (currentUser?.role === "Teacher") {
       dispatch(getNotifications());
     }
@@ -42,11 +45,11 @@ const SideBar = () => {
 
   useEffect(() => {
     // Removed console logs here
-    
+
     // Use 'read' property for unread count
     const count = notifications.filter((notif) => !notif.read).length;
     // Removed console.log for unread count
-    
+
     setUnreadCount(count);
   }, [notifications]);
 
@@ -64,29 +67,65 @@ const SideBar = () => {
     <>
       <ListItemButton component={Link} to={`${basePath}/home`}>
         <ListItemIcon>
-          <HomeIcon color={location.pathname.startsWith(`${basePath}/home`) ? "primary" : "inherit"} />
+          <HomeIcon
+            color={
+              location.pathname.startsWith(`${basePath}/home`)
+                ? "primary"
+                : "inherit"
+            }
+          />
         </ListItemIcon>
         <ListItemText primary="Home" />
       </ListItemButton>
 
       <ListItemButton component={Link} to={`${basePath}/subjects`}>
         <ListItemIcon>
-          <AssignmentIcon color={location.pathname.startsWith(`${basePath}/subjects`) ? "primary" : "inherit"} />
+          <AssignmentIcon
+            color={
+              location.pathname.startsWith(`${basePath}/subjects`)
+                ? "primary"
+                : "inherit"
+            }
+          />
         </ListItemIcon>
         <ListItemText primary="Subjects" />
       </ListItemButton>
 
       <ListItemButton component={Link} to={`${basePath}/students`}>
         <ListItemIcon>
-          <PeopleIcon color={location.pathname.startsWith(`${basePath}/students`) ? "primary" : "inherit"} />
+          <PeopleIcon
+            color={
+              location.pathname.startsWith(`${basePath}/students`)
+                ? "primary"
+                : "inherit"
+            }
+          />
         </ListItemIcon>
         <ListItemText primary="Students" />
       </ListItemButton>
 
+      <ListItemButton component={Link} to={`${basePath}/projects`}>
+        <ListItemIcon>
+          <AssignmentIcon
+            color={
+              location.pathname.startsWith(`${basePath}/projects`)
+                ? "primary"
+                : "inherit"
+            }
+          />
+        </ListItemIcon>
+        <ListItemText primary="Projects" />
+      </ListItemButton>
       <ListItemButton component={Link} to={`${basePath}/notices`}>
         <ListItemIcon>
           <Badge badgeContent={unreadCount} color="error">
-            <AnnouncementOutlinedIcon color={location.pathname.startsWith(`${basePath}/notices`) ? "primary" : "inherit"} />
+            <AnnouncementOutlinedIcon
+              color={
+                location.pathname.startsWith(`${basePath}/notices`)
+                  ? "primary"
+                  : "inherit"
+              }
+            />
           </Badge>
         </ListItemIcon>
         <ListItemText primary="Notices" />
@@ -96,7 +135,11 @@ const SideBar = () => {
 
       <ListItemButton component={Link} to="/logout">
         <ListItemIcon>
-          <ExitToAppIcon color={location.pathname.startsWith("/logout") ? "primary" : "inherit"} />
+          <ExitToAppIcon
+            color={
+              location.pathname.startsWith("/logout") ? "primary" : "inherit"
+            }
+          />
         </ListItemIcon>
         <ListItemText primary="Logout" />
       </ListItemButton>

@@ -710,12 +710,12 @@ Student can troubleshoot hardware problems";0.2;0.3`;
           )}
 
           <Box sx={{ display: "flex", gap: 2, mb: 2 }}>
-            <Button
+            {/* <Button
               variant="contained"
               onClick={() => navigate("/Teacher/subjects/add")}
             >
               ADD SUBJECT
-            </Button>
+            </Button> */}
             <Button
               variant="contained"
               color="secondary"

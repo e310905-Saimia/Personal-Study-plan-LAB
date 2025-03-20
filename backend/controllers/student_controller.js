@@ -445,10 +445,9 @@ const assessProject = async (req, res) => {
     const { studentID, subjectID, outcomeID, projectID } = req.params;
     const { approvedCredit, assessedBy, status, assessment } = req.body;
 
-    if (!status || (status === "Approved" && !approvedCredit)) {
+    if (!status || (status === "Approved" && approvedCredit === undefined)) {
       return res.status(400).json({
-        message:
-          "Status is required. If approving, approved credit is also required.",
+        message: "Status is required. If approving, approved credit is also required.",
       });
     }
 
@@ -493,9 +492,13 @@ const assessProject = async (req, res) => {
       ];
 
     project.status = status;
-    if (status === "Approved" && approvedCredit) {
+    
+    // IMPORTANT FIX: Ensure we set the approvedCredit field correctly
+    if (status === "Approved") {
+      // Always use the teacher's approved credit value
       project.approvedCredit = Number(approvedCredit);
     }
+    
     if (assessedBy) {
       project.assessedBy = assessedBy;
     }
@@ -514,10 +517,7 @@ const assessProject = async (req, res) => {
 
     res.status(200).json({
       message: "Project assessment updated successfully",
-      project:
-        student.assignedSubjects[subjectIndex].outcomes[outcomeIndex].projects[
-          projectIndex
-        ],
+      project: student.assignedSubjects[subjectIndex].outcomes[outcomeIndex].projects[projectIndex],
     });
   } catch (error) {
     console.error("Error assessing project:", error);

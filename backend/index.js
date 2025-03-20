@@ -7,6 +7,7 @@ const teacherRoutes = require('./routes/teacherRoutes');
 const studentRoutes = require('./routes/studentRoutes');
 const subjectRoutes = require('./routes/route'); 
 const notificationRoutes = require("./routes/notificationRoutes");
+const projectRoutes = require('./routes/projectRoutes');
 
 dotenv.config();
 
@@ -31,6 +32,7 @@ app.use('/api/teachers', teacherRoutes);
 app.use('/api/students', studentRoutes);
 app.use('/api', subjectRoutes); 
 app.use("/api/notifications", notificationRoutes);
+app.use('/api/projects', projectRoutes);
 
 // Root Route
 app.get('/', (req, res) => {

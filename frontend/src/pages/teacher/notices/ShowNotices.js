@@ -25,6 +25,8 @@ import {
   Tabs,
   Tab,
   Chip,
+  Snackbar,
+  Alert
 } from "@mui/material";
 import CheckIcon from "@mui/icons-material/Check";
 import CloseIcon from "@mui/icons-material/Close";
@@ -59,6 +61,13 @@ const ShowNotices = () => {
   
   // Add filter state
   const [filterStatus, setFilterStatus] = useState("all");
+  
+  // Add notification state for feedback
+  const [notification, setNotification] = useState({
+    open: false,
+    message: "",
+    severity: "success"
+  });
 
   // Function to get teacher name using the same approach as in TeacherProfile.js
   const getTeacherName = () => {
@@ -99,33 +108,60 @@ const ShowNotices = () => {
     return () => clearInterval(refreshInterval);
   }, [fetchNotifications]);
 
+  // Handle closing the notification
+  const handleCloseNotification = () => {
+    setNotification({ ...notification, open: false });
+  };
+
   const handleProcessNotification = async (status) => {
     if (!selectedNotification) return;
-
+  
+    // Validate approved credits when approving
+    if (status === "approved" && (!approvedCredits || isNaN(Number(approvedCredits)))) {
+      setNotification({
+        open: true,
+        message: "Please enter a valid credit amount",
+        severity: "error",
+      });
+      return;
+    }
+  
     // Get the teacher's name
     const teacherName = getTeacherName();
     console.log("Processing notification with teacher name:", teacherName);
-
+  
     try {
       await dispatch(
         processProjectNotification({
           notificationId: selectedNotification._id,
           status,
-          approvedCredits: Number(approvedCredits),
+          // Make sure to always pass a number for approvedCredits
+          approvedCredits: status === "approved" ? Number(approvedCredits) : 0,
           teacherComment,
           teacherName // Include teacher name in the request
         })
       ).unwrap();
-
+  
       // Reset state
       setSelectedNotification(null);
       setApprovedCredits("");
       setTeacherComment("");
-
+  
+      setNotification({
+        open: true,
+        message: `Project ${status === "approved" ? "approved" : "rejected"} successfully.`,
+        severity: "success",
+      });
+  
       // Refresh notifications after processing
       fetchNotifications();
     } catch (error) {
       console.error(`Failed to ${status} project`, error);
+      setNotification({
+        open: true,
+        message: `Failed to ${status} project: ${error.message || "Unknown error"}`,
+        severity: "error",
+      });
     }
   };
 
@@ -386,6 +422,21 @@ const ShowNotices = () => {
           </DialogActions>
         </Dialog>
       )}
+
+      {/* Notification Snackbar */}
+      <Snackbar
+        open={notification.open}
+        autoHideDuration={6000}
+        onClose={handleCloseNotification}
+        anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
+      >
+        <Alert
+          onClose={handleCloseNotification}
+          severity={notification.severity}
+        >
+          {notification.message}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 };

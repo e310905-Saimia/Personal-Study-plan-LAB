@@ -527,7 +527,7 @@ const StudentSubjects = () => {
                 <TableRow>
                   <TableCell> </TableCell>
                   <TableCell>Subject</TableCell>
-                  <TableCell align="right">Credits</TableCell>
+                  <TableCell align="right">Approved Credits</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -545,8 +545,8 @@ const StudentSubjects = () => {
                         </TableCell>
                         <TableCell>{subject.name}</TableCell>
                         <TableCell align="right">
-                        {calculateTotalApprovedCredits(subject)}
-                      </TableCell>
+                          {calculateTotalApprovedCredits(subject)}
+                        </TableCell>
                       </TableRow>
 
                       <TableRow>
@@ -707,7 +707,10 @@ const StudentSubjects = () => {
                                                       Project Name
                                                     </TableCell>
                                                     <TableCell>
-                                                      Credit
+                                                      Requested Credit
+                                                    </TableCell>
+                                                    <TableCell>
+                                                      Approved Credit
                                                     </TableCell>
                                                     <TableCell>
                                                       Status
@@ -752,6 +755,13 @@ const StudentSubjects = () => {
                                                               }
                                                             </TableCell>
                                                             <TableCell>
+                                                              {project.status?.toLowerCase() === "approved" 
+                                                                ? (project.approvedCredit !== undefined 
+                                                                    ? project.approvedCredit 
+                                                                    : project.requestedCredit)
+                                                                : "-"}
+                                                            </TableCell>
+                                                            <TableCell>
                                                               <Chip
                                                                 size="small"
                                                                 label={getStatusLabel(
@@ -763,10 +773,8 @@ const StudentSubjects = () => {
                                                               />
                                                             </TableCell>
                                                             <TableCell>
-                                                              {project.status ===
-                                                                "Approved" ||
-                                                              project.status ===
-                                                                "Rejected" ? (
+                                                              {project.status === "Approved" ||
+                                                              project.status === "Rejected" ? (
                                                                 <Box>
                                                                   <Typography variant="body2">
                                                                     By:{" "}
@@ -780,18 +788,13 @@ const StudentSubjects = () => {
                                                                         mt: 0.5,
                                                                       }}
                                                                     >
-                                                                      "
-                                                                      {
-                                                                        project.assessment
-                                                                      }
-                                                                      "
+                                                                      "{project.assessment}"
                                                                     </Typography>
                                                                   )}
                                                                 </Box>
                                                               ) : (
                                                                 <Typography>
-                                                                  Awaiting
-                                                                  assessment
+                                                                  Awaiting assessment
                                                                 </Typography>
                                                               )}
                                                             </TableCell>
@@ -806,8 +809,7 @@ const StudentSubjects = () => {
                                                                 : "-"}
                                                             </TableCell>
                                                             <TableCell>
-                                                              {(project.status ===
-                                                                "Pending" ||
+                                                              {(project.status === "Pending" ||
                                                                 !project.status) && (
                                                                 <IconButton
                                                                   onClick={() =>
@@ -828,7 +830,7 @@ const StudentSubjects = () => {
                                                     ) : (
                                                       <TableRow>
                                                         <TableCell
-                                                          colSpan={7}
+                                                          colSpan={8}
                                                           align="center"
                                                         >
                                                           No projects submitted

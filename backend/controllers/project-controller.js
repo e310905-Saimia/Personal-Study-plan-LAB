@@ -1,5 +1,3 @@
-// backend/controllers/project-controller.js
-
 const Project = require('../models/projectSchema');
 
 // Get all projects
@@ -34,7 +32,7 @@ exports.getProjectById = async (req, res) => {
 // Create a new project
 exports.createProject = async (req, res) => {
     try {
-        const { name, description, defaultCredits, category, teacherID } = req.body;
+        const { name, teacherID } = req.body;
 
         // Validate required fields
         if (!name) {
@@ -54,9 +52,6 @@ exports.createProject = async (req, res) => {
         // Create new project
         const newProject = new Project({
             name,
-            description: description || "",
-            defaultCredits: defaultCredits || 1,
-            category: category || "General",
             teacherID: teacherID || null,
             isDeleted: false
         });
@@ -72,7 +67,7 @@ exports.createProject = async (req, res) => {
 // Update a project
 exports.updateProject = async (req, res) => {
     try {
-        const { name, description, defaultCredits, category, isActive } = req.body;
+        const { name, teacherID } = req.body;
         const projectId = req.params.id;
 
         // Find the project to update
@@ -96,10 +91,7 @@ exports.updateProject = async (req, res) => {
 
         // Update fields if provided
         if (name) project.name = name;
-        if (description !== undefined) project.description = description;
-        if (defaultCredits !== undefined) project.defaultCredits = defaultCredits;
-        if (category) project.category = category;
-        if (isActive !== undefined) project.isActive = isActive;
+        if (teacherID) project.teacherID = teacherID;
 
         const updatedProject = await project.save();
         res.status(200).json({ message: "Project updated successfully", project: updatedProject });
@@ -128,22 +120,6 @@ exports.softDeleteProject = async (req, res) => {
     } catch (error) {
         console.error("Error deleting project:", error);
         res.status(500).json({ message: "Error deleting project", error: error.message });
-    }
-};
-
-// Get projects by category
-exports.getProjectsByCategory = async (req, res) => {
-    try {
-        const category = req.params.category;
-        const projects = await Project.find({ 
-            category, 
-            isDeleted: false 
-        });
-        
-        res.status(200).json(projects);
-    } catch (error) {
-        console.error("Error fetching projects by category:", error);
-        res.status(500).json({ message: "Error fetching projects by category", error: error.message });
     }
 };
 

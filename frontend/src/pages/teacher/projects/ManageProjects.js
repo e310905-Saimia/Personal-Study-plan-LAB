@@ -1,5 +1,3 @@
-// frontend/src/pages/teacher/projects/ManageProjects.js
-
 import React, { useEffect, useState } from "react";
 import { useSelector } from "react-redux";
 import axios from "axios";
@@ -22,7 +20,8 @@ import {
   IconButton,
   Snackbar,
   Alert,
-  DialogContentText
+  DialogContentText,
+  CircularProgress
 } from "@mui/material";
 import {
   Add as AddIcon,
@@ -222,7 +221,7 @@ const ManageProjects = () => {
               {loading ? (
                 <TableRow>
                   <TableCell colSpan={2} align="center">
-                    Loading...
+                    <CircularProgress size={24} sx={{ my: 2 }} />
                   </TableCell>
                 </TableRow>
               ) : projects.length === 0 ? (

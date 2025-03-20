@@ -6,12 +6,14 @@ import {
   fetchNotifications,
 } from "../../redux/noticeRelated/notificationSlice";
 import { getSubjectList } from "../../redux/subjectrelated/subjectHandle";
-import {
-  submitStudentProject,
-} from "../../redux/studentRelated/studentHandle";
+import { submitStudentProject } from "../../redux/studentRelated/studentHandle";
 import {
   Paper,
   Box,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
   Table,
   TableBody,
   TableCell,
@@ -37,18 +39,14 @@ import {
   CircularProgress,
   Chip,
 } from "@mui/material";
-import {
-  ExpandMore,
-  Delete,
-  Add,
-  Visibility,
-} from "@mui/icons-material";
+import { ExpandMore, Delete, Add, Visibility } from "@mui/icons-material";
 
 const StudentSubjects = () => {
   const dispatch = useDispatch();
   const { notifications = [], loading: notificationsLoading } = useSelector(
     (state) => state.notification
   );
+
   const { currentUser } = useSelector((state) => state.user);
   const [expandedSubject, setExpandedSubject] = useState(null);
   const [projects, setProjects] = useState({});
@@ -66,6 +64,27 @@ const StudentSubjects = () => {
   const [projectToDelete, setProjectToDelete] = useState(null);
   const [currentOutcome, setCurrentOutcome] = useState(null);
   const [currentSubject, setCurrentSubject] = useState(null);
+
+  const [availableProjects, setAvailableProjects] = useState([]);
+  const [projectsLoading, setProjectsLoading] = useState(false);
+
+  const fetchAvailableProjects = async () => {
+    setProjectsLoading(true);
+    try {
+      const response = await axios.get("http://localhost:5000/api/projects");
+      console.log("Available projects from teacher:", response.data);
+      setAvailableProjects(response.data || []);
+    } catch (error) {
+      console.error("Error fetching available projects:", error);
+    } finally {
+      setProjectsLoading(false);
+    }
+  };
+
+  // Call this in useEffect
+  useEffect(() => {
+    fetchAvailableProjects();
+  }, []);
 
   const getStudentName = (currentUser) => {
     // Try to get the name from various possible locations
@@ -127,28 +146,34 @@ const StudentSubjects = () => {
   useEffect(() => {
     if (studentData && studentData.length > 0) {
       console.log("Checking approved projects and credits:");
-      studentData.forEach(subject => {
+      studentData.forEach((subject) => {
         console.log(`Subject: ${subject.name}`);
         let subjectTotalCredits = 0;
-        
-        subject.outcomes?.forEach(outcome => {
+
+        subject.outcomes?.forEach((outcome) => {
           console.log(`  Outcome: ${outcome.topic}`);
-          
-          const approvedProjects = outcome.projects?.filter(
-            p => p.status && p.status.toLowerCase() === "approved"
-          ) || [];
-          
-          approvedProjects.forEach(project => {
-            const credit = project.approvedCredit !== undefined ? 
-              Number(project.approvedCredit) : 
-              Number(project.requestedCredit);
-            
-            console.log(`    Approved Project: ${project.name}, Credit: ${credit}`);
+
+          const approvedProjects =
+            outcome.projects?.filter(
+              (p) => p.status && p.status.toLowerCase() === "approved"
+            ) || [];
+
+          approvedProjects.forEach((project) => {
+            const credit =
+              project.approvedCredit !== undefined
+                ? Number(project.approvedCredit)
+                : Number(project.requestedCredit);
+
+            console.log(
+              `    Approved Project: ${project.name}, Credit: ${credit}`
+            );
             subjectTotalCredits += !isNaN(credit) ? credit : 0;
           });
         });
-        
-        console.log(`  Total approved credits for subject: ${subjectTotalCredits}`);
+
+        console.log(
+          `  Total approved credits for subject: ${subjectTotalCredits}`
+        );
       });
     }
   }, [studentData]);
@@ -213,7 +238,7 @@ const StudentSubjects = () => {
     if (!studentData || studentData.length === 0) {
       return [];
     }
-    
+
     // Convert IDs to strings for safer comparison
     const subjectIdStr = String(subjectId);
     const outcomeIdStr = String(outcomeId);
@@ -255,7 +280,7 @@ const StudentSubjects = () => {
   const handleAddProject = async (outcome, subject) => {
     const outcomeId = outcome.outcomeId;
     const subjectId = subject.subjectId;
-    
+
     // Validation checks
     if (!projects[outcomeId]?.name || !projects[outcomeId]?.credit) {
       setNotification({
@@ -471,22 +496,23 @@ const StudentSubjects = () => {
         return "Pending";
     }
   };
-  
+
   // Helper function to calculate total approved credits for a subject
   const calculateTotalApprovedCredits = (subject) => {
     if (!subject || !subject.outcomes) return 0;
-    
+
     let totalApprovedCredits = 0;
-    subject.outcomes.forEach(outcome => {
+    subject.outcomes.forEach((outcome) => {
       if (outcome.projects && outcome.projects.length > 0) {
-        outcome.projects.forEach(project => {
+        outcome.projects.forEach((project) => {
           // Only count projects that have "Approved" status (case insensitive)
           if (project.status && project.status.toLowerCase() === "approved") {
             // First try to use approvedCredit, if not available use requestedCredit
-            const creditValue = project.approvedCredit !== undefined ? 
-              Number(project.approvedCredit) : 
-              Number(project.requestedCredit);
-              
+            const creditValue =
+              project.approvedCredit !== undefined
+                ? Number(project.approvedCredit)
+                : Number(project.requestedCredit);
+
             // Add to total only if it's a valid number
             if (!isNaN(creditValue)) {
               totalApprovedCredits += creditValue;
@@ -495,7 +521,7 @@ const StudentSubjects = () => {
         });
       }
     });
-    
+
     // Return the total with maximum 2 decimal places
     return parseFloat(totalApprovedCredits.toFixed(2));
   };
@@ -538,7 +564,9 @@ const StudentSubjects = () => {
                       <TableRow>
                         <TableCell>
                           <IconButton
-                            onClick={() => toggleExpandSubject(subject.subjectId)}
+                            onClick={() =>
+                              toggleExpandSubject(subject.subjectId)
+                            }
                           >
                             <ExpandMore />
                           </IconButton>
@@ -645,22 +673,45 @@ const StudentSubjects = () => {
                                                 mb: 2,
                                               }}
                                             >
-                                              <TextField
-                                                label="Project Name"
-                                                variant="outlined"
-                                                size="small"
-                                                value={
-                                                  projects[outcome.outcomeId]?.name ||
-                                                  ""
-                                                }
-                                                onChange={(e) =>
-                                                  handleProjectChange(
-                                                    outcome.outcomeId,
-                                                    "name",
-                                                    e.target.value
-                                                  )
-                                                }
-                                              />
+                                              {/* Replace the TextField for project name with this Select component */}
+                                              <FormControl
+                                                sx={{ minWidth: 200 }}
+                                              >
+                                                <InputLabel id="project-select-label">
+                                                  Project Name
+                                                </InputLabel>
+                                                <Select
+                                                  labelId="project-select-label"
+                                                  value={
+                                                    projects[outcome.outcomeId]
+                                                      ?.name || ""
+                                                  }
+                                                  onChange={(e) =>
+                                                    handleProjectChange(
+                                                      outcome.outcomeId,
+                                                      "name",
+                                                      e.target.value
+                                                    )
+                                                  }
+                                                  label="Project Name"
+                                                  disabled={projectsLoading}
+                                                  size="small"
+                                                >
+                                                  <MenuItem value="">
+                                                    <em>Select a project</em>
+                                                  </MenuItem>
+                                                  {availableProjects.map(
+                                                    (project) => (
+                                                      <MenuItem
+                                                        key={project._id}
+                                                        value={project.name}
+                                                      >
+                                                        {project.name}
+                                                      </MenuItem>
+                                                    )
+                                                  )}
+                                                </Select>
+                                              </FormControl>
                                               <TextField
                                                 label="Credit Requested"
                                                 variant="outlined"
@@ -755,10 +806,12 @@ const StudentSubjects = () => {
                                                               }
                                                             </TableCell>
                                                             <TableCell>
-                                                              {project.status?.toLowerCase() === "approved" 
-                                                                ? (project.approvedCredit !== undefined 
-                                                                    ? project.approvedCredit 
-                                                                    : project.requestedCredit)
+                                                              {project.status?.toLowerCase() ===
+                                                              "approved"
+                                                                ? project.approvedCredit !==
+                                                                  undefined
+                                                                  ? project.approvedCredit
+                                                                  : project.requestedCredit
                                                                 : "-"}
                                                             </TableCell>
                                                             <TableCell>
@@ -773,8 +826,10 @@ const StudentSubjects = () => {
                                                               />
                                                             </TableCell>
                                                             <TableCell>
-                                                              {project.status === "Approved" ||
-                                                              project.status === "Rejected" ? (
+                                                              {project.status ===
+                                                                "Approved" ||
+                                                              project.status ===
+                                                                "Rejected" ? (
                                                                 <Box>
                                                                   <Typography variant="body2">
                                                                     By:{" "}
@@ -788,28 +843,42 @@ const StudentSubjects = () => {
                                                                         mt: 0.5,
                                                                       }}
                                                                     >
-                                                                      "{project.assessment}"
+                                                                      "
+                                                                      {
+                                                                        project.assessment
+                                                                      }
+                                                                      "
                                                                     </Typography>
                                                                   )}
                                                                 </Box>
                                                               ) : (
                                                                 <Typography>
-                                                                  Awaiting assessment
+                                                                  Awaiting
+                                                                  assessment
                                                                 </Typography>
                                                               )}
                                                             </TableCell>
                                                             <TableCell>
                                                               {project.submissionDate
-                                                                ? new Date(project.submissionDate)
-                                                                    .toLocaleDateString('en-GB', {
-                                                                      day: '2-digit',
-                                                                      month: '2-digit',
-                                                                      year: 'numeric'
-                                                                    }).split('/').join('.')
+                                                                ? new Date(
+                                                                    project.submissionDate
+                                                                  )
+                                                                    .toLocaleDateString(
+                                                                      "en-GB",
+                                                                      {
+                                                                        day: "2-digit",
+                                                                        month:
+                                                                          "2-digit",
+                                                                        year: "numeric",
+                                                                      }
+                                                                    )
+                                                                    .split("/")
+                                                                    .join(".")
                                                                 : "-"}
                                                             </TableCell>
                                                             <TableCell>
-                                                              {(project.status === "Pending" ||
+                                                              {(project.status ===
+                                                                "Pending" ||
                                                                 !project.status) && (
                                                                 <IconButton
                                                                   onClick={() =>

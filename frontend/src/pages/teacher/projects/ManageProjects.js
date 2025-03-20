@@ -198,7 +198,7 @@ const ManageProjects = () => {
           mb: 3 
         }}
       >
-        <Typography variant="h4">Project Management</Typography>
+        <Typography variant="h4">Project List</Typography>
         <Button 
           variant="contained" 
           startIcon={<AddIcon />} 

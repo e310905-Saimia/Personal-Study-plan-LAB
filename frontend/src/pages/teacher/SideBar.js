@@ -18,6 +18,7 @@ import ExitToAppIcon from "@mui/icons-material/ExitToApp";
 import AnnouncementOutlinedIcon from "@mui/icons-material/AnnouncementOutlined";
 import AssignmentIcon from "@mui/icons-material/Assignment";
 import PeopleIcon from "@mui/icons-material/People";
+import BuildIcon from "@mui/icons-material/Build";
 
 const SideBar = () => {
   const location = useLocation();
@@ -105,17 +106,17 @@ const SideBar = () => {
       </ListItemButton>
 
       <ListItemButton component={Link} to={`${basePath}/projects`}>
-        <ListItemIcon>
-          <AssignmentIcon
-            color={
-              location.pathname.startsWith(`${basePath}/projects`)
-                ? "primary"
-                : "inherit"
-            }
-          />
-        </ListItemIcon>
-        <ListItemText primary="Projects" />
-      </ListItemButton>
+  <ListItemIcon>
+    <BuildIcon
+      color={
+        location.pathname.startsWith(`${basePath}/projects`)
+          ? "primary"
+          : "inherit"
+      }
+    />
+  </ListItemIcon>
+  <ListItemText primary="Projects" />
+</ListItemButton>
       <ListItemButton component={Link} to={`${basePath}/notices`}>
         <ListItemIcon>
           <Badge badgeContent={unreadCount} color="error">

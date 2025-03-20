@@ -15,7 +15,8 @@ import {
 import { Add as AddIcon } from '@mui/icons-material';
 import axios from 'axios';
 import { useDispatch } from 'react-redux';
-import { submitStudentProject } from '../../../redux/studentRelated/studentHandle';
+import { submitStudentProject } from '../redux/studentRelated/studentHandle';
+import { createNotification } from '../redux/noticeRelated/notificationSlice';
 
 const ProjectSelector = ({ studentID, subjectID, outcomeID, outcomeTopic, onProjectSubmitted }) => {
   const dispatch = useDispatch();
@@ -43,6 +44,7 @@ const ProjectSelector = ({ studentID, subjectID, outcomeID, outcomeTopic, onProj
     setProjectsLoading(true);
     try {
       const response = await axios.get('http://localhost:5000/api/projects');
+      console.log('Fetched projects:', response.data);
       setAvailableProjects(response.data);
     } catch (err) {
       console.error("Error fetching projects:", err);
@@ -54,9 +56,19 @@ const ProjectSelector = ({ studentID, subjectID, outcomeID, outcomeTopic, onProj
 
   // Handle project selection change
   const handleProjectChange = (e) => {
-    setSelectedProject(e.target.value);
+    const projectId = e.target.value;
+    setSelectedProject(projectId);
+    
     // Reset any errors
     setError('');
+    
+    // If a project was selected, set a default requested credit
+    if (projectId) {
+      const selectedProjectData = availableProjects.find(p => p._id === projectId);
+      if (selectedProjectData) {
+        setRequestedCredit('1'); // Default value
+      }
+    }
   };
 
   // Handle credit input change
@@ -94,8 +106,8 @@ const ProjectSelector = ({ studentID, subjectID, outcomeID, outcomeTopic, onProj
         throw new Error('Selected project not found');
       }
 
-      // Submit project using the dispatch function
-      await dispatch(
+      // Submit project
+      const response = await dispatch(
         submitStudentProject(
           studentID,
           subjectID,
@@ -105,6 +117,22 @@ const ProjectSelector = ({ studentID, subjectID, outcomeID, outcomeTopic, onProj
             requestedCredit: creditValue
           }
         )
+      );
+
+      console.log('Project submission response:', response);
+
+      // Create notification for teacher
+      await dispatch(
+        createNotification({
+          message: `New project "${projectDetails.name}" submitted for ${outcomeTopic}`,
+          studentID: studentID,
+          subjectID: subjectID,
+          outcomeID: outcomeID,
+          projectName: projectDetails.name,
+          creditRequested: creditValue,
+          read: false,
+          date: new Date().toISOString()
+        })
       );
 
       // Show success notification
@@ -190,7 +218,7 @@ const ProjectSelector = ({ studentID, subjectID, outcomeID, outcomeTopic, onProj
           variant="contained"
           startIcon={loading ? <CircularProgress size={20} /> : <AddIcon />}
           onClick={handleSubmit}
-          disabled={loading || projectsLoading}
+          disabled={loading || projectsLoading || !selectedProject || !requestedCredit}
         >
           ADD
         </Button>

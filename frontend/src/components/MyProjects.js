@@ -22,13 +22,14 @@ import {
 import { 
   ExpandMore, 
   ExpandLess, 
-  Visibility, 
   Delete as DeleteIcon 
 } from '@mui/icons-material';
 import axios from 'axios';
 import { useDispatch, useSelector } from 'react-redux';
-import { deleteStudentProject } from '../../../redux/studentRelated/studentHandle';
-import ProjectSelector from '../../../components/ProjectSelector';
+import { deleteStudentProject } from '../redux/studentRelated/studentHandle';
+
+// Import the updated ProjectSelector
+import ProjectSelector from './ProjectSelector';
 
 const MyProjects = ({ studentID, subjectID, outcomeID, outcomeTopic }) => {
   const dispatch = useDispatch();
@@ -47,9 +48,11 @@ const MyProjects = ({ studentID, subjectID, outcomeID, outcomeTopic }) => {
   const fetchProjects = async () => {
     setLoading(true);
     try {
+      console.log(`Fetching projects for studentID: ${studentID}, subjectID: ${subjectID}, outcomeID: ${outcomeID}`);
       const response = await axios.get(
         `http://localhost:5000/api/students/${studentID}/subjects/${subjectID}/outcomes/${outcomeID}/projects`
       );
+      console.log('Projects fetched:', response.data);
       setProjects(response.data || []);
     } catch (error) {
       console.error("Error fetching projects:", error);
@@ -60,7 +63,9 @@ const MyProjects = ({ studentID, subjectID, outcomeID, outcomeTopic }) => {
 
   // Fetch projects on initial render
   useEffect(() => {
-    fetchProjects();
+    if (studentID && subjectID && outcomeID) {
+      fetchProjects();
+    }
   }, [studentID, subjectID, outcomeID]);
 
   // Toggle expansion of My Projects section
@@ -184,9 +189,9 @@ const MyProjects = ({ studentID, subjectID, outcomeID, outcomeTopic }) => {
                       Loading...
                     </TableCell>
                   </TableRow>
-                ) : projects.length > 0 ? (
+                ) : projects && projects.length > 0 ? (
                   projects.map((project, index) => (
-                    <TableRow key={project._id}>
+                    <TableRow key={project._id || index}>
                       <TableCell>{index + 1}</TableCell>
                       <TableCell>{project.name}</TableCell>
                       <TableCell>{project.requestedCredit}</TableCell>

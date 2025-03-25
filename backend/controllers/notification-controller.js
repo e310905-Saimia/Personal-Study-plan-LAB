@@ -180,7 +180,6 @@ const processProjectNotification = async (req, res) => {
       
       // Save student document
       await student.save();
-      console.log(`Updated project for student ${studentID}`);
     }
     
     // Finally update the notification record

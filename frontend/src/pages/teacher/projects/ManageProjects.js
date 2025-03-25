@@ -1,6 +1,4 @@
-// frontend/src/pages/teacher/projects/ManageProjects.js
-
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { useSelector } from "react-redux";
 import axios from "axios";
 import {
@@ -28,17 +26,17 @@ import {
   FormControl,
   InputLabel,
   Select,
-  Chip
+  Chip,
 } from "@mui/material";
 import {
   Add as AddIcon,
   Edit as EditIcon,
-  Delete as DeleteIcon
+  Delete as DeleteIcon,
 } from "@mui/icons-material";
 
 const ManageProjects = () => {
   const { currentUser } = useSelector((state) => state.user);
-  
+
   const [projects, setProjects] = useState([]);
   const [loading, setLoading] = useState(false);
   const [openDialog, setOpenDialog] = useState(false);
@@ -59,23 +57,26 @@ const ManageProjects = () => {
     name: "",
     projectNumber: "",
     stage: "active",
-    startDate: new Date().toISOString().split('T')[0]
+    startDate: new Date().toISOString().split("T")[0],
   });
 
-  // Fetch all projects
-  const fetchProjects = async () => {
+  const fetchProjects = useCallback(async () => {
     setLoading(true);
     try {
-      const response = await axios.get("http://localhost:5000/api/projects");
-      
-      // Add default values for new fields if they don't exist
-      const formattedProjects = response.data.map(project => ({
+      // Always fetch all projects to get correct counts
+      const url = "http://localhost:5000/api/projects";
+      console.log("Fetching all projects for counts");
+      const response = await axios.get(url);
+
+      // Add default values for new fields
+      const formattedProjects = response.data.map((project) => ({
         ...project,
-        projectNumber: project.projectNumber || generateUniqueProjectNumber(project),
+        projectNumber:
+          project.projectNumber || generateUniqueProjectNumber(project),
         stage: project.stage || "active",
-        startDate: project.startDate || new Date().toISOString().split('T')[0]
+        startDate: project.startDate || new Date().toISOString().split("T")[0],
       }));
-      
+
       setProjects(formattedProjects);
     } catch (error) {
       console.error("Error fetching projects:", error);
@@ -87,21 +88,21 @@ const ManageProjects = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [setNotification]);
 
   // Generate a unique project number for existing projects without one
   const generateUniqueProjectNumber = (project) => {
-    const createdYear = project.createdAt 
-      ? new Date(project.createdAt).getFullYear() 
+    const createdYear = project.createdAt
+      ? new Date(project.createdAt).getFullYear()
       : new Date().getFullYear();
-      
+
     const randomNum = Math.floor(Math.random() * 900) + 100; // 3-digit number
     return `${createdYear}-${randomNum}`;
   };
 
   useEffect(() => {
     fetchProjects();
-  }, []);
+  }, [fetchProjects]);
 
   const handleOpenDialog = (project = null) => {
     if (project) {
@@ -111,7 +112,7 @@ const ManageProjects = () => {
         name: project.name,
         projectNumber: project.projectNumber,
         stage: project.stage || "active",
-        startDate: project.startDate || new Date().toISOString().split('T')[0]
+        startDate: project.startDate || new Date().toISOString().split("T")[0],
       });
     } else {
       setEditMode(false);
@@ -120,7 +121,7 @@ const ManageProjects = () => {
         name: "",
         projectNumber: generateProjectNumber(),
         stage: "active",
-        startDate: new Date().toISOString().split('T')[0]
+        startDate: new Date().toISOString().split("T")[0],
       });
     }
     setOpenDialog(true);
@@ -131,15 +132,18 @@ const ManageProjects = () => {
     const year = new Date().getFullYear();
     // Find the highest existing project number for this year
     const lastNumber = projects.reduce((max, project) => {
-      if (project.projectNumber && project.projectNumber.startsWith(`${year}-`)) {
-        const num = parseInt(project.projectNumber.split('-')[1]);
+      if (
+        project.projectNumber &&
+        project.projectNumber.startsWith(`${year}-`)
+      ) {
+        const num = parseInt(project.projectNumber.split("-")[1]);
         return num > max ? num : max;
       }
       return max;
     }, 0);
-    
+
     // Create new number with padding (001, 002, etc.)
-    return `${year}-${String(lastNumber + 1).padStart(3, '0')}`;
+    return `${year}-${String(lastNumber + 1).padStart(3, "0")}`;
   };
 
   const handleCloseDialog = () => {
@@ -170,17 +174,20 @@ const ManageProjects = () => {
     try {
       const teacherID = currentUser?._id || "";
       setLoading(true);
-      
+
       if (editMode && selectedProject) {
         // Update existing project
-        await axios.put(`http://localhost:5000/api/projects/${selectedProject._id}`, {
-          name: projectData.name,
-          teacherID,
-          projectNumber: projectData.projectNumber,
-          stage: projectData.stage,
-          startDate: projectData.startDate
-        });
-        
+        await axios.put(
+          `http://localhost:5000/api/projects/${selectedProject._id}`,
+          {
+            name: projectData.name,
+            teacherID,
+            projectNumber: projectData.projectNumber,
+            stage: projectData.stage,
+            startDate: projectData.startDate,
+          }
+        );
+
         setNotification({
           open: true,
           message: "Project updated successfully",
@@ -193,16 +200,16 @@ const ManageProjects = () => {
           teacherID,
           projectNumber: projectData.projectNumber,
           stage: projectData.stage,
-          startDate: projectData.startDate
+          startDate: projectData.startDate,
         });
-        
+
         setNotification({
           open: true,
           message: "Project created successfully",
           severity: "success",
         });
       }
-      
+
       // Close dialog and refresh projects
       handleCloseDialog();
       fetchProjects();
@@ -227,14 +234,16 @@ const ManageProjects = () => {
     if (!selectedProject) return;
 
     try {
-      await axios.delete(`http://localhost:5000/api/projects/${selectedProject._id}/soft`);
-      
+      await axios.delete(
+        `http://localhost:5000/api/projects/${selectedProject._id}/soft`
+      );
+
       setNotification({
         open: true,
         message: "Project deleted successfully",
         severity: "success",
       });
-      
+
       fetchProjects();
       setOpenDeleteDialog(false);
     } catch (error) {
@@ -255,29 +264,49 @@ const ManageProjects = () => {
   const getFilteredProjects = () => {
     if (activeTab === "ALL") {
       return projects;
-    } else {
-      return projects.filter(project => project.stage === activeTab.toLowerCase());
+    } else if (activeTab === "ACTIVE") {
+      return projects.filter((project) => project.stage === "active");
+    } else if (activeTab === "IN-PROGRESS") {
+      return projects.filter((project) => project.stage === "in-progress");
+    } else if (activeTab === "CLOSED") {
+      return projects.filter((project) => project.stage === "closed");
     }
+    return projects;
   };
-
   // Get count of projects by stage
   const getProjectCountByStage = (stage) => {
     if (stage === "ALL") {
       return projects.length;
     }
-    return projects.filter(project => project.stage === stage.toLowerCase()).length;
+    
+    // The problem is here - we need to map the UI tab names to database values
+    let dbStage;
+    switch (stage) {
+      case "ACTIVE":
+        dbStage = "active";
+        break;
+      case "IN-PROGRESS":
+        dbStage = "in-progress";
+        break;
+      case "CLOSED":
+        dbStage = "closed";
+        break;
+      default:
+        dbStage = stage.toLowerCase();
+    }
+    
+    return projects.filter(project => project.stage === dbStage).length;
   };
-
   // Format date for display
   const formatDate = (dateString) => {
     if (!dateString) return "";
-    
+
     try {
       const date = new Date(dateString);
-      return date.toLocaleDateString('en-GB', {
-        year: 'numeric',
-        month: 'short',
-        day: 'numeric'
+      return date.toLocaleDateString("en-GB", {
+        year: "numeric",
+        month: "short",
+        day: "numeric",
       });
     } catch (e) {
       return dateString;
@@ -287,37 +316,47 @@ const ManageProjects = () => {
   // Get color for stage chip
   const getStageColor = (stage) => {
     switch (stage) {
-      case "active": return "success";
-      case "in-progress": return "primary";
-      case "closed": return "default";
-      default: return "default";
+      case "active":
+        return "success";
+      case "in-progress":
+        return "primary";
+      case "closed":
+        return "default";
+      default:
+        return "default";
     }
   };
 
   // Get display name for stage
   const getStageName = (stage) => {
     switch (stage) {
-      case "active": return "Active";
-      case "in-progress": return "In Progress";
-      case "closed": return "Closed";
-      default: return stage ? stage.charAt(0).toUpperCase() + stage.slice(1) : "Unknown";
+      case "active":
+        return "Active";
+      case "in-progress":
+        return "In Progress";
+      case "closed":
+        return "Closed";
+      default:
+        return stage
+          ? stage.charAt(0).toUpperCase() + stage.slice(1)
+          : "Unknown";
     }
   };
 
   return (
     <Box sx={{ padding: 3 }}>
-      <Box 
-        sx={{ 
-          display: "flex", 
-          justifyContent: "space-between", 
-          alignItems: "center", 
-          mb: 3 
+      <Box
+        sx={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          mb: 3,
         }}
       >
         <Typography variant="h4">Project List</Typography>
-        <Button 
-          variant="contained" 
-          startIcon={<AddIcon />} 
+        <Button
+          variant="contained"
+          startIcon={<AddIcon />}
           onClick={() => handleOpenDialog()}
         >
           Add Project
@@ -325,109 +364,121 @@ const ManageProjects = () => {
       </Box>
 
       {/* Toggle navigation similar to notifications */}
-      <Box sx={{ mb: 3, borderBottom: '1px solid #e0e0e0' }}>
-        <Box sx={{ display: 'flex', overflowX: 'auto' }}>
-          <Box 
-            onClick={() => setActiveTab("ALL")} 
-            sx={{ 
-              px: 2, 
-              py: 1.5, 
-              cursor: 'pointer',
-              borderBottom: activeTab === "ALL" ? '2px solid #1976d2' : 'none',
-              color: activeTab === "ALL" ? '#1976d2' : 'inherit',
-              fontWeight: activeTab === "ALL" ? 'bold' : 'normal',
-              display: 'flex', 
-              alignItems: 'center'
+      <Box sx={{ mb: 3, borderBottom: "1px solid #e0e0e0" }}>
+        <Box sx={{ display: "flex", overflowX: "auto" }}>
+          <Box
+            onClick={() => setActiveTab("ALL")}
+            sx={{
+              px: 2,
+              py: 1.5,
+              cursor: "pointer",
+              borderBottom: activeTab === "ALL" ? "2px solid #1976d2" : "none",
+              color: activeTab === "ALL" ? "#1976d2" : "inherit",
+              fontWeight: activeTab === "ALL" ? "bold" : "normal",
+              display: "flex",
+              alignItems: "center",
             }}
           >
-            <Box component="span" sx={{ mr: 1 }}>ALL</Box>
-            <Chip 
-              label={getProjectCountByStage("ALL")} 
-              size="small" 
-              sx={{ 
-                bgcolor: '#e3f2fd', 
-                color: '#1976d2',
-                height: '20px',
-                fontSize: '0.75rem'
-              }} 
+            <Box component="span" sx={{ mr: 1 }}>
+              ALL
+            </Box>
+            <Chip
+              label={getProjectCountByStage("ALL")}
+              size="small"
+              sx={{
+                bgcolor: "#e3f2fd",
+                color: "#1976d2",
+                height: "20px",
+                fontSize: "0.75rem",
+              }}
             />
           </Box>
-          
-          <Box 
-            onClick={() => setActiveTab("ACTIVE")} 
-            sx={{ 
-              px: 2, 
-              py: 1.5, 
-              cursor: 'pointer',
-              borderBottom: activeTab === "ACTIVE" ? '2px solid #4caf50' : 'none',
-              color: activeTab === "ACTIVE" ? '#4caf50' : 'inherit',
-              fontWeight: activeTab === "ACTIVE" ? 'bold' : 'normal',
-              display: 'flex', 
-              alignItems: 'center'
+
+          <Box
+            onClick={() => setActiveTab("ACTIVE")}
+            sx={{
+              px: 2,
+              py: 1.5,
+              cursor: "pointer",
+              borderBottom:
+                activeTab === "ACTIVE" ? "2px solid #4caf50" : "none",
+              color: activeTab === "ACTIVE" ? "#4caf50" : "inherit",
+              fontWeight: activeTab === "ACTIVE" ? "bold" : "normal",
+              display: "flex",
+              alignItems: "center",
             }}
           >
-            <Box component="span" sx={{ mr: 1 }}>ACTIVE</Box>
-            <Chip 
-              label={getProjectCountByStage("ACTIVE")} 
-              size="small" 
-              sx={{ 
-                bgcolor: '#e8f5e9', 
-                color: '#4caf50',
-                height: '20px',
-                fontSize: '0.75rem'
-              }} 
+            <Box component="span" sx={{ mr: 1 }}>
+              ACTIVE
+            </Box>
+            <Chip
+              label={getProjectCountByStage("ACTIVE")}
+              size="small"
+              sx={{
+                bgcolor: "#e8f5e9",
+                color: "#4caf50",
+                height: "20px",
+                fontSize: "0.75rem",
+              }}
             />
           </Box>
-          
-          <Box 
-            onClick={() => setActiveTab("IN-PROGRESS")} 
-            sx={{ 
-              px: 2, 
-              py: 1.5, 
-              cursor: 'pointer',
-              borderBottom: activeTab === "IN-PROGRESS" ? '2px solid #2196f3' : 'none',
-              color: activeTab === "IN-PROGRESS" ? '#2196f3' : 'inherit',
-              fontWeight: activeTab === "IN-PROGRESS" ? 'bold' : 'normal',
-              display: 'flex', 
-              alignItems: 'center'
+
+          <Box
+            onClick={() => setActiveTab("IN-PROGRESS")}
+            sx={{
+              px: 2,
+              py: 1.5,
+              cursor: "pointer",
+              borderBottom:
+                activeTab === "IN-PROGRESS" ? "2px solid #2196f3" : "none",
+              color: activeTab === "IN-PROGRESS" ? "#2196f3" : "inherit",
+              fontWeight: activeTab === "IN-PROGRESS" ? "bold" : "normal",
+              display: "flex",
+              alignItems: "center",
             }}
           >
-            <Box component="span" sx={{ mr: 1 }}>IN PROGRESS</Box>
-            <Chip 
-              label={getProjectCountByStage("in-progress")} 
-              size="small" 
-              sx={{ 
-                bgcolor: '#e3f2fd', 
-                color: '#2196f3',
-                height: '20px',
-                fontSize: '0.75rem'
-              }} 
+            <Box component="span" sx={{ mr: 1 }}>
+              IN PROGRESS
+            </Box>
+            <Chip
+              label={getProjectCountByStage("IN-PROGRESS")}
+              size="small"
+              sx={{
+                bgcolor: "#e3f2fd",
+                color: "#2196f3",
+                height: "20px",
+                fontSize: "0.75rem",
+              }}
             />
           </Box>
-          
-          <Box 
-            onClick={() => setActiveTab("CLOSED")} 
-            sx={{ 
-              px: 2, 
-              py: 1.5, 
-              cursor: 'pointer',
-              borderBottom: activeTab === "CLOSED" ? '2px solid #9e9e9e' : 'none',
-              color: activeTab === "CLOSED" ? '#9e9e9e' : 'inherit',
-              fontWeight: activeTab === "CLOSED" ? 'bold' : 'normal',
-              display: 'flex', 
-              alignItems: 'center'
+
+          {/* CLOSED Tab */}
+          <Box
+            onClick={() => setActiveTab("CLOSED")}
+            sx={{
+              px: 2,
+              py: 1.5,
+              cursor: "pointer",
+              borderBottom:
+                activeTab === "CLOSED" ? "2px solid #9e9e9e" : "none",
+              color: activeTab === "CLOSED" ? "#9e9e9e" : "inherit",
+              fontWeight: activeTab === "CLOSED" ? "bold" : "normal",
+              display: "flex",
+              alignItems: "center",
             }}
           >
-            <Box component="span" sx={{ mr: 1 }}>CLOSED</Box>
-            <Chip 
-              label={getProjectCountByStage("closed")} 
-              size="small" 
-              sx={{ 
-                bgcolor: '#f5f5f5', 
-                color: '#9e9e9e',
-                height: '20px',
-                fontSize: '0.75rem'
-              }} 
+            <Box component="span" sx={{ mr: 1 }}>
+              CLOSED
+            </Box>
+            <Chip
+              label={getProjectCountByStage("CLOSED")}
+              size="small"
+              sx={{
+                bgcolor: "#f5f5f5",
+                color: "#9e9e9e",
+                height: "20px",
+                fontSize: "0.75rem",
+              }}
             />
           </Box>
         </Box>
@@ -455,8 +506,8 @@ const ManageProjects = () => {
               ) : getFilteredProjects().length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={5} align="center">
-                    {activeTab === "ALL" 
-                      ? "No projects found. Add your first project." 
+                    {activeTab === "ALL"
+                      ? "No projects found. Add your first project."
                       : `No ${activeTab.toLowerCase()} projects found.`}
                   </TableCell>
                 </TableRow>
@@ -466,7 +517,7 @@ const ManageProjects = () => {
                     <TableCell>{project.name}</TableCell>
                     <TableCell>{project.projectNumber}</TableCell>
                     <TableCell>
-                      <Chip 
+                      <Chip
                         label={getStageName(project.stage)}
                         color={getStageColor(project.stage)}
                         size="small"
@@ -474,15 +525,15 @@ const ManageProjects = () => {
                     </TableCell>
                     <TableCell>{formatDate(project.startDate)}</TableCell>
                     <TableCell>
-                      <IconButton 
-                        color="primary" 
+                      <IconButton
+                        color="primary"
                         onClick={() => handleOpenDialog(project)}
                         title="Edit"
                       >
                         <EditIcon />
                       </IconButton>
-                      <IconButton 
-                        color="error" 
+                      <IconButton
+                        color="error"
                         onClick={() => handleOpenDeleteDialog(project)}
                         title="Delete"
                       >
@@ -498,8 +549,8 @@ const ManageProjects = () => {
       </Paper>
 
       {/* Add/Edit Project Dialog */}
-      <Dialog 
-        open={openDialog} 
+      <Dialog
+        open={openDialog}
         onClose={handleCloseDialog}
         fullWidth
         maxWidth="sm"
@@ -518,7 +569,7 @@ const ManageProjects = () => {
               margin="normal"
               required
             />
-            
+
             <TextField
               fullWidth
               label="Project Number"
@@ -530,7 +581,7 @@ const ManageProjects = () => {
               disabled={!editMode}
               helperText={!editMode ? "Auto-generated project number" : ""}
             />
-            
+
             <FormControl fullWidth margin="normal">
               <InputLabel id="stage-select-label">Project Stage</InputLabel>
               <Select
@@ -545,7 +596,7 @@ const ManageProjects = () => {
                 <MenuItem value="closed">Closed</MenuItem>
               </Select>
             </FormControl>
-            
+
             <TextField
               fullWidth
               label="Start Date"
@@ -560,13 +611,19 @@ const ManageProjects = () => {
         </DialogContent>
         <DialogActions>
           <Button onClick={handleCloseDialog}>Cancel</Button>
-          <Button 
-            onClick={handleSubmit} 
-            variant="contained" 
+          <Button
+            onClick={handleSubmit}
+            variant="contained"
             color="primary"
             disabled={loading}
           >
-            {loading ? <CircularProgress size={24} /> : (editMode ? "Update" : "Add")}
+            {loading ? (
+              <CircularProgress size={24} />
+            ) : editMode ? (
+              "Update"
+            ) : (
+              "Add"
+            )}
           </Button>
         </DialogActions>
       </Dialog>
@@ -578,22 +635,20 @@ const ManageProjects = () => {
         aria-labelledby="alert-dialog-title"
         aria-describedby="alert-dialog-description"
       >
-        <DialogTitle id="alert-dialog-title">
-          Confirm Delete
-        </DialogTitle>
+        <DialogTitle id="alert-dialog-title">Confirm Delete</DialogTitle>
         <DialogContent>
           <DialogContentText id="alert-dialog-description">
-            Are you sure you want to delete the project "{selectedProject?.name}" ({selectedProject?.projectNumber})? 
-            This action cannot be undone.
+            Are you sure you want to delete the project "{selectedProject?.name}
+            " ({selectedProject?.projectNumber})? This action cannot be undone.
           </DialogContentText>
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setOpenDeleteDialog(false)} color="primary">
             Cancel
           </Button>
-          <Button 
-            onClick={handleDeleteProject} 
-            color="error" 
+          <Button
+            onClick={handleDeleteProject}
+            color="error"
             variant="contained"
             disabled={loading}
           >

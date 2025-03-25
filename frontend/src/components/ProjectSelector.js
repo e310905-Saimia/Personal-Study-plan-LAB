@@ -45,20 +45,18 @@ const ProjectSelector = ({ studentID, subjectID, outcomeID, outcomeTopic, onProj
     try {
       console.log("Fetching active projects for student...");
       
-      // First try to fetch with url parameter syntax
-      let url = 'http://localhost:5000/api/projects?stage=active&isDeleted=false';
+      // Use the dedicated endpoint for active projects
+      const url = 'http://localhost:5000/api/projects/active';
       console.log("API Request URL:", url);
-
+  
       const response = await axios.get(url);
-      
       console.log("API Response for active projects:", response.data);
       
-      // Filter the results manually as a backup measure
-      const filteredProjects = response.data.filter(project => project.stage === 'active');
-      console.log("Manually filtered active projects:", filteredProjects);
+      // Double-check with client-side filtering as a safeguard
+      const activeProjects = response.data.filter(p => p.stage === 'active');
+      console.log(`Filtered to ${activeProjects.length} active projects`);
       
-      // Only use active projects
-      setAvailableProjects(filteredProjects);
+      setAvailableProjects(activeProjects);
     } catch (err) {
       console.error("Error fetching projects:", err);
       setError("Failed to load available projects");

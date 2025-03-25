@@ -71,7 +71,7 @@ const StudentSubjects = () => {
   const fetchAvailableProjects = async () => {
     setProjectsLoading(true);
     try {
-      const response = await axios.get("http://localhost:5000/api/projects");
+      const response = await axios.get("http://localhost:5000/api/projects/active");
       console.log("Available projects from teacher:", response.data);
       setAvailableProjects(response.data || []);
     } catch (error) {
@@ -80,7 +80,6 @@ const StudentSubjects = () => {
       setProjectsLoading(false);
     }
   };
-
   // Call this in useEffect
   useEffect(() => {
     fetchAvailableProjects();
@@ -526,20 +525,37 @@ const StudentSubjects = () => {
     return parseFloat(totalApprovedCredits.toFixed(2));
   };
 
+  const calculateGrandTotalCredits = () => {
+    if (!studentData || studentData.length === 0) return 0;
+    
+    let grandTotal = 0;
+    studentData.forEach(subject => {
+      grandTotal += calculateTotalApprovedCredits(subject);
+    });
+    
+    return parseFloat(grandTotal.toFixed(2));
+  };
+
   return (
+    
     <Box sx={{ padding: 3 }}>
-      <Box
-        sx={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          mb: 3,
-        }}
-      >
-        <Typography variant="h4" gutterBottom>
-          Student Subjects
-        </Typography>
-      </Box>
+  <Box
+    sx={{
+      display: "flex",
+      justifyContent: "space-between",
+      alignItems: "center",
+      mb: 3,
+    }}
+  >
+    <Typography variant="h4" gutterBottom>
+      Student Subjects
+    </Typography>
+    <Box sx={{ display: "flex", alignItems: "center" }}>
+      <Typography variant="h6" color="primary" sx={{ fontWeight: "bold" }}>
+        Total Approved Credits: {calculateGrandTotalCredits()}
+      </Typography>
+    </Box>
+  </Box>
 
       {loading || notificationsLoading ? (
         <Box sx={{ display: "flex", justifyContent: "center", my: 4 }}>

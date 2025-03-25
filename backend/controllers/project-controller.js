@@ -1,4 +1,3 @@
-// backend/controllers/project-controller.js
 const Project = require('../models/projectSchema');
 
 // Get all projects
@@ -6,9 +5,6 @@ exports.getAllProjects = async (req, res) => {
     try {
         // Build query based on parameters
         const query = {};
-        
-        // Log all request queries to debug
-        console.log("Received request with query params:", req.query);
         
         // Active/inactive filter
         if (req.query.isDeleted !== undefined) {
@@ -20,38 +16,53 @@ exports.getAllProjects = async (req, res) => {
         
         // Stage filter (active, in-progress, closed)
         if (req.query.stage) {
-            // This is the important line that sets the stage for filtering
-            query.stage = req.query.stage;
-            console.log(`Filtering projects by stage: ${req.query.stage}`);
+            // Normalize stage value to match schema enum (lowercase)
+            const stageValue = req.query.stage.toLowerCase();
+            
+            // Validate against allowed values in schema
+            if (['active', 'in-progress', 'closed'].includes(stageValue)) {
+                query.stage = stageValue;
+                console.log(`Filtering projects by stage: ${stageValue}`);
+            } else {
+                console.warn(`Ignoring invalid stage value: ${req.query.stage}`);
+            }
         }
         
-        console.log("Final MongoDB query:", query);
         
         const projects = await Project.find(query).sort({ createdAt: -1 });
         
-        console.log(`Found ${projects.length} projects matching criteria`);
-        // Log the stages of returned projects for debugging
-        const stageCounts = {
-            'active': projects.filter(p => p.stage === 'active').length,
-            'in-progress': projects.filter(p => p.stage === 'in-progress').length,
-            'closed': projects.filter(p => p.stage === 'closed').length,
-            'undefined': projects.filter(p => p.stage === undefined).length
-        };
-        console.log('Project stage counts in results:', stageCounts);
         
-        // If we're filtering for active projects but got mixed results,
-        // perform a second filter in the controller just to be sure
-        if (req.query.stage === 'active' && stageCounts['in-progress'] > 0 || stageCounts['closed'] > 0) {
-            console.log('Warning: Got non-active projects despite filter. Manually filtering results.');
-            const filteredProjects = projects.filter(p => p.stage === 'active');
-            console.log(`Returning ${filteredProjects.length} projects after manual filtering`);
-            return res.status(200).json(filteredProjects);
+        // Extra logging to debug stage values in results
+        if (projects.length > 0) {
+            const stageCount = {};
+            projects.forEach(p => {
+                stageCount[p.stage] = (stageCount[p.stage] || 0) + 1;
+            });
         }
         
         res.status(200).json(projects);
     } catch (error) {
         console.error("Error fetching projects:", error);
         res.status(500).json({ message: "Error fetching projects", error: error.message });
+    }
+};
+
+
+exports.getActiveProjects = async (req, res) => {
+    try {     
+        const query = { 
+            isDeleted: false,
+            stage: 'active'
+        };
+        
+        const projects = await Project.find(query).sort({ createdAt: -1 });
+        
+        
+        
+        res.status(200).json(projects);
+    } catch (error) {
+        console.error("Error fetching active projects:", error);
+        res.status(500).json({ message: "Error fetching active projects", error: error.message });
     }
 };
 

@@ -39,13 +39,26 @@ const ProjectSelector = ({ studentID, subjectID, outcomeID, outcomeTopic, onProj
     fetchProjects();
   }, []);
 
-  // Function to fetch available projects from the API
+  // Function to fetch available projects from the API - only active ones
   const fetchProjects = async () => {
     setProjectsLoading(true);
     try {
-      const response = await axios.get('http://localhost:5000/api/projects');
-      console.log('Fetched projects:', response.data);
-      setAvailableProjects(response.data);
+      console.log("Fetching active projects for student...");
+      
+      // First try to fetch with url parameter syntax
+      let url = 'http://localhost:5000/api/projects?stage=active&isDeleted=false';
+      console.log("API Request URL:", url);
+
+      const response = await axios.get(url);
+      
+      console.log("API Response for active projects:", response.data);
+      
+      // Filter the results manually as a backup measure
+      const filteredProjects = response.data.filter(project => project.stage === 'active');
+      console.log("Manually filtered active projects:", filteredProjects);
+      
+      // Only use active projects
+      setAvailableProjects(filteredProjects);
     } catch (err) {
       console.error("Error fetching projects:", err);
       setError("Failed to load available projects");
@@ -114,7 +127,8 @@ const ProjectSelector = ({ studentID, subjectID, outcomeID, outcomeTopic, onProj
           outcomeID,
           {
             name: projectDetails.name,
-            requestedCredit: creditValue
+            requestedCredit: creditValue,
+            projectNumber: projectDetails.projectNumber // Include project number
           }
         )
       );
@@ -124,11 +138,12 @@ const ProjectSelector = ({ studentID, subjectID, outcomeID, outcomeTopic, onProj
       // Create notification for teacher
       await dispatch(
         createNotification({
-          message: `New project "${projectDetails.name}" submitted for ${outcomeTopic}`,
+          message: `New project "${projectDetails.name}" (${projectDetails.projectNumber || 'No ID'}) submitted for ${outcomeTopic}`,
           studentID: studentID,
           subjectID: subjectID,
           outcomeID: outcomeID,
           projectName: projectDetails.name,
+          projectNumber: projectDetails.projectNumber,
           creditRequested: creditValue,
           read: false,
           date: new Date().toISOString()
@@ -190,17 +205,22 @@ const ProjectSelector = ({ studentID, subjectID, outcomeID, outcomeTopic, onProj
             value={selectedProject}
             onChange={handleProjectChange}
             label="Project Name"
-            disabled={projectsLoading || loading}
+            disabled={projectsLoading || loading || availableProjects.length === 0}
           >
             <MenuItem value="">
               <em>Select a project</em>
             </MenuItem>
             {availableProjects.map((project) => (
               <MenuItem key={project._id} value={project._id}>
-                {project.name}
+                {project.name} {project.projectNumber ? `(${project.projectNumber})` : ''}
               </MenuItem>
             ))}
           </Select>
+          {availableProjects.length === 0 && !projectsLoading && (
+            <Typography variant="caption" color="error">
+              No active projects available
+            </Typography>
+          )}
         </FormControl>
         
         <TextField
@@ -208,7 +228,7 @@ const ProjectSelector = ({ studentID, subjectID, outcomeID, outcomeTopic, onProj
           type="number"
           value={requestedCredit}
           onChange={handleCreditChange}
-          disabled={loading}
+          disabled={loading || !selectedProject}
           InputProps={{
             inputProps: { min: 0.1, step: 0.1 }
           }}
@@ -218,7 +238,7 @@ const ProjectSelector = ({ studentID, subjectID, outcomeID, outcomeTopic, onProj
           variant="contained"
           startIcon={loading ? <CircularProgress size={20} /> : <AddIcon />}
           onClick={handleSubmit}
-          disabled={loading || projectsLoading || !selectedProject || !requestedCredit}
+          disabled={loading || projectsLoading || !selectedProject || !requestedCredit || availableProjects.length === 0}
         >
           ADD
         </Button>

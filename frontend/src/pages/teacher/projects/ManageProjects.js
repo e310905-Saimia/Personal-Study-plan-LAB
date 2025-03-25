@@ -1,3 +1,5 @@
+// frontend/src/pages/teacher/projects/ManageProjects.js
+
 import React, { useEffect, useState } from "react";
 import { useSelector } from "react-redux";
 import axios from "axios";
@@ -21,12 +23,17 @@ import {
   Snackbar,
   Alert,
   DialogContentText,
-  CircularProgress
+  CircularProgress,
+  MenuItem,
+  FormControl,
+  InputLabel,
+  Select,
+  Chip
 } from "@mui/material";
 import {
   Add as AddIcon,
   Edit as EditIcon,
-  Delete as DeleteIcon,
+  Delete as DeleteIcon
 } from "@mui/icons-material";
 
 const ManageProjects = () => {
@@ -44,9 +51,15 @@ const ManageProjects = () => {
     severity: "success",
   });
 
+  // Add filter stage with default "ALL"
+  const [activeTab, setActiveTab] = useState("ALL");
+
   // Form state
   const [projectData, setProjectData] = useState({
     name: "",
+    projectNumber: "",
+    stage: "active",
+    startDate: new Date().toISOString().split('T')[0]
   });
 
   // Fetch all projects
@@ -54,7 +67,16 @@ const ManageProjects = () => {
     setLoading(true);
     try {
       const response = await axios.get("http://localhost:5000/api/projects");
-      setProjects(response.data);
+      
+      // Add default values for new fields if they don't exist
+      const formattedProjects = response.data.map(project => ({
+        ...project,
+        projectNumber: project.projectNumber || generateUniqueProjectNumber(project),
+        stage: project.stage || "active",
+        startDate: project.startDate || new Date().toISOString().split('T')[0]
+      }));
+      
+      setProjects(formattedProjects);
     } catch (error) {
       console.error("Error fetching projects:", error);
       setNotification({
@@ -67,6 +89,16 @@ const ManageProjects = () => {
     }
   };
 
+  // Generate a unique project number for existing projects without one
+  const generateUniqueProjectNumber = (project) => {
+    const createdYear = project.createdAt 
+      ? new Date(project.createdAt).getFullYear() 
+      : new Date().getFullYear();
+      
+    const randomNum = Math.floor(Math.random() * 900) + 100; // 3-digit number
+    return `${createdYear}-${randomNum}`;
+  };
+
   useEffect(() => {
     fetchProjects();
   }, []);
@@ -77,15 +109,37 @@ const ManageProjects = () => {
       setSelectedProject(project);
       setProjectData({
         name: project.name,
+        projectNumber: project.projectNumber,
+        stage: project.stage || "active",
+        startDate: project.startDate || new Date().toISOString().split('T')[0]
       });
     } else {
       setEditMode(false);
       setSelectedProject(null);
       setProjectData({
         name: "",
+        projectNumber: generateProjectNumber(),
+        stage: "active",
+        startDate: new Date().toISOString().split('T')[0]
       });
     }
     setOpenDialog(true);
+  };
+
+  // Function to generate a project number in format YYYY-NNN
+  const generateProjectNumber = () => {
+    const year = new Date().getFullYear();
+    // Find the highest existing project number for this year
+    const lastNumber = projects.reduce((max, project) => {
+      if (project.projectNumber && project.projectNumber.startsWith(`${year}-`)) {
+        const num = parseInt(project.projectNumber.split('-')[1]);
+        return num > max ? num : max;
+      }
+      return max;
+    }, 0);
+    
+    // Create new number with padding (001, 002, etc.)
+    return `${year}-${String(lastNumber + 1).padStart(3, '0')}`;
   };
 
   const handleCloseDialog = () => {
@@ -115,12 +169,16 @@ const ManageProjects = () => {
 
     try {
       const teacherID = currentUser?._id || "";
+      setLoading(true);
       
       if (editMode && selectedProject) {
         // Update existing project
         await axios.put(`http://localhost:5000/api/projects/${selectedProject._id}`, {
           name: projectData.name,
           teacherID,
+          projectNumber: projectData.projectNumber,
+          stage: projectData.stage,
+          startDate: projectData.startDate
         });
         
         setNotification({
@@ -133,6 +191,9 @@ const ManageProjects = () => {
         await axios.post("http://localhost:5000/api/projects", {
           name: projectData.name,
           teacherID,
+          projectNumber: projectData.projectNumber,
+          stage: projectData.stage,
+          startDate: projectData.startDate
         });
         
         setNotification({
@@ -152,6 +213,8 @@ const ManageProjects = () => {
         message: error.response?.data?.message || "Failed to save project",
         severity: "error",
       });
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -188,6 +251,59 @@ const ManageProjects = () => {
     setNotification({ ...notification, open: false });
   };
 
+  // Get filtered projects based on current tab
+  const getFilteredProjects = () => {
+    if (activeTab === "ALL") {
+      return projects;
+    } else {
+      return projects.filter(project => project.stage === activeTab.toLowerCase());
+    }
+  };
+
+  // Get count of projects by stage
+  const getProjectCountByStage = (stage) => {
+    if (stage === "ALL") {
+      return projects.length;
+    }
+    return projects.filter(project => project.stage === stage.toLowerCase()).length;
+  };
+
+  // Format date for display
+  const formatDate = (dateString) => {
+    if (!dateString) return "";
+    
+    try {
+      const date = new Date(dateString);
+      return date.toLocaleDateString('en-GB', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric'
+      });
+    } catch (e) {
+      return dateString;
+    }
+  };
+
+  // Get color for stage chip
+  const getStageColor = (stage) => {
+    switch (stage) {
+      case "active": return "success";
+      case "in-progress": return "primary";
+      case "closed": return "default";
+      default: return "default";
+    }
+  };
+
+  // Get display name for stage
+  const getStageName = (stage) => {
+    switch (stage) {
+      case "active": return "Active";
+      case "in-progress": return "In Progress";
+      case "closed": return "Closed";
+      default: return stage ? stage.charAt(0).toUpperCase() + stage.slice(1) : "Unknown";
+    }
+  };
+
   return (
     <Box sx={{ padding: 3 }}>
       <Box 
@@ -208,32 +324,155 @@ const ManageProjects = () => {
         </Button>
       </Box>
 
+      {/* Toggle navigation similar to notifications */}
+      <Box sx={{ mb: 3, borderBottom: '1px solid #e0e0e0' }}>
+        <Box sx={{ display: 'flex', overflowX: 'auto' }}>
+          <Box 
+            onClick={() => setActiveTab("ALL")} 
+            sx={{ 
+              px: 2, 
+              py: 1.5, 
+              cursor: 'pointer',
+              borderBottom: activeTab === "ALL" ? '2px solid #1976d2' : 'none',
+              color: activeTab === "ALL" ? '#1976d2' : 'inherit',
+              fontWeight: activeTab === "ALL" ? 'bold' : 'normal',
+              display: 'flex', 
+              alignItems: 'center'
+            }}
+          >
+            <Box component="span" sx={{ mr: 1 }}>ALL</Box>
+            <Chip 
+              label={getProjectCountByStage("ALL")} 
+              size="small" 
+              sx={{ 
+                bgcolor: '#e3f2fd', 
+                color: '#1976d2',
+                height: '20px',
+                fontSize: '0.75rem'
+              }} 
+            />
+          </Box>
+          
+          <Box 
+            onClick={() => setActiveTab("ACTIVE")} 
+            sx={{ 
+              px: 2, 
+              py: 1.5, 
+              cursor: 'pointer',
+              borderBottom: activeTab === "ACTIVE" ? '2px solid #4caf50' : 'none',
+              color: activeTab === "ACTIVE" ? '#4caf50' : 'inherit',
+              fontWeight: activeTab === "ACTIVE" ? 'bold' : 'normal',
+              display: 'flex', 
+              alignItems: 'center'
+            }}
+          >
+            <Box component="span" sx={{ mr: 1 }}>ACTIVE</Box>
+            <Chip 
+              label={getProjectCountByStage("ACTIVE")} 
+              size="small" 
+              sx={{ 
+                bgcolor: '#e8f5e9', 
+                color: '#4caf50',
+                height: '20px',
+                fontSize: '0.75rem'
+              }} 
+            />
+          </Box>
+          
+          <Box 
+            onClick={() => setActiveTab("IN-PROGRESS")} 
+            sx={{ 
+              px: 2, 
+              py: 1.5, 
+              cursor: 'pointer',
+              borderBottom: activeTab === "IN-PROGRESS" ? '2px solid #2196f3' : 'none',
+              color: activeTab === "IN-PROGRESS" ? '#2196f3' : 'inherit',
+              fontWeight: activeTab === "IN-PROGRESS" ? 'bold' : 'normal',
+              display: 'flex', 
+              alignItems: 'center'
+            }}
+          >
+            <Box component="span" sx={{ mr: 1 }}>IN PROGRESS</Box>
+            <Chip 
+              label={getProjectCountByStage("in-progress")} 
+              size="small" 
+              sx={{ 
+                bgcolor: '#e3f2fd', 
+                color: '#2196f3',
+                height: '20px',
+                fontSize: '0.75rem'
+              }} 
+            />
+          </Box>
+          
+          <Box 
+            onClick={() => setActiveTab("CLOSED")} 
+            sx={{ 
+              px: 2, 
+              py: 1.5, 
+              cursor: 'pointer',
+              borderBottom: activeTab === "CLOSED" ? '2px solid #9e9e9e' : 'none',
+              color: activeTab === "CLOSED" ? '#9e9e9e' : 'inherit',
+              fontWeight: activeTab === "CLOSED" ? 'bold' : 'normal',
+              display: 'flex', 
+              alignItems: 'center'
+            }}
+          >
+            <Box component="span" sx={{ mr: 1 }}>CLOSED</Box>
+            <Chip 
+              label={getProjectCountByStage("closed")} 
+              size="small" 
+              sx={{ 
+                bgcolor: '#f5f5f5', 
+                color: '#9e9e9e',
+                height: '20px',
+                fontSize: '0.75rem'
+              }} 
+            />
+          </Box>
+        </Box>
+      </Box>
+
       <Paper sx={{ width: "100%", overflow: "hidden" }}>
         <TableContainer>
           <Table>
             <TableHead>
               <TableRow sx={{ backgroundColor: "#f5f5f5" }}>
                 <TableCell>Name</TableCell>
+                <TableCell>Project Number</TableCell>
+                <TableCell>Stage</TableCell>
+                <TableCell>Start Date</TableCell>
                 <TableCell>Actions</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
               {loading ? (
                 <TableRow>
-                  <TableCell colSpan={2} align="center">
+                  <TableCell colSpan={5} align="center">
                     <CircularProgress size={24} sx={{ my: 2 }} />
                   </TableCell>
                 </TableRow>
-              ) : projects.length === 0 ? (
+              ) : getFilteredProjects().length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={2} align="center">
-                    No projects found. Add your first project.
+                  <TableCell colSpan={5} align="center">
+                    {activeTab === "ALL" 
+                      ? "No projects found. Add your first project." 
+                      : `No ${activeTab.toLowerCase()} projects found.`}
                   </TableCell>
                 </TableRow>
               ) : (
-                projects.map((project) => (
+                getFilteredProjects().map((project) => (
                   <TableRow key={project._id}>
                     <TableCell>{project.name}</TableCell>
+                    <TableCell>{project.projectNumber}</TableCell>
+                    <TableCell>
+                      <Chip 
+                        label={getStageName(project.stage)}
+                        color={getStageColor(project.stage)}
+                        size="small"
+                      />
+                    </TableCell>
+                    <TableCell>{formatDate(project.startDate)}</TableCell>
                     <TableCell>
                       <IconButton 
                         color="primary" 
@@ -279,6 +518,44 @@ const ManageProjects = () => {
               margin="normal"
               required
             />
+            
+            <TextField
+              fullWidth
+              label="Project Number"
+              name="projectNumber"
+              value={projectData.projectNumber}
+              onChange={handleInputChange}
+              margin="normal"
+              required
+              disabled={!editMode}
+              helperText={!editMode ? "Auto-generated project number" : ""}
+            />
+            
+            <FormControl fullWidth margin="normal">
+              <InputLabel id="stage-select-label">Project Stage</InputLabel>
+              <Select
+                labelId="stage-select-label"
+                name="stage"
+                value={projectData.stage}
+                onChange={handleInputChange}
+                label="Project Stage"
+              >
+                <MenuItem value="active">Active</MenuItem>
+                <MenuItem value="in-progress">In Progress</MenuItem>
+                <MenuItem value="closed">Closed</MenuItem>
+              </Select>
+            </FormControl>
+            
+            <TextField
+              fullWidth
+              label="Start Date"
+              name="startDate"
+              type="date"
+              value={projectData.startDate}
+              onChange={handleInputChange}
+              margin="normal"
+              InputLabelProps={{ shrink: true }}
+            />
           </Box>
         </DialogContent>
         <DialogActions>
@@ -287,8 +564,9 @@ const ManageProjects = () => {
             onClick={handleSubmit} 
             variant="contained" 
             color="primary"
+            disabled={loading}
           >
-            {editMode ? "Update" : "Add"}
+            {loading ? <CircularProgress size={24} /> : (editMode ? "Update" : "Add")}
           </Button>
         </DialogActions>
       </Dialog>
@@ -305,7 +583,7 @@ const ManageProjects = () => {
         </DialogTitle>
         <DialogContent>
           <DialogContentText id="alert-dialog-description">
-            Are you sure you want to delete the project "{selectedProject?.name}"? 
+            Are you sure you want to delete the project "{selectedProject?.name}" ({selectedProject?.projectNumber})? 
             This action cannot be undone.
           </DialogContentText>
         </DialogContent>
@@ -317,9 +595,9 @@ const ManageProjects = () => {
             onClick={handleDeleteProject} 
             color="error" 
             variant="contained"
-            autoFocus
+            disabled={loading}
           >
-            Delete
+            {loading ? <CircularProgress size={24} /> : "Delete"}
           </Button>
         </DialogActions>
       </Dialog>

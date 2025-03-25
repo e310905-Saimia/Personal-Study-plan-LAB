@@ -1,3 +1,4 @@
+// backend/models/projectSchema.js
 const mongoose = require('mongoose');
 
 const projectSchema = new mongoose.Schema({
@@ -6,6 +7,22 @@ const projectSchema = new mongoose.Schema({
         required: true,
         trim: true,
         unique: true
+    },
+    projectNumber: {
+        type: String,
+        default: function() {
+            const year = new Date().getFullYear();
+            return `${year}-001`; // Default pattern, will be updated later
+        }
+    },
+    stage: {
+        type: String,
+        enum: ['active', 'in-progress', 'closed'],
+        default: 'active'
+    },
+    startDate: {
+        type: Date,
+        default: Date.now
     },
     teacherID: { 
         type: mongoose.Schema.Types.ObjectId, 

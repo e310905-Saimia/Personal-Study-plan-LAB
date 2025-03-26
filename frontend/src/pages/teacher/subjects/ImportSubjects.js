@@ -34,6 +34,20 @@ import DownloadIcon from '@mui/icons-material/Download';
 import InfoIcon from '@mui/icons-material/Info';
 import { getSubjectList } from "../../../redux/subjectrelated/subjectHandle";
 
+const parseDecimalValue = (value) => {
+  if (!value || value === '') return null;
+  
+  // Handle both comma and period as decimal separators
+  const valueStr = String(value).trim();
+  const normalizedValue = valueStr.replace(',', '.');
+  
+  // Parse the normalized value
+  const parsed = parseFloat(normalizedValue);
+  console.log(`Parsing decimal value: "${valueStr}" → "${normalizedValue}" → ${parsed}`);
+  
+  return isNaN(parsed) ? null : parsed;
+};
+
 const ImportSubjects = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
@@ -158,11 +172,17 @@ const ImportSubjects = () => {
       
       // Process subject data
       const subjectName = row["Subject Name"].trim();
-      const subjectCredits = parseInt(row["Subject Credits"], 10);
       
-      if (isNaN(subjectCredits)) {
+      // Parse subject credits with comma support
+      const subjectCreditsStr = row["Subject Credits"] ? String(row["Subject Credits"]).trim() : "";
+      const parsedSubjectCredits = parseDecimalValue(subjectCreditsStr);
+      
+      if (parsedSubjectCredits === null) {
         throw new Error(`Invalid credits value for subject: ${subjectName}`);
       }
+      
+      // Apply validation for subject credits (typically whole numbers but allow decimals)
+      const subjectCredits = Math.max(0.1, Math.min(parsedSubjectCredits, 100)); 
       
       // Add subject if not already added
       if (!subjectMap.has(subjectName)) {
@@ -175,10 +195,27 @@ const ImportSubjects = () => {
       
       // Process outcome if it exists
       if (row["Outcome Topic"] && row["Outcome Project"] && row["Outcome Credits"]) {
-        const outcomeCredits = parseInt(row["Outcome Credits"], 10);
+        // Parse outcome credits with comma support
+        const outcomeCreditsStr = row["Outcome Credits"] ? String(row["Outcome Credits"]).trim() : "";
+        const parsedOutcomeCredits = parseDecimalValue(outcomeCreditsStr);
         
-        if (isNaN(outcomeCredits)) {
+        if (parsedOutcomeCredits === null) {
           throw new Error(`Invalid credits value for outcome in subject: ${subjectName}`);
+        }
+        
+        // Apply validation - ensure credits are between 0.1 and 10
+        const outcomeCredits = Math.max(0.1, Math.min(parsedOutcomeCredits, 10));
+        
+        // Parse max credits if present
+        const outcomeMaxCreditsStr = row["Outcome Maximum Credits"] ? 
+          String(row["Outcome Maximum Credits"]).trim() : "";
+        
+        let outcomeMaxCredits = outcomeCredits; // Default to min credits
+        if (outcomeMaxCreditsStr) {
+          const parsedMaxCredits = parseDecimalValue(outcomeMaxCreditsStr);
+          if (parsedMaxCredits !== null) {
+            outcomeMaxCredits = Math.max(0.1, Math.min(parsedMaxCredits, 10));
+          }
         }
         
         // Parse compulsory field if it exists, default to true if not specified
@@ -208,6 +245,7 @@ const ImportSubjects = () => {
             topic: row["Outcome Topic"].trim(),
             project: row["Outcome Project"].trim(),
             credits: outcomeCredits,
+            maxCredits: outcomeMaxCredits,
             compulsory: compulsory,
             requirements: []
           };
@@ -229,6 +267,7 @@ const ImportSubjects = () => {
     
     return Array.from(subjectMap.values());
   };
+  
   
   // Handle dialog close and reject duplicates
   const handleRejectDuplicates = () => {

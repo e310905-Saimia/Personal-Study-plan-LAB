@@ -26,11 +26,15 @@ import {
   Tab,
   Chip,
   Snackbar,
-  Alert
+  Alert,
+  InputAdornment,
+  IconButton
 } from "@mui/material";
 import CheckIcon from "@mui/icons-material/Check";
 import CloseIcon from "@mui/icons-material/Close";
 import FilterListIcon from "@mui/icons-material/FilterList";
+import SearchIcon from "@mui/icons-material/Search";
+import ClearIcon from "@mui/icons-material/Clear";
 
 // Utility function to format name from email (same as in TeacherProfile.js)
 const formatNameFromEmail = (email) => {
@@ -61,6 +65,9 @@ const ShowNotices = () => {
   
   // Add filter state
   const [filterStatus, setFilterStatus] = useState("all");
+  
+  // Add search state
+  const [searchTerm, setSearchTerm] = useState("");
   
   // Add notification state for feedback
   const [notification, setNotification] = useState({
@@ -117,13 +124,27 @@ const ShowNotices = () => {
     if (!selectedNotification) return;
   
     // Validate approved credits when approving
-    if (status === "approved" && (!approvedCredits || isNaN(Number(approvedCredits)))) {
-      setNotification({
-        open: true,
-        message: "Please enter a valid credit amount",
-        severity: "error",
-      });
-      return;
+    if (status === "approved") {
+      const creditValue = Number(approvedCredits);
+      
+      if (!approvedCredits || isNaN(creditValue)) {
+        setNotification({
+          open: true,
+          message: "Please enter a valid credit amount",
+          severity: "error",
+        });
+        return;
+      }
+      
+      // Add range validation
+      if (creditValue < 0.1 || creditValue > 10) {
+        setNotification({
+          open: true,
+          message: "Approved credits must be between 0.1 and 10",
+          severity: "error",
+        });
+        return;
+      }
     }
   
     // Get the teacher's name
@@ -170,15 +191,47 @@ const ShowNotices = () => {
     setFilterStatus(newValue);
   };
 
-  // Filter notifications based on selected filter
+  // Handle search change
+  const handleSearchChange = (event) => {
+    setSearchTerm(event.target.value);
+  };
+
+  // Handle clear search
+  const handleClearSearch = () => {
+    setSearchTerm("");
+  };
+
+  // Filter notifications based on selected filter and search term
   const getFilteredNotifications = () => {
     if (!notifications || notifications.length === 0) return [];
     
-    if (filterStatus === "all") {
-      return notifications;
+    // First filter by status
+    let filtered = notifications;
+    if (filterStatus !== "all") {
+      filtered = filtered.filter(notif => notif.status === filterStatus);
     }
     
-    return notifications.filter(notif => notif.status === filterStatus);
+    // Then filter by search term if it exists
+    if (searchTerm.trim() !== "") {
+      const search = searchTerm.toLowerCase();
+      filtered = filtered.filter(notif => {
+        // Search in message (which often contains student name, project name, etc.)
+        const messageMatch = notif.message && notif.message.toLowerCase().includes(search);
+        
+        // Search in project name
+        const projectMatch = notif.projectName && notif.projectName.toLowerCase().includes(search);
+        
+        // Search in subject info (if available)
+        const subjectMatch = notif.subjectInfo && notif.subjectInfo.toLowerCase().includes(search);
+        
+        // Search in teacher comment (for approved/rejected notifications)
+        const commentMatch = notif.teacherComment && notif.teacherComment.toLowerCase().includes(search);
+        
+        return messageMatch || projectMatch || subjectMatch || commentMatch;
+      });
+    }
+    
+    return filtered;
   };
 
   const filteredNotifications = getFilteredNotifications();
@@ -222,6 +275,40 @@ const ShowNotices = () => {
         </Typography>
       </Box>
       
+      {/* Search Bar */}
+      <Box sx={{ mb: 3 }}>
+        <TextField
+          fullWidth
+          variant="outlined"
+          placeholder="Search by student name, project name, or subject..."
+          value={searchTerm}
+          onChange={handleSearchChange}
+          InputProps={{
+            startAdornment: (
+              <InputAdornment position="start">
+                <SearchIcon />
+              </InputAdornment>
+            ),
+            endAdornment: searchTerm && (
+              <InputAdornment position="end">
+                <IconButton onClick={handleClearSearch} size="small">
+                  <ClearIcon />
+                </IconButton>
+              </InputAdornment>
+            ),
+            sx: { borderRadius: 2 }
+          }}
+          sx={{ 
+            mb: 2,
+            '& .MuiOutlinedInput-root': {
+              '&:hover fieldset': {
+                borderColor: 'primary.main',
+              },
+            },
+          }}
+        />
+      </Box>
+      
       {/* Filter tabs with counts */}
       <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 2 }}>
         <Tabs
@@ -257,6 +344,15 @@ const ShowNotices = () => {
           />
         </Tabs>
       </Box>
+      
+      {/* Search Results Info */}
+      {searchTerm && (
+        <Box sx={{ mb: 2 }}>
+          <Typography variant="body2" color="text.secondary">
+            Found {filteredNotifications.length} {filterStatus !== "all" ? filterStatus : ""} notification(s) matching "{searchTerm}"
+          </Typography>
+        </Box>
+      )}
       
       {loading ? (
         <Typography>Loading...</Typography>
@@ -354,9 +450,11 @@ const ShowNotices = () => {
                 ) : (
                   <TableRow>
                     <TableCell colSpan={isTeacher ? 4 : 3} align="center">
-                      {filterStatus === "all" 
-                        ? "No notifications." 
-                        : `No ${filterStatus} notifications.`}
+                      {searchTerm 
+                        ? `No ${filterStatus !== "all" ? filterStatus : ""} notifications matching "${searchTerm}"`
+                        : filterStatus === "all" 
+                          ? "No notifications." 
+                          : `No ${filterStatus} notifications.`}
                     </TableCell>
                   </TableRow>
                 )}
@@ -391,6 +489,12 @@ const ShowNotices = () => {
               onChange={(e) => setApprovedCredits(e.target.value)}
               margin="dense"
               variant="outlined"
+              inputProps={{
+                min: 0.1,
+                max: 10,
+                step: 0.1
+              }}
+              helperText="Value must be between 0.1 and 10"
             />
 
             <TextField

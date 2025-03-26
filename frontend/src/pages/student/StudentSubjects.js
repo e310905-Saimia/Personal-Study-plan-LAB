@@ -292,7 +292,7 @@ const StudentSubjects = () => {
 
     // Validate credit is a positive number
     const creditValue = Number(projects[outcomeId]?.credit);
-    if (isNaN(creditValue) || creditValue <= 0) {
+    if (isNaN(creditValue) || creditValue < 0.1 || creditValue > 10) {
       setNotification({
         open: true,
         message: "Credit must be a positive number!",
@@ -744,6 +744,12 @@ const StudentSubjects = () => {
                                                     e.target.value
                                                   )
                                                 }
+                                                inputProps={{
+                                                  min: 0.1,
+                                                  max: 10,
+                                                  step: 0.1
+                                                }}
+                                                helperText="Value must be between 0.1 and 10"
                                               />
                                               <Button
                                                 variant="contained"

@@ -1,5 +1,20 @@
 const Subject = require('../models/subjectSchema.js');
 
+// Add the decimal parser helper function
+const parseDecimalValue = (value) => {
+  if (value === undefined || value === null) return null;
+  
+  // Convert to string if it's a number already
+  const strValue = typeof value === 'number' ? String(value) : value;
+  
+  // Replace comma with period if present
+  const normalized = strValue.replace(',', '.');
+  
+  // Parse and return the value
+  const parsed = parseFloat(normalized);
+  return isNaN(parsed) ? null : parsed;
+};
+
 // ✅ Create a Subject (Only Name & Credits) with duplicate check
 const subjectCreate = async (req, res) => {
     try {
@@ -151,31 +166,35 @@ const updateOutcome = async (req, res) => {
             }
         }
 
-        // Validate credits if provided
+        // Validate credits with comma support if provided
         if (credits !== undefined) {
-            const creditsValue = parseFloat(credits);
-            if (isNaN(creditsValue) || creditsValue < 0.1 || creditsValue > 10) {
+            const parsedCredits = parseDecimalValue(credits);
+            if (parsedCredits === null) {
                 return res.status(400).json({ 
-                    message: "Credits must be a value between 0.1 and 10"
+                    message: "Invalid credit value format"
                 });
             }
+            
+            // Apply validation - ensure credits are between 0.1 and 10
+            outcome.credits = Math.max(0.1, Math.min(parsedCredits, 10));
         }
         
-        // Validate maxCredits if provided
+        // Validate maxCredits with comma support if provided
         if (maxCredits !== undefined) {
-            const maxCreditsValue = parseFloat(maxCredits);
-            if (isNaN(maxCreditsValue) || maxCreditsValue < 0.1 || maxCreditsValue > 10) {
+            const parsedMaxCredits = parseDecimalValue(maxCredits);
+            if (parsedMaxCredits === null) {
                 return res.status(400).json({ 
-                    message: "Maximum Credits must be a value between 0.1 and 10"
+                    message: "Invalid maximum credit value format"
                 });
             }
+            
+            // Apply validation - ensure maxCredits are between 0.1 and 10
+            outcome.maxCredits = Math.max(0.1, Math.min(parsedMaxCredits, 10));
         }
 
         // Only update the specific outcome properties if they're provided
         if (topic !== undefined) outcome.topic = topic;
         if (project !== undefined) outcome.project = project;
-        if (credits !== undefined) outcome.credits = parseFloat(credits);
-        if (maxCredits !== undefined) outcome.maxCredits = parseFloat(maxCredits);
         if (requirements !== undefined) outcome.requirements = requirements; 
         
         // Handle compulsory field explicitly - ensure it's a boolean
@@ -216,20 +235,22 @@ const addOutcome = async (req, res) => {
             });
         }
 
-        // Validate credits range
-        const creditsValue = parseFloat(credits);
-        if (isNaN(creditsValue) || creditsValue < 0.1 || creditsValue > 10) {
-            return res.status(400).json({ 
-                message: "Credits must be a value between 0.1 and 10"
-            });
+        // Parse credit values with comma support
+        const parsedCredits = parseDecimalValue(credits);
+        if (parsedCredits === null) {
+            return res.status(400).json({ message: "Invalid credit value format" });
         }
+
+        // Apply validation - ensure credits are between 0.1 and 10
+        const creditsValue = Math.max(0.1, Math.min(parsedCredits, 10));
         
-        // Validate maxCredits if provided, otherwise use credits value
-        const maxCreditsValue = maxCredits !== undefined ? parseFloat(maxCredits) : creditsValue;
-        if (isNaN(maxCreditsValue) || maxCreditsValue < 0.1 || maxCreditsValue > 10) {
-            return res.status(400).json({ 
-                message: "Maximum Credits must be a value between 0.1 and 10"
-            });
+        // Parse and validate maxCredits if provided, otherwise use credits value
+        let maxCreditsValue = creditsValue;
+        if (maxCredits !== undefined) {
+            const parsedMaxCredits = parseDecimalValue(maxCredits);
+            if (parsedMaxCredits !== null) {
+                maxCreditsValue = Math.max(0.1, Math.min(parsedMaxCredits, 10));
+            }
         }
 
         // Set compulsory to true by default if not provided
@@ -332,12 +353,31 @@ const importOutcomes = async (req, res) => {
                 const isCompulsory = outcome.compulsory !== undefined ? 
                     (String(outcome.compulsory).toLowerCase() === 'true' || outcome.compulsory === true) : true;
                 
+                // Parse credits with comma support
+                const parsedCredits = parseDecimalValue(outcome.credits);
+                if (parsedCredits === null) {
+                    errorCount++;
+                    continue;
+                }
+                
+                // Apply validation
+                const validCredits = Math.max(0.1, Math.min(parsedCredits, 10));
+                
+                // Parse maxCredits with comma support
+                let validMaxCredits = validCredits;
+                if (outcome.maxCredits !== undefined) {
+                    const parsedMaxCredits = parseDecimalValue(outcome.maxCredits);
+                    if (parsedMaxCredits !== null) {
+                        validMaxCredits = Math.max(0.1, Math.min(parsedMaxCredits, 10));
+                    }
+                }
+                
                 // Prepare the new outcome object
                 const outcomeData = {
                     topic: outcome.topic,
                     project: outcome.project,
-                    credits: Number(outcome.credits),
-                    maxCredits: Number(outcome.maxCredits) || Number(outcome.credits),
+                    credits: validCredits,
+                    maxCredits: validMaxCredits,
                     compulsory: isCompulsory,
                     requirements: Array.isArray(outcome.requirements) ? outcome.requirements : []
                 };

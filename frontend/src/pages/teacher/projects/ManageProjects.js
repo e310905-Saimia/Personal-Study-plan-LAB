@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useState, useEffect } from "react";
 import { useSelector } from "react-redux";
 import axios from "axios";
 import {
@@ -33,6 +33,7 @@ import {
   Edit as EditIcon,
   Delete as DeleteIcon,
 } from "@mui/icons-material";
+import SearchBar from "../../../components/SearchBar";
 
 const ManageProjects = () => {
   const { currentUser } = useSelector((state) => state.user);
@@ -51,6 +52,10 @@ const ManageProjects = () => {
 
   // Add filter stage with default "ALL"
   const [activeTab, setActiveTab] = useState("ALL");
+  
+  // Add search functionality
+  const [searchTerm, setSearchTerm] = useState("");
+  const [filteredProjects, setFilteredProjects] = useState([]);
 
   // Form state
   const [projectData, setProjectData] = useState({
@@ -60,7 +65,50 @@ const ManageProjects = () => {
     startDate: new Date().toISOString().split("T")[0],
   });
 
-  const fetchProjects = useCallback(async () => {
+  // Filter projects based on search term and active tab
+  const filterProjects = (projectsToFilter, term, tab) => {
+    // First filter by tab/stage
+    let result = projectsToFilter;
+    
+    if (tab !== "ALL") {
+      // Map UI tab name to database stage value
+      let dbStage;
+      switch (tab) {
+        case "ACTIVE":
+          dbStage = "active";
+          break;
+        case "IN-PROGRESS":
+          dbStage = "in-progress";
+          break;
+        case "CLOSED":
+          dbStage = "closed";
+          break;
+        default:
+          dbStage = tab.toLowerCase();
+      }
+      
+      result = result.filter(project => project.stage === dbStage);
+    }
+    
+    // Then filter by search term if it exists
+    if (term) {
+      const lowercaseTerm = term.toLowerCase();
+      result = result.filter(project => 
+        project.name.toLowerCase().includes(lowercaseTerm) ||
+        (project.projectNumber && project.projectNumber.toLowerCase().includes(lowercaseTerm))
+      );
+    }
+    
+    setFilteredProjects(result);
+  };
+
+  // Handle search change
+  const handleSearchChange = (term) => {
+    setSearchTerm(term);
+    filterProjects(projects, term, activeTab);
+  };
+
+  const fetchProjects = async () => {
     setLoading(true);
     try {
       // Always fetch all projects to get correct counts
@@ -78,6 +126,10 @@ const ManageProjects = () => {
       }));
 
       setProjects(formattedProjects);
+      
+      // Initialize filtered projects
+      filterProjects(formattedProjects, searchTerm, activeTab);
+      
     } catch (error) {
       console.error("Error fetching projects:", error);
       setNotification({
@@ -88,7 +140,7 @@ const ManageProjects = () => {
     } finally {
       setLoading(false);
     }
-  }, [setNotification]);
+  };
 
   // Generate a unique project number for existing projects without one
   const generateUniqueProjectNumber = (project) => {
@@ -102,7 +154,14 @@ const ManageProjects = () => {
 
   useEffect(() => {
     fetchProjects();
-  }, [fetchProjects]);
+  }, []);
+  
+  // Effect to refilter projects when tab changes
+  useEffect(() => {
+    if (projects.length > 0) {
+      filterProjects(projects, searchTerm, activeTab);
+    }
+  }, [activeTab]);
 
   const handleOpenDialog = (project = null) => {
     if (project) {
@@ -260,19 +319,6 @@ const ManageProjects = () => {
     setNotification({ ...notification, open: false });
   };
 
-  // Get filtered projects based on current tab
-  const getFilteredProjects = () => {
-    if (activeTab === "ALL") {
-      return projects;
-    } else if (activeTab === "ACTIVE") {
-      return projects.filter((project) => project.stage === "active");
-    } else if (activeTab === "IN-PROGRESS") {
-      return projects.filter((project) => project.stage === "in-progress");
-    } else if (activeTab === "CLOSED") {
-      return projects.filter((project) => project.stage === "closed");
-    }
-    return projects;
-  };
   // Get count of projects by stage
   const getProjectCountByStage = (stage) => {
     if (stage === "ALL") {
@@ -361,6 +407,14 @@ const ManageProjects = () => {
         >
           Add Project
         </Button>
+      </Box>
+
+      {/* Search Bar */}
+      <Box sx={{ mb: 2 }}>
+        <SearchBar 
+          onSearchChange={handleSearchChange}
+          placeholder="Search projects by name or project number"
+        />
       </Box>
 
       {/* Toggle navigation similar to notifications */}
@@ -503,16 +557,18 @@ const ManageProjects = () => {
                     <CircularProgress size={24} sx={{ my: 2 }} />
                   </TableCell>
                 </TableRow>
-              ) : getFilteredProjects().length === 0 ? (
+              ) : filteredProjects.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={5} align="center">
-                    {activeTab === "ALL"
-                      ? "No projects found. Add your first project."
-                      : `No ${activeTab.toLowerCase()} projects found.`}
+                    {searchTerm 
+                      ? `No projects found matching "${searchTerm}"`
+                      : activeTab === "ALL"
+                        ? "No projects found. Add your first project."
+                        : `No ${activeTab.toLowerCase()} projects found.`}
                   </TableCell>
                 </TableRow>
               ) : (
-                getFilteredProjects().map((project) => (
+                filteredProjects.map((project) => (
                   <TableRow key={project._id}>
                     <TableCell>{project.name}</TableCell>
                     <TableCell>{project.projectNumber}</TableCell>

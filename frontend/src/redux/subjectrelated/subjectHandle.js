@@ -3,6 +3,18 @@ import { getRequest, getSuccess, getFailed } from './subjectSlice';
 
 const API_BASE_URL = "http://localhost:5000/api/subjects";
 
+const parseDecimalValue = (value) => {
+    if (value === undefined || value === null) return null;
+    
+    // Handle both comma and period as decimal separators
+    const valueStr = typeof value === 'string' ? value.trim() : String(value);
+    const normalizedValue = valueStr.replace(',', '.');
+    
+    // Parse the normalized value
+    const parsed = parseFloat(normalizedValue);
+    return isNaN(parsed) ? null : parsed;
+};
+
 export const addSubject = (subjectData) => async (dispatch) => {
     try {
         const response = await axios.post(API_BASE_URL, subjectData);
@@ -117,6 +129,29 @@ export const addOutcome = (subjectID, outcomeData) => async (dispatch) => {
       // Ensure compulsory is a boolean before sending
       processedOutcomeData.compulsory = String(outcomeData.compulsory) === 'true' || outcomeData.compulsory === true;
       
+      // Handle comma decimal separators for credits
+      if (outcomeData.credits !== undefined) {
+        const parsedCredits = parseDecimalValue(outcomeData.credits);
+        
+        // Apply validation (min 0.1, max 10)
+        if (parsedCredits !== null) {
+          processedOutcomeData.credits = Math.max(0.1, Math.min(parsedCredits, 10));
+        } else {
+          processedOutcomeData.credits = 0.1; // Default
+        }
+      }
+      
+      // Same for maxCredits if present
+      if (outcomeData.maxCredits !== undefined) {
+        const parsedMaxCredits = parseDecimalValue(outcomeData.maxCredits);
+        
+        if (parsedMaxCredits !== null) {
+          processedOutcomeData.maxCredits = Math.max(0.1, Math.min(parsedMaxCredits, 10));
+        } else {
+          processedOutcomeData.maxCredits = processedOutcomeData.credits || 0.1;
+        }
+      }
+      
       // Ensure requirements is a properly formatted array
       if (outcomeData.requirements !== undefined) {
         if (!Array.isArray(outcomeData.requirements)) {
@@ -209,6 +244,25 @@ export const updateOutcome = (subjectID, outcomeID, updatedOutcome) => async (di
         // Convert to boolean using string comparison for consistency
         processedOutcome.compulsory = String(updatedOutcome.compulsory) === 'true' || updatedOutcome.compulsory === true;
         console.log("Compulsory value after conversion:", processedOutcome.compulsory);
+      }
+      
+      // Handle comma decimal separators for credits
+      if (updatedOutcome.credits !== undefined) {
+        const parsedCredits = parseDecimalValue(updatedOutcome.credits);
+        
+        // Apply validation (min 0.1, max 10)
+        if (parsedCredits !== null) {
+          processedOutcome.credits = Math.max(0.1, Math.min(parsedCredits, 10));
+        }
+      }
+      
+      // Same for maxCredits if present
+      if (updatedOutcome.maxCredits !== undefined) {
+        const parsedMaxCredits = parseDecimalValue(updatedOutcome.maxCredits);
+        
+        if (parsedMaxCredits !== null) {
+          processedOutcome.maxCredits = Math.max(0.1, Math.min(parsedMaxCredits, 10));
+        }
       }
   
       // Ensure requirements is a properly formatted array
@@ -368,6 +422,20 @@ export const bulkImportSubjects = (subjects) => async (dispatch) => {
                         try {
                             const compulsoryValue = String(outcome.compulsory) === 'true' || outcome.compulsory === true;
                             
+                            // Parse credits with comma support
+                            const parsedCredits = parseDecimalValue(outcome.credits);
+                            const validCredits = parsedCredits !== null ? 
+                                Math.max(0.1, Math.min(parsedCredits, 10)) : 0.1;
+                                
+                            // Parse maxCredits if present
+                            let validMaxCredits = validCredits;
+                            if (outcome.maxCredits !== undefined) {
+                                const parsedMaxCredits = parseDecimalValue(outcome.maxCredits);
+                                if (parsedMaxCredits !== null) {
+                                    validMaxCredits = Math.max(0.1, Math.min(parsedMaxCredits, 10));
+                                }
+                            }
+                            
                             const existingOutcome = existingOutcomes.find(existing => 
                                 existing.topic.toLowerCase() === outcome.topic.toLowerCase() &&
                                 existing.project.toLowerCase() === outcome.project.toLowerCase()
@@ -379,7 +447,8 @@ export const bulkImportSubjects = (subjects) => async (dispatch) => {
                                     {
                                         topic: outcome.topic,
                                         project: outcome.project,
-                                        credits: outcome.credits,
+                                        credits: validCredits,
+                                        maxCredits: validMaxCredits,
                                         compulsory: compulsoryValue,
                                         requirements: outcome.requirements || []
                                     }
@@ -390,7 +459,8 @@ export const bulkImportSubjects = (subjects) => async (dispatch) => {
                                     {
                                         topic: outcome.topic,
                                         project: outcome.project,
-                                        credits: outcome.credits,
+                                        credits: validCredits,
+                                        maxCredits: validMaxCredits,
                                         compulsory: compulsoryValue
                                     }
                                 );

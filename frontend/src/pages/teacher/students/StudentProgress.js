@@ -43,6 +43,7 @@ import {
   getStudentSubjects,
   updateProjectAssessment,
 } from "../../../redux/studentRelated/studentHandle";
+import { fetchNotifications } from "../../../redux/noticeRelated/notificationSlice";
 
 const formatNameFromEmail = (email) => {
   if (!email) return "Student";
@@ -412,6 +413,7 @@ const StudentProgress = () => {
         })
       );
 
+      dispatch(fetchNotifications());
       setProjectDialog({ ...projectDialog, open: false });
       fetchStudentData();
     } catch (error) {

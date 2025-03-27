@@ -32,11 +32,11 @@ export const getStudentSubjects = (studentID) => async (dispatch) => {
         console.log("Student subjects received:", response.data);
         
         // Properly storing the student's data in Redux
-        dispatch(getSuccess({
-            ...response.data,
-            assignedSubjects: response.data
-        }));
-        
+        // dispatch(getSuccess({
+        //     ...response.data,
+        //     assignedSubjects: response.data
+        // }));
+        dispatch(getSuccess(response.data));
         return response.data;
     } catch (error) {
         console.error("Error fetching student's subjects:", error);

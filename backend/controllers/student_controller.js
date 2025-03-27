@@ -3,6 +3,7 @@ const mongoose = require("mongoose");
 const jwt = require("jsonwebtoken");
 const Student = require("../models/studentSchema.js");
 const Subject = require("../models/subjectSchema");
+const Notification = require("../models/notificationSchema");
 
 // ✅ Register Student
 const studentRegister = async (req, res) => {
@@ -472,6 +473,81 @@ const submitProject = async (req, res) => {
   }
 };
 // Update the assessProject function in student_controller.js
+// const assessProject = async (req, res) => {
+//   try {
+//     const { studentID, subjectID, outcomeID, projectID } = req.params;
+//     const { approvedCredit, assessedBy, status, assessment } = req.body;
+
+//     if (!status || (status === "Approved" && approvedCredit === undefined)) {
+//       return res.status(400).json({
+//         message: "Status is required. If approving, approved credit is also required.",
+//       });
+//     }
+
+//     const student = await Student.findById(studentID);
+//     if (!student) {
+//       return res.status(404).json({ message: "Student not found" });
+//     }
+
+//     // Find the subject in the student's assigned subjects
+//     const subjectIndex = student.assignedSubjects.findIndex(
+//       (subject) => subject.subjectId.toString() === subjectID
+//     );
+
+//     if (subjectIndex === -1) {
+//       return res.status(404).json({ message: "Subject not found" });
+//     }
+
+//     // Find the outcome in the subject
+//     const outcomeIndex = student.assignedSubjects[
+//       subjectIndex
+//     ].outcomes.findIndex(
+//       (outcome) => outcome.outcomeId.toString() === outcomeID
+//     );
+
+//     if (outcomeIndex === -1) {
+//       return res.status(404).json({ message: "Outcome not found" });
+//     }
+
+//     // Find the project
+//     const projectIndex = student.assignedSubjects[subjectIndex].outcomes[
+//       outcomeIndex
+//     ].projects.findIndex((project) => project._id.toString() === projectID);
+
+//     if (projectIndex === -1) {
+//       return res.status(404).json({ message: "Project not found" });
+//     }
+
+//     // Update the project for THIS STUDENT ONLY
+//     const project =
+//       student.assignedSubjects[subjectIndex].outcomes[outcomeIndex].projects[
+//         projectIndex
+//       ];
+
+//     project.status = status;
+    
+//     // IMPORTANT FIX: Ensure we set the approvedCredit field correctly
+//     if (status === "Approved") {
+//       // Always use the teacher's approved credit value
+//       project.approvedCredit = Number(approvedCredit);
+//     }
+    
+//     if (assessedBy) {
+//       project.assessedBy = assessedBy;
+//     }
+//     if (assessment) {
+//       project.assessment = assessment;
+//     }
+
+//     // If project is approved, mark the outcome as completed
+//     if (status === "Approved") {
+//       student.assignedSubjects[subjectIndex].outcomes[
+//         outcomeIndex
+//       ].completed = true;
+//     }
+
+//     await student.save();
+
 const assessProject = async (req, res) => {
   try {
     const { studentID, subjectID, outcomeID, projectID } = req.params;
@@ -523,6 +599,9 @@ const assessProject = async (req, res) => {
         projectIndex
       ];
 
+    // Store the project name before updating for notification update
+    const projectName = project.name;
+    
     project.status = status;
     
     // IMPORTANT FIX: Ensure we set the approvedCredit field correctly
@@ -546,7 +625,26 @@ const assessProject = async (req, res) => {
     }
 
     await student.save();
-
+    await Notification.updateMany(
+      {
+        studentID: studentID,
+        subjectID: subjectID,
+        outcomeID: outcomeID,
+        projectName: projectName,
+        status: "pending" // Only update pending notifications
+      },
+      {
+        status: status.toLowerCase(), // Use lowercase for notifications (pending, approved, rejected)
+        approvedCredits: status === "Approved" ? Number(approvedCredit) : 0,
+        teacherComment: assessment || '',
+        processedDate: new Date(),
+        assessedBy: assessedBy || "Teacher",
+        assessedDate: new Date(),
+        isProcessed: true
+      }
+    );
+    
+    // This is the existing response code:
     res.status(200).json({
       message: "Project assessment updated successfully",
       project: student.assignedSubjects[subjectIndex].outcomes[outcomeIndex].projects[projectIndex],

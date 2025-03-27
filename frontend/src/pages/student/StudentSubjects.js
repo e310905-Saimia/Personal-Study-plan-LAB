@@ -71,7 +71,9 @@ const StudentSubjects = () => {
   const fetchAvailableProjects = async () => {
     setProjectsLoading(true);
     try {
-      const response = await axios.get("http://localhost:5000/api/projects/active");
+      const response = await axios.get(
+        "http://localhost:5000/api/projects/active"
+      );
       console.log("Available projects from teacher:", response.data);
       setAvailableProjects(response.data || []);
     } catch (error) {
@@ -277,8 +279,8 @@ const StudentSubjects = () => {
 
   // Improved handleAddProject function with consistent ID handling
   const handleAddProject = async (outcome, subject) => {
-    const outcomeId = outcome.outcomeId;
-    const subjectId = subject.subjectId;
+    const outcomeId = outcome.outcomeId || outcome._id;
+    const subjectId = subject.subjectId || subject._id;
 
     // Validation checks
     if (!projects[outcomeId]?.name || !projects[outcomeId]?.credit) {
@@ -312,7 +314,36 @@ const StudentSubjects = () => {
       });
       return;
     }
+    const projectName = projects[outcomeId].name;
+    let isDuplicate = false;
 
+    // Loop through all subjects
+    for (const subj of studentData) {
+      // Loop through all outcomes in each subject
+      if (subj.outcomes) {
+        for (const outc of subj.outcomes) {
+          // Check if any project in this outcome has the same name
+          if (
+            outc.projects &&
+            outc.projects.some((proj) => proj.name === projectName)
+          ) {
+            isDuplicate = true;
+            break;
+          }
+        }
+      }
+      if (isDuplicate) break;
+    }
+
+    if (isDuplicate) {
+      setNotification({
+        open: true,
+        message:
+          "You have already submitted this project in another outcome. Each project can only be submitted once.",
+        severity: "error",
+      });
+      return;
+    }
     // Set loading
     setLoading(true);
 
@@ -527,35 +558,34 @@ const StudentSubjects = () => {
 
   const calculateGrandTotalCredits = () => {
     if (!studentData || studentData.length === 0) return 0;
-    
+
     let grandTotal = 0;
-    studentData.forEach(subject => {
+    studentData.forEach((subject) => {
       grandTotal += calculateTotalApprovedCredits(subject);
     });
-    
+
     return parseFloat(grandTotal.toFixed(2));
   };
 
   return (
-    
     <Box sx={{ padding: 3 }}>
-  <Box
-    sx={{
-      display: "flex",
-      justifyContent: "space-between",
-      alignItems: "center",
-      mb: 3,
-    }}
-  >
-    <Typography variant="h4" gutterBottom>
-      Student Subjects
-    </Typography>
-    <Box sx={{ display: "flex", alignItems: "center" }}>
-      <Typography variant="h6" color="primary" sx={{ fontWeight: "bold" }}>
-        Total Approved Credits: {calculateGrandTotalCredits()}
-      </Typography>
-    </Box>
-  </Box>
+      <Box
+        sx={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          mb: 3,
+        }}
+      >
+        <Typography variant="h4" gutterBottom>
+          Student Subjects
+        </Typography>
+        <Box sx={{ display: "flex", alignItems: "center" }}>
+          <Typography variant="h6" color="primary" sx={{ fontWeight: "bold" }}>
+            Total Approved Credits: {calculateGrandTotalCredits()}
+          </Typography>
+        </Box>
+      </Box>
 
       {loading || notificationsLoading ? (
         <Box sx={{ display: "flex", justifyContent: "center", my: 4 }}>
@@ -747,7 +777,7 @@ const StudentSubjects = () => {
                                                 inputProps={{
                                                   min: 0.1,
                                                   max: 10,
-                                                  step: 0.1
+                                                  step: 0.1,
                                                 }}
                                                 helperText="Value must be between 0.1 and 10"
                                               />

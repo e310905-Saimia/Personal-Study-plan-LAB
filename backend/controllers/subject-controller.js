@@ -139,8 +139,6 @@ const updateOutcome = async (req, res) => {
     try {
         const { topic, project, credits, maxCredits, requirements, compulsory } = req.body;
         
-        console.log("Updating outcome with data:", req.body); // Add logging
-        
         const subject = await Subject.findById(req.params.subjectID);
         if (!subject) return res.status(404).json({ message: "Subject not found" });
 

@@ -102,7 +102,7 @@ const processProjectNotification = async (req, res) => {
     // Set assessedBy to teacherName or default to 'Teacher'
     const assessedBy = teacherName || 'Teacher';
     
-    console.log("Using teacher name for assessment:", assessedBy);
+    // console.log("Using teacher name for assessment:", assessedBy);
 
     // First, get the notification to get student and project details
     const notification = await Notification.findById(notificationId);

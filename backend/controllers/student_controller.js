@@ -103,24 +103,56 @@ const getStudents = async (req, res) => {
 };
 
 // ✅ Get Single Student Details
+// const getStudentDetail = async (req, res) => {
+//   try {
+//     let student = await Student.findById(req.params.id)
+//       .populate("sclassName", "sclassName")
+//       .populate("school", "schoolName")
+//       .populate("examResult.subName", "subName");
+
+//     if (!student) {
+//       return res.status(404).json({ message: "No student found" });
+//     }
+
+//     student.password = undefined;
+//     res.send(student);
+//   } catch (err) {
+//     res.status(500).json({ error: err.message });
+//   }
+// };
+
+
 const getStudentDetail = async (req, res) => {
   try {
-    let student = await Student.findById(req.params.id)
-      .populate("sclassName", "sclassName")
-      .populate("school", "schoolName")
-      .populate("examResult.subName", "subName");
+      let student = await Student.findById(req.params.id)
+          .select('-password'); // Exclude password
 
-    if (!student) {
-      return res.status(404).json({ message: "No student found" });
-    }
+      if (!student) {
+          return res.status(404).json({ message: 'Student not found' });
+      }
 
-    student.password = undefined;
-    res.send(student);
+      // Ensure name is included, even if it's derived from email
+      const studentResponse = student.toObject();
+      if (!studentResponse.name && studentResponse.email) {
+          // Format name from email if no name exists
+          studentResponse.name = formatNameFromEmail(studentResponse.email);
+      }
+
+      res.status(200).json(studentResponse);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+      res.status(500).json({ error: err.message });
   }
 };
 
+// Helper function to format name from email
+const formatNameFromEmail = (email) => {
+  if (!email) return 'Student';
+  const namePart = email.split('@')[0];
+  return namePart
+      .split('.')
+      .map(part => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
+      .join(' ');
+};
 // ✅ Delete All Students of a School
 const deleteStudents = async (req, res) => {
   try {
@@ -366,8 +398,8 @@ const submitProject = async (req, res) => {
     const { studentID, subjectID, outcomeID } = req.params;
     const { name, requestedCredit } = req.body;
 
-    console.log("Received parameters:", { studentID, subjectID, outcomeID });
-    console.log("Request body:", req.body);
+    // console.log("Received parameters:", { studentID, subjectID, outcomeID });
+    // console.log("Request body:", req.body);
 
     // Find the student
     let student = await Student.findById(studentID);
@@ -611,6 +643,258 @@ const deleteProject = async (req, res) => {
   }
 };
 
+// ------------------------------------
+
+// Add a subject to a student
+const addStudentSubject = async (req, res) => {
+  try {
+    const { studentID } = req.params;
+    const { name } = req.body;
+
+    if (!name) {
+      return res.status(400).json({ message: "Subject name is required" });
+    }
+
+    const student = await Student.findById(studentID);
+    if (!student) {
+      return res.status(404).json({ message: "Student not found" });
+    }
+
+    // Create new subject
+    const newSubject = {
+      subjectId: new mongoose.Types.ObjectId(), // Generate a new ID
+      name,
+      credits: 1, // Default credit value
+      outcomes: [],
+      assignedDate: new Date()
+    };
+
+    // Add to student's subjects
+    student.assignedSubjects.push(newSubject);
+    await student.save();
+
+    res.status(201).json({
+      message: "Subject added successfully",
+      subject: newSubject
+    });
+  } catch (error) {
+    console.error("Error adding subject to student:", error);
+    res.status(500).json({ message: "Internal Server Error", error: error.message });
+  }
+};
+
+// Update a student's subject
+const updateStudentSubject = async (req, res) => {
+  try {
+    const { studentID, subjectID } = req.params;
+    const { name } = req.body;
+
+    const student = await Student.findById(studentID);
+    if (!student) {
+      return res.status(404).json({ message: "Student not found" });
+    }
+
+    // Find subject index
+    const subjectIndex = student.assignedSubjects.findIndex(
+      subject => subject.subjectId.toString() === subjectID
+    );
+
+    if (subjectIndex === -1) {
+      return res.status(404).json({ message: "Subject not found" });
+    }
+
+    // Update the subject
+    if (name) {
+      student.assignedSubjects[subjectIndex].name = name;
+    }
+
+    await student.save();
+
+    res.status(200).json({
+      message: "Subject updated successfully",
+      subject: student.assignedSubjects[subjectIndex]
+    });
+  } catch (error) {
+    console.error("Error updating student subject:", error);
+    res.status(500).json({ message: "Internal Server Error", error: error.message });
+  }
+};
+
+// Delete a student's subject
+const deleteStudentSubject = async (req, res) => {
+  try {
+    const { studentID, subjectID } = req.params;
+
+    const student = await Student.findById(studentID);
+    if (!student) {
+      return res.status(404).json({ message: "Student not found" });
+    }
+
+    // Filter out the subject to delete
+    student.assignedSubjects = student.assignedSubjects.filter(
+      subject => subject.subjectId.toString() !== subjectID
+    );
+
+    await student.save();
+
+    res.status(200).json({ message: "Subject deleted successfully" });
+  } catch (error) {
+    console.error("Error deleting student subject:", error);
+    res.status(500).json({ message: "Internal Server Error", error: error.message });
+  }
+};
+
+// Add an outcome to a subject
+const addStudentOutcome = async (req, res) => {
+  try {
+    const { studentID, subjectID } = req.params;
+    const { topic, minCredits, maxCredits, compulsory } = req.body;
+
+    if (!topic) {
+      return res.status(400).json({ message: "Outcome topic is required" });
+    }
+
+    const student = await Student.findById(studentID);
+    if (!student) {
+      return res.status(404).json({ message: "Student not found" });
+    }
+
+    // Find subject index
+    const subjectIndex = student.assignedSubjects.findIndex(
+      subject => subject.subjectId.toString() === subjectID
+    );
+
+    if (subjectIndex === -1) {
+      return res.status(404).json({ message: "Subject not found" });
+    }
+
+    // Create new outcome
+    const newOutcome = {
+      outcomeId: new mongoose.Types.ObjectId(), // Generate a new ID
+      topic,
+      project: topic, // Use topic as project name by default
+      credits: minCredits || 0.1,
+      minCredits: minCredits || 0.1, 
+      maxCredits: maxCredits || 1,
+      compulsory: compulsory !== undefined ? compulsory : true,
+      requirements: [],
+      completed: false,
+      projects: []
+    };
+
+    // Add to subject's outcomes
+    student.assignedSubjects[subjectIndex].outcomes.push(newOutcome);
+    await student.save();
+
+    res.status(201).json({
+      message: "Outcome added successfully",
+      outcome: newOutcome
+    });
+  } catch (error) {
+    console.error("Error adding outcome to subject:", error);
+    res.status(500).json({ message: "Internal Server Error", error: error.message });
+  }
+};
+
+// Update a subject's outcome
+const updateStudentOutcome = async (req, res) => {
+  try {
+    const { studentID, subjectID, outcomeID } = req.params;
+    const { topic, minCredits, maxCredits, compulsory, requirements } = req.body;
+
+    const student = await Student.findById(studentID);
+    if (!student) {
+      return res.status(404).json({ message: "Student not found" });
+    }
+
+    // Find subject index
+    const subjectIndex = student.assignedSubjects.findIndex(
+      subject => subject.subjectId.toString() === subjectID
+    );
+
+    if (subjectIndex === -1) {
+      return res.status(404).json({ message: "Subject not found" });
+    }
+
+    // Find outcome index
+    const outcomeIndex = student.assignedSubjects[subjectIndex].outcomes.findIndex(
+      outcome => outcome.outcomeId.toString() === outcomeID
+    );
+
+    if (outcomeIndex === -1) {
+      return res.status(404).json({ message: "Outcome not found" });
+    }
+
+    // Update the outcome
+    const outcome = student.assignedSubjects[subjectIndex].outcomes[outcomeIndex];
+
+    if (topic) {
+      outcome.topic = topic;
+      outcome.project = topic; // Keep project name in sync with topic
+    }
+    
+    if (minCredits !== undefined) {
+      outcome.credits = minCredits; // For backward compatibility
+      outcome.minCredits = minCredits;
+    }
+    
+    if (maxCredits !== undefined) {
+      outcome.maxCredits = maxCredits;
+    }
+    
+    if (compulsory !== undefined) {
+      outcome.compulsory = compulsory;
+    }
+    
+    if (requirements !== undefined) {
+      outcome.requirements = requirements;
+    }
+
+    await student.save();
+
+    res.status(200).json({
+      message: "Outcome updated successfully",
+      outcome: student.assignedSubjects[subjectIndex].outcomes[outcomeIndex]
+    });
+  } catch (error) {
+    console.error("Error updating outcome:", error);
+    res.status(500).json({ message: "Internal Server Error", error: error.message });
+  }
+};
+
+// Delete a subject's outcome
+const deleteStudentOutcome = async (req, res) => {
+  try {
+    const { studentID, subjectID, outcomeID } = req.params;
+
+    const student = await Student.findById(studentID);
+    if (!student) {
+      return res.status(404).json({ message: "Student not found" });
+    }
+
+    // Find subject index
+    const subjectIndex = student.assignedSubjects.findIndex(
+      subject => subject.subjectId.toString() === subjectID
+    );
+
+    if (subjectIndex === -1) {
+      return res.status(404).json({ message: "Subject not found" });
+    }
+
+    // Filter out the outcome to delete
+    student.assignedSubjects[subjectIndex].outcomes = 
+      student.assignedSubjects[subjectIndex].outcomes.filter(
+        outcome => outcome.outcomeId.toString() !== outcomeID
+      );
+
+    await student.save();
+
+    res.status(200).json({ message: "Outcome deleted successfully" });
+  } catch (error) {
+    console.error("Error deleting outcome:", error);
+    res.status(500).json({ message: "Internal Server Error", error: error.message });
+  }
+};
 module.exports = {
   studentRegister,
   studentLogIn,
@@ -629,4 +913,10 @@ module.exports = {
   assessProject,
   getOutcomeProjects,
   deleteProject,
+  addStudentSubject,
+  updateStudentSubject,
+  deleteStudentSubject,
+  addStudentOutcome,
+  updateStudentOutcome,
+  deleteStudentOutcome,
 };

@@ -63,7 +63,7 @@ const StudentHomePage = () => {
                 <Grid item xs={12} md={4} lg={4}>
                     <StyledPaper>
                         <Title>Total Approved Credits</Title>
-                        <Data start={0} end={totalApprovedCredits} duration={2.5} decimals={2} />
+                        <Data start={0} end={totalApprovedCredits} duration={2.5} decimals={1} />
                     </StyledPaper>
                 </Grid>
                 

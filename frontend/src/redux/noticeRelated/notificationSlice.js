@@ -76,20 +76,25 @@ export const deleteAllNotifications = createAsyncThunk(
 
 export const processProjectNotification = createAsyncThunk(
   "notifications/processProject",
-  async ({ notificationId, status, approvedCredits, teacherComment, teacherName }, { rejectWithValue }) => {
+  async ({ notificationId, status, approvedCredits, teacherComment, teacherName, assessedBy }, { rejectWithValue }) => {
     try {
+
+      const teacherIdentifier = assessedBy || teacherName;
+
       console.log("Processing notification:", {
         notificationId,
         status,
         approvedCredits,
         teacherComment,
-        teacherName // Log the teacher name
+        teacherName,
+        assessedBy,
+        teacherIdentifier
       });
 
       // Include teacherName in the API call
       const response = await axios.put(
         `${API_URL}/${notificationId}/process`, 
-        { status, approvedCredits, teacherComment, teacherName }
+        { status, approvedCredits, teacherComment, teacherName, assessedBy: teacherIdentifier }
       );
 
       console.log("Process notification response:", response.data);

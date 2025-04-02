@@ -159,7 +159,8 @@ const ShowNotices = () => {
           // Make sure to always pass a number for approvedCredits
           approvedCredits: status === "approved" ? Number(approvedCredits) : 0,
           teacherComment,
-          teacherName // Include teacher name in the request
+          teacherName,
+          assessedBy: teacherName // Include teacher name in the request
         })
       ).unwrap();
   
@@ -374,7 +375,7 @@ const ShowNotices = () => {
                     <TableRow key={notif._id || index}>
                       <TableCell>{notif.message}</TableCell>
                       <TableCell>
-                        {new Date(notif.date).toLocaleString()}
+                        {new Date(notif.date).toLocaleDateString()}
                       </TableCell>
                       <TableCell>
                         <Chip
@@ -414,7 +415,7 @@ const ShowNotices = () => {
                             {notif.assessedDate && (
                               <Typography variant="caption" display="block">
                                 On:{" "}
-                                {new Date(notif.assessedDate).toLocaleString()}
+                                {new Date(notif.assessedDate).toLocaleDateString()}
                               </Typography>
                             )}
                             {notif.approvedCredits > 0 && (

@@ -205,7 +205,7 @@ const FileImporter = ({
       });
     };
 
-    reader.readAsText(csvFile);
+    reader.readAsText(csvFile, "windows-1252");
   };
 
   // Handle successfully parsed data

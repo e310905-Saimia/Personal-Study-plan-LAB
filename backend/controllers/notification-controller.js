@@ -92,17 +92,17 @@ const createNotification = async (req, res) => {
 const processProjectNotification = async (req, res) => {
   try {
     const notificationId = req.params.id;
-    const { status, approvedCredits, teacherComment, teacherName } = req.body;
+    const { status, approvedCredits, teacherComment, teacherName, assessedBy } = req.body;
 
     // Validate inputs
     if (!['approved', 'rejected'].includes(status)) {
       return res.status(400).json({ message: "Invalid status" });
     }
 
-    // Set assessedBy to teacherName or default to 'Teacher'
-    const assessedBy = teacherName || 'Teacher';
+    // Set teacher identifier to assessedBy or teacherName or default to 'Teacher'
+    const teacherIdentifier = assessedBy || teacherName || 'Teacher';
     
-    // console.log("Using teacher name for assessment:", assessedBy);
+    console.log("Using teacher name for assessment:", teacherIdentifier);
 
     // First, get the notification to get student and project details
     const notification = await Notification.findById(notificationId);
@@ -170,8 +170,8 @@ const processProjectNotification = async (req, res) => {
         student.assignedSubjects[subjectIndex].outcomes[outcomeIndex].completed = true;
       }
       
-      // Set assessor name
-      project.assessedBy = assessedBy;
+      // Set assessor name with correct variable
+      project.assessedBy = teacherIdentifier;
       
       // Add assessment comment
       if (teacherComment) {
@@ -190,7 +190,7 @@ const processProjectNotification = async (req, res) => {
         approvedCredits: Number(approvedCredits) || 0,
         teacherComment: teacherComment || '',
         processedDate: new Date(),
-        assessedBy: assessedBy,
+        assessedBy: teacherIdentifier,
         assessedDate: new Date(),
         isProcessed: true
       },

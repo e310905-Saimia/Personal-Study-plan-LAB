@@ -29,6 +29,11 @@ import {
   MenuItem,
   FormControlLabel,
   Switch,
+  InputAdornment,
+  Select,
+  FormControl,
+  InputLabel,
+  OutlinedInput,
 } from "@mui/material";
 import {
   ExpandMore,
@@ -38,6 +43,8 @@ import {
   Delete,
   Check,
   Close,
+  Search as SearchIcon,
+  FilterList as FilterIcon,
 } from "@mui/icons-material";
 import {
   getStudentSubjects,
@@ -54,6 +61,50 @@ const formatNameFromEmail = (email) => {
     .join(" ");
 };
 
+// Calculate total approved credits for a specific outcome
+const calculateOutcomeCredits = (outcome) => {
+  if (!outcome || !outcome.projects) return 0;
+  
+  return outcome.projects.reduce((total, project) => {
+    if (project.status === "Approved" && project.approvedCredit) {
+      return total + Number(project.approvedCredit);
+    }
+    return total;
+  }, 0);
+};
+
+// Calculate total approved credits for a specific subject
+const calculateSubjectCredits = (subject) => {
+  if (!subject || !subject.outcomes) return 0;
+  
+  return subject.outcomes.reduce((total, outcome) => {
+    return total + calculateOutcomeCredits(outcome);
+  }, 0);
+};
+
+const calculateTotalApprovedCredits = (studentData) => {
+  if (!studentData || !Array.isArray(studentData)) return 0;
+  
+  return studentData.reduce((total, subject) => {
+    if (!subject.outcomes) return total;
+    
+    const subjectTotal = subject.outcomes.reduce((outcomeTotal, outcome) => {
+      if (!outcome.projects) return outcomeTotal;
+      
+      const outcomeCredits = outcome.projects.reduce((projectTotal, project) => {
+        if (project.status === "Approved" && project.approvedCredit) {
+          return projectTotal + Number(project.approvedCredit);
+        }
+        return projectTotal;
+      }, 0);
+      
+      return outcomeTotal + outcomeCredits;
+    }, 0);
+    
+    return total + subjectTotal;
+  }, 0);
+};
+
 const StudentProgress = () => {
   const { studentID } = useParams();
   const navigate = useNavigate();
@@ -64,6 +115,11 @@ const StudentProgress = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [studentName, setStudentName] = useState("Student");
+  const [totalApprovedCredits, setTotalApprovedCredits] = useState(0);
+  
+  // Search and filter state
+  const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
 
   // Dialogs state
   const [openRequirements, setOpenRequirements] = useState(false);
@@ -118,6 +174,94 @@ const StudentProgress = () => {
     projectId: null,
   });
 
+  // Get filtered data based on search query and status filter
+  const getFilteredData = useCallback(() => {
+    if (!studentData) return [];
+
+    // Check for type-based filtering keywords
+    const isFilteringByType = 
+      searchQuery.toLowerCase() === "subject" || 
+      searchQuery.toLowerCase() === "subjects" ||
+      searchQuery.toLowerCase() === "outcome" || 
+      searchQuery.toLowerCase() === "outcomes" ||
+      searchQuery.toLowerCase() === "project" || 
+      searchQuery.toLowerCase() === "projects";
+
+    // If we're not using special keywords, do the normal filtering
+    if (!isFilteringByType && searchQuery === "" && statusFilter === "all") {
+      return studentData; // Return all data when no filters applied
+    }
+
+    const isSubjectFilter = 
+      searchQuery.toLowerCase() === "subject" || 
+      searchQuery.toLowerCase() === "subjects";
+    
+    const isOutcomeFilter = 
+      searchQuery.toLowerCase() === "outcome" || 
+      searchQuery.toLowerCase() === "outcomes";
+    
+    const isProjectFilter = 
+      searchQuery.toLowerCase() === "project" || 
+      searchQuery.toLowerCase() === "projects";
+
+    return studentData
+      .map((subject) => {
+        // First check if subject name matches normal search query
+        const subjectMatches = !isFilteringByType ? 
+          subject.name.toLowerCase().includes(searchQuery.toLowerCase()) : 
+          isSubjectFilter;
+
+        // Filter outcomes
+        const filteredOutcomes = subject.outcomes
+          ? subject.outcomes
+              .map((outcome) => {
+                // Check if outcome topic matches search query
+                const outcomeMatches = !isFilteringByType ? 
+                  outcome.topic.toLowerCase().includes(searchQuery.toLowerCase()) : 
+                  isOutcomeFilter;
+
+                // Filter projects
+                const filteredProjects = outcome.projects
+                  ? outcome.projects.filter((project) => {
+                      // Check if project name matches search query
+                      const projectMatches = !isFilteringByType ? 
+                        project.name.toLowerCase().includes(searchQuery.toLowerCase()) : 
+                        isProjectFilter;
+
+                      // Apply status filter
+                      const statusMatches =
+                        statusFilter === "all" ||
+                        (statusFilter === "pending" &&
+                          (!project.status || project.status === "Pending")) ||
+                        (statusFilter === "approved" &&
+                          project.status === "Approved") ||
+                        (statusFilter === "rejected" &&
+                          project.status === "Rejected");
+
+                      return (projectMatches || outcomeMatches || subjectMatches) && statusMatches;
+                    })
+                  : [];
+
+                // Keep outcome if it has matching projects or matches the search query itself
+                return {
+                  ...outcome,
+                  projects: filteredProjects,
+                  _show: filteredProjects.length > 0 || outcomeMatches || (isOutcomeFilter && !isFilteringByType),
+                };
+              })
+              .filter((outcome) => outcome._show)
+          : [];
+
+        // Keep subject if it has matching outcomes or matches the search query itself
+        return {
+          ...subject,
+          outcomes: filteredOutcomes,
+          _show: filteredOutcomes.length > 0 || subjectMatches || (isSubjectFilter && !isFilteringByType),
+        };
+      })
+      .filter((subject) => subject._show);
+  }, [studentData, searchQuery, statusFilter]);
+
   // Fetch student data
   const fetchStudentData = useCallback(async () => {
     try {
@@ -131,6 +275,8 @@ const StudentProgress = () => {
 
       console.log("Student data received:", response.data);
       setStudentData(response.data);
+      const totalCredits = calculateTotalApprovedCredits(response.data);
+      setTotalApprovedCredits(totalCredits);
       setLoading(false);
     } catch (err) {
       console.error("Error fetching student subjects:", err);
@@ -197,15 +343,22 @@ const StudentProgress = () => {
     }
   }, [studentID, studentData]);
   
-  // Formatting function remains the same
-  const formatNameFromEmail = (email) => {
-    if (!email) return "Student";
-    const namePart = email.split("@")[0];
-    return namePart
-      .split(".")
-      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-      .join(" ");
-  };
+  // Load student name
+  useEffect(() => {
+    const loadStudentName = async () => {
+      try {
+        const name = await getStudentName();
+        console.log("Retrieved student name:", name);
+        setStudentName(name);
+      } catch (error) {
+        console.error("Error loading student name:", error);
+        setStudentName("Student");
+      }
+    };
+
+    loadStudentName();
+  }, [getStudentName]);
+
   // Handle requirements dialog
   const handleOpenRequirements = (requirements, subjectId, outcomeId) => {
     setSelectedRequirements(requirements || []);
@@ -222,30 +375,16 @@ const StudentProgress = () => {
     setSubjectDialog({
       open: true,
       isEdit: false,
-      data: { name: "" }, // Removed credits
+      data: { name: "" },
       subjectId: null,
     });
   };
 
-  useEffect(() => {
-    const loadStudentName = async () => {
-      try {
-        const name = await getStudentName();
-        console.log("Retrieved student name:", name);
-        setStudentName(name);
-      } catch (error) {
-        console.error("Error loading student name:", error);
-        setStudentName("Student");
-      }
-    };
-
-    loadStudentName();
-  }, [getStudentName]);
   const handleEditSubject = (subject) => {
     setSubjectDialog({
       open: true,
       isEdit: true,
-      data: { name: subject.name }, // Removed credits
+      data: { name: subject.name },
       subjectId: subject.subjectId,
     });
   };
@@ -478,9 +617,10 @@ const StudentProgress = () => {
         return "warning";
     }
   };
+
   return (
     <Box sx={{ padding: 3 }}>
-      {/* Header with add subject button */}
+      {/* Header with total credits and add subject button */}
       <Box
         sx={{
           display: "flex",
@@ -489,10 +629,19 @@ const StudentProgress = () => {
           mb: 3,
         }}
       >
-        <Typography variant="h4" gutterBottom>
-          {studentName}'s Subjects and Projects
-        </Typography>
-
+        <Box>
+          <Typography variant="h4" gutterBottom>
+            {studentName}'s Subjects and Projects
+          </Typography>
+          <Typography 
+            variant="h6" 
+            color="primary" 
+            sx={{ fontWeight: 'bold' }}
+          >
+            Total Approved Credits: {totalApprovedCredits.toFixed(1)}
+          </Typography>
+        </Box>
+  
         <Button
           variant="contained"
           color="primary"
@@ -502,247 +651,63 @@ const StudentProgress = () => {
           Add Subject
         </Button>
       </Box>
+      
+      {/* Search and filter controls */}
+      <Box sx={{ mb: 3, display: 'flex', alignItems: 'center', gap: 2 }}>
+        {/* Search bar */}
+        <FormControl fullWidth variant="outlined">
+          <InputLabel htmlFor="search-input">Search subjects, outcomes, or projects</InputLabel>
+          <OutlinedInput
+            id="search-input"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            startAdornment={
+              <InputAdornment position="start">
+                <SearchIcon />
+              </InputAdornment>
+            }
+            label="Search subjects, outcomes, or projects"
+          />
+        </FormControl>
+
+        {/* Status filter */}
+        <FormControl sx={{ minWidth: 200 }}>
+          <InputLabel id="status-filter-label">Project Status</InputLabel>
+          <Select
+            labelId="status-filter-label"
+            id="status-filter"
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+            label="Project Status"
+            startAdornment={
+              <InputAdornment position="start">
+                <FilterIcon />
+              </InputAdornment>
+            }
+          >
+            <MenuItem value="all">All Projects</MenuItem>
+            <MenuItem value="pending">Pending</MenuItem>
+            <MenuItem value="approved">Approved</MenuItem>
+            <MenuItem value="rejected">Rejected</MenuItem>
+          </Select>
+        </FormControl>
+      </Box>
+      
       {/* Error message if any */}
       {error && (
         <Paper sx={{ p: 2, mb: 3, bgcolor: "#ffebee" }}>
           <Typography color="error">{error}</Typography>
         </Paper>
       )}
+      
       {/* Loading indicator */}
       {loading && (
         <Box sx={{ display: "flex", justifyContent: "center", p: 3 }}>
           <CircularProgress />
         </Box>
       )}
-      {/* Subject list */}
-      {!loading && studentData && (
-        <Box>
-          {studentData.length > 0 ? (
-            studentData.map((subject) => (
-              <Paper
-                key={subject.subjectId}
-                elevation={2}
-                sx={{ mb: 3, borderRadius: 2, overflow: "hidden" }}
-              >
-                {/* Subject header with actions */}
-                <Box
-                  sx={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center",
-                    p: 2,
-                    bgcolor: "#f5f5f5",
-                  }}
-                >
-                  <Typography variant="h6">{subject.name}</Typography>
-
-                  <Box>
-                    <Button
-                      variant="outlined"
-                      color="primary"
-                      size="small"
-                      startIcon={<Add />}
-                      onClick={() => handleAddOutcome(subject.subjectId)}
-                      sx={{ mr: 1 }}
-                    >
-                      Add Outcome
-                    </Button>
-
-                    <IconButton
-                      color="primary"
-                      onClick={() => handleEditSubject(subject)}
-                      sx={{ mr: 1 }}
-                    >
-                      <Edit />
-                    </IconButton>
-
-                    <IconButton
-                      color="error"
-                      onClick={() =>
-                        handleDeleteSubject(subject.subjectId, subject.name)
-                      }
-                    >
-                      <Delete />
-                    </IconButton>
-                  </Box>
-                </Box>
-
-                {/* Outcomes */}
-                <Box sx={{ p: 0 }}>
-                  {subject.outcomes && subject.outcomes.length > 0 ? (
-                    subject.outcomes.map((outcome) => (
-                      <Accordion key={outcome.outcomeId}>
-                        <AccordionSummary expandIcon={<ExpandMore />}>
-                          <Box
-                            sx={{
-                              display: "flex",
-                              alignItems: "center",
-                              width: "100%",
-                            }}
-                          >
-                            <Typography sx={{ flexGrow: 1 }}>
-                              {outcome.topic} ({outcome.minCredits} -{" "}
-                              {outcome.maxCredits} credits)
-                            </Typography>
-                            <Chip
-                              label={
-                                outcome.compulsory ? "Compulsory" : "Optional"
-                              }
-                              color={outcome.compulsory ? "primary" : "default"}
-                              size="small"
-                              sx={{ mr: 2 }}
-                            />
-                          </Box>
-                        </AccordionSummary>
-                        <AccordionDetails>
-                          {/* Outcome actions */}
-                          <Box sx={{ display: "flex", mb: 2, gap: 1 }}>
-                            <Button
-                              variant="outlined"
-                              startIcon={<Visibility />}
-                              onClick={() =>
-                                handleOpenRequirements(
-                                  outcome.requirements,
-                                  subject.subjectId,
-                                  outcome.outcomeId
-                                )
-                              }
-                            >
-                              Manage Requirements
-                            </Button>
-
-                            <IconButton
-                              color="primary"
-                              onClick={() =>
-                                handleEditOutcome(outcome, subject.subjectId)
-                              }
-                            >
-                              <Edit />
-                            </IconButton>
-
-                            <IconButton
-                              color="error"
-                              onClick={() =>
-                                handleDeleteOutcome(
-                                  subject.subjectId,
-                                  outcome.outcomeId,
-                                  outcome.topic
-                                )
-                              }
-                            >
-                              <Delete />
-                            </IconButton>
-                          </Box>
-
-                          <Divider sx={{ my: 2 }} />
-
-                          {/* Projects section */}
-                          <Typography variant="subtitle1" gutterBottom>
-                            Projects:
-                          </Typography>
-
-                          {outcome.projects && outcome.projects.length > 0 ? (
-                            <TableContainer
-                              component={Paper}
-                              variant="outlined"
-                            >
-                              <Table size="small">
-                                <TableHead>
-                                  <TableRow sx={{ bgcolor: "#f9f9f9" }}>
-                                    <TableCell>Project Name</TableCell>
-                                    <TableCell>Requested Credit</TableCell>
-                                    <TableCell>Status</TableCell>
-                                    <TableCell>Approved Credit</TableCell>
-                                    <TableCell>Assessed By</TableCell>
-                                    <TableCell>Actions</TableCell>
-                                  </TableRow>
-                                </TableHead>
-                                <TableBody>
-                                  {outcome.projects.map((project) => (
-                                    <TableRow key={project._id}>
-                                      <TableCell>{project.name}</TableCell>
-                                      <TableCell>
-                                        {project.requestedCredit}
-                                      </TableCell>
-                                      <TableCell>
-                                        <Chip
-                                          label={project.status || "Pending"}
-                                          color={getStatusColor(project.status)}
-                                          size="small"
-                                        />
-                                      </TableCell>
-                                      <TableCell>
-                                        {project.status === "Approved"
-                                          ? project.approvedCredit ||
-                                            project.requestedCredit
-                                          : "-"}
-                                      </TableCell>
-                                      <TableCell>
-                                        {project.assessedBy || "-"}
-                                      </TableCell>
-                                      <TableCell>
-                                        <IconButton
-                                          color="primary"
-                                          size="small"
-                                          onClick={() =>
-                                            handleProjectAssessment(
-                                              project,
-                                              outcome,
-                                              subject
-                                            )
-                                          }
-                                        >
-                                          <Edit />
-                                        </IconButton>
-
-                                        <IconButton
-                                          color="error"
-                                          size="small"
-                                          onClick={() =>
-                                            setDeleteDialog({
-                                              open: true,
-                                              type: "project",
-                                              id: project._id,
-                                              name: project.name,
-                                              subjectId: subject.subjectId,
-                                              outcomeId: outcome.outcomeId,
-                                            })
-                                          }
-                                        >
-                                          <Delete />
-                                        </IconButton>
-                                      </TableCell>
-                                    </TableRow>
-                                  ))}
-                                </TableBody>
-                              </Table>
-                            </TableContainer>
-                          ) : (
-                            <Typography variant="body2" color="text.secondary">
-                              No projects submitted yet.
-                            </Typography>
-                          )}
-                        </AccordionDetails>
-                      </Accordion>
-                    ))
-                  ) : (
-                    <Box sx={{ p: 2, textAlign: "center" }}>
-                      <Typography color="text.secondary">
-                        No outcomes found for this subject.
-                      </Typography>
-                    </Box>
-                  )}
-                </Box>
-              </Paper>
-            ))
-          ) : (
-            <Paper sx={{ p: 3, textAlign: "center" }}>
-              <Typography>No subjects assigned to this student.</Typography>
-            </Paper>
-          )}
-        </Box>
-      )}
-      ¨{/* Student Info Card */}
+      
+      {/* Student Info Card */}
       {!loading && studentName !== "Student" && (
         <Paper
           elevation={2}
@@ -761,6 +726,260 @@ const StudentProgress = () => {
           <Chip label="Student" color="primary" size="small" />
         </Paper>
       )}
+      
+      {/* Subject list with filtered data */}
+      {!loading && studentData && (
+        <Box>
+          {(() => {
+            const filteredData = getFilteredData();
+            return filteredData.length > 0 ? (
+              filteredData.map((subject) => (
+                <Paper
+                  key={subject.subjectId}
+                  elevation={2}
+                  sx={{ mb: 3, borderRadius: 2, overflow: "hidden" }}
+                >
+                  {/* Subject header with actions */}
+                  <Box
+                    sx={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                      p: 2,
+                      bgcolor: "#f5f5f5",
+                    }}
+                  >
+                    <Typography variant="h6">{subject.name}</Typography>
+
+                    <Box sx={{ display: "flex", alignItems: "center" }}>
+                      {/* Display subject total credits */}
+                      <Typography 
+                        variant="h6" 
+                        color="primary"
+                        sx={{ mr: 3, fontWeight: 'bold' }}
+                      >
+                        {calculateSubjectCredits(subject).toFixed(1)}
+                      </Typography>
+                      
+                      <Button
+                        variant="outlined"
+                        color="primary"
+                        size="small"
+                        startIcon={<Add />}
+                        onClick={() => handleAddOutcome(subject.subjectId)}
+                        sx={{ mr: 1 }}
+                      >
+                        Add Outcome
+                      </Button>
+
+                      <IconButton
+                        color="primary"
+                        onClick={() => handleEditSubject(subject)}
+                        sx={{ mr: 1 }}
+                      >
+                        <Edit />
+                      </IconButton>
+
+                      <IconButton
+                        color="error"
+                        onClick={() =>
+                          handleDeleteSubject(subject.subjectId, subject.name)
+                        }
+                      >
+                        <Delete />
+                      </IconButton>
+                    </Box>
+                  </Box>
+
+                  {/* Outcomes */}
+                  <Box sx={{ p: 0 }}>
+                    {subject.outcomes && subject.outcomes.length > 0 ? (
+                      subject.outcomes.map((outcome) => (
+                        <Accordion key={outcome.outcomeId}>
+                          <AccordionSummary expandIcon={<ExpandMore />}>
+                            <Box
+                              sx={{
+                                display: "flex",
+                                alignItems: "center",
+                                width: "100%",
+                              }}
+                            >
+                              <Typography sx={{ flexGrow: 1 }}>
+                                {outcome.topic}
+                              </Typography>
+                              
+                              {/* Display outcome total credits */}
+                              <Typography 
+                                color="primary"
+                                sx={{ mr: 2, fontWeight: 'bold' }}
+                              >
+                                {calculateOutcomeCredits(outcome).toFixed(1)}
+                              </Typography>
+                              
+                              <Chip
+                                label={
+                                  outcome.compulsory ? "Compulsory" : "Optional"
+                                }
+                                color={outcome.compulsory ? "primary" : "default"}
+                                size="small"
+                                sx={{ mr: 2 }}
+                              />
+                            </Box>
+                          </AccordionSummary>
+                          <AccordionDetails>
+                            {/* Outcome actions */}
+                            <Box sx={{ display: "flex", mb: 2, gap: 1 }}>
+                              <Button
+                                variant="outlined"
+                                startIcon={<Visibility />}
+                                onClick={() =>
+                                  handleOpenRequirements(
+                                    outcome.requirements,
+                                    subject.subjectId,
+                                    outcome.outcomeId
+                                  )
+                                }
+                              >
+                                Manage Requirements
+                              </Button>
+
+                              <IconButton
+                                color="primary"
+                                onClick={() =>
+                                  handleEditOutcome(outcome, subject.subjectId)
+                                }
+                              >
+                                <Edit />
+                              </IconButton>
+
+                              <IconButton
+                                color="error"
+                                onClick={() =>
+                                  handleDeleteOutcome(
+                                    subject.subjectId,
+                                    outcome.outcomeId,
+                                    outcome.topic
+                                  )
+                                }
+                              >
+                                <Delete />
+                              </IconButton>
+                            </Box>
+
+                            <Divider sx={{ my: 2 }} />
+
+                            {/* Projects section */}
+                            <Typography variant="subtitle1" gutterBottom>
+                              Projects:
+                            </Typography>
+
+                            {outcome.projects && outcome.projects.length > 0 ? (
+                              <TableContainer
+                                component={Paper}
+                                variant="outlined"
+                              >
+                                <Table size="small">
+                                  <TableHead>
+                                    <TableRow sx={{ bgcolor: "#f9f9f9" }}>
+                                      <TableCell>Project Name</TableCell>
+                                      <TableCell>Requested Credit</TableCell>
+                                      <TableCell>Status</TableCell>
+                                      <TableCell>Approved Credit</TableCell>
+                                      <TableCell>Assessed By</TableCell>
+                                      <TableCell>Actions</TableCell>
+                                    </TableRow>
+                                  </TableHead>
+                                  <TableBody>
+                                    {outcome.projects.map((project) => (
+                                      <TableRow key={project._id}>
+                                        <TableCell>{project.name}</TableCell>
+                                        <TableCell>
+                                          {project.requestedCredit}
+                                        </TableCell>
+                                        <TableCell>
+                                          <Chip
+                                            label={project.status || "Pending"}
+                                            color={getStatusColor(project.status)}
+                                            size="small"
+                                          />
+                                        </TableCell>
+                                        <TableCell>
+                                          {project.status === "Approved"
+                                            ? project.approvedCredit ||
+                                              project.requestedCredit
+                                            : "-"}
+                                        </TableCell>
+                                        <TableCell>
+                                          {project.assessedBy || "-"}
+                                        </TableCell>
+                                        <TableCell>
+                                          <IconButton
+                                            color="primary"
+                                            size="small"
+                                            onClick={() =>
+                                              handleProjectAssessment(
+                                                project,
+                                                outcome,
+                                                subject
+                                              )
+                                            }
+                                          >
+                                            <Edit />
+                                          </IconButton>
+
+                                          <IconButton
+                                            color="error"
+                                            size="small"
+                                            onClick={() =>
+                                              setDeleteDialog({
+                                                open: true,
+                                                type: "project",
+                                                id: project._id,
+                                                name: project.name,
+                                                subjectId: subject.subjectId,
+                                                outcomeId: outcome.outcomeId,
+                                              })
+                                            }
+                                          >
+                                            <Delete />
+                                          </IconButton>
+                                        </TableCell>
+                                      </TableRow>
+                                    ))}
+                                  </TableBody>
+                                </Table>
+                              </TableContainer>
+                            ) : (
+                              <Typography variant="body2" color="text.secondary">
+                                No projects submitted yet.
+                              </Typography>
+                            )}
+                          </AccordionDetails>
+                        </Accordion>
+                      ))
+                    ) : (
+                      <Box sx={{ p: 2, textAlign: "center" }}>
+                        <Typography color="text.secondary">
+                          No outcomes found for this subject.
+                        </Typography>
+                      </Box>
+                    )}
+                  </Box>
+                </Paper>
+              ))
+            ) : (
+              <Paper sx={{ p: 3, textAlign: "center" }}>
+                <Typography>
+                  {searchQuery || statusFilter !== "all"
+                    ? "No results match your search or filter criteria."
+                    : "No subjects assigned to this student."}
+                </Typography>
+              </Paper>
+            );
+          })()}
+        </Box>
+      )}
+      
       {/* Subject Dialog (Add/Edit) */}
       <Dialog
         open={subjectDialog.open}
@@ -803,6 +1022,7 @@ const StudentProgress = () => {
           </Button>
         </DialogActions>
       </Dialog>
+      
       {/* Outcome Dialog (Add/Edit) */}
       <Dialog
         open={outcomeDialog.open}
@@ -908,6 +1128,7 @@ const StudentProgress = () => {
           </Button>
         </DialogActions>
       </Dialog>
+      
       {/* Requirements Dialog */}
       <Dialog
         open={requirementDialog.open}
@@ -955,6 +1176,7 @@ const StudentProgress = () => {
           </Button>
         </DialogActions>
       </Dialog>
+      
       {/* Project Assessment Dialog */}
       <Dialog
         open={projectDialog.open}
@@ -1038,6 +1260,7 @@ const StudentProgress = () => {
           </Button>
         </DialogActions>
       </Dialog>
+      
       {/* Confirmation Dialog */}
       <Dialog
         open={deleteDialog.open}

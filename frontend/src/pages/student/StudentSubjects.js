@@ -277,7 +277,7 @@ const StudentSubjects = () => {
     }));
   };
 
-  // Improved handleAddProject function with consistent ID handling
+  // Modified handleAddProject function without duplicate check
   const handleAddProject = async (outcome, subject) => {
     const outcomeId = outcome.outcomeId || outcome._id;
     const subjectId = subject.subjectId || subject._id;
@@ -314,36 +314,9 @@ const StudentSubjects = () => {
       });
       return;
     }
-    const projectName = projects[outcomeId].name;
-    let isDuplicate = false;
-
-    // Loop through all subjects
-    for (const subj of studentData) {
-      // Loop through all outcomes in each subject
-      if (subj.outcomes) {
-        for (const outc of subj.outcomes) {
-          // Check if any project in this outcome has the same name
-          if (
-            outc.projects &&
-            outc.projects.some((proj) => proj.name === projectName)
-          ) {
-            isDuplicate = true;
-            break;
-          }
-        }
-      }
-      if (isDuplicate) break;
-    }
-
-    if (isDuplicate) {
-      setNotification({
-        open: true,
-        message:
-          "You have already submitted this project in another outcome. Each project can only be submitted once.",
-        severity: "error",
-      });
-      return;
-    }
+    
+    // Removed the duplicate check code block
+    
     // Set loading
     setLoading(true);
 

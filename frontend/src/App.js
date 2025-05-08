@@ -2,11 +2,11 @@ import React from 'react';
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import Homepage from './pages/Homepage';
-import TeacherDashboard from './pages/Teacher/TeacherDashboard';
+import TeacherDashboard from './pages/teacher/TeacherDashboard';
 import StudentDashboard from './pages/student/StudentDashboard';
 import LoginPage from './pages/LoginPage';
 import ChooseUser from './pages/ChooseUser';
-import TeacherRegisterPage from './pages/Teacher/TeacherRegister';
+import TeacherRegisterPage from './pages/teacher/TeacherRegister';
 import Logout from './pages/Logout';
 import ErrorPage from './ErrorPage';
 

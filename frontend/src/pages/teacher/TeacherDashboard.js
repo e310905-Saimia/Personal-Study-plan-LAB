@@ -47,7 +47,7 @@ import {
 import { getSubjectList } from "../../redux/subjectrelated/subjectHandle";
 import { getAllStudents } from "../../redux/studentRelated/studentHandle";
 import { getAllTeachers } from "../../redux/teacherRelated/teacherHandle";
-import TeacherHomePage from "./TeacherHomepage";
+import TeacherHomePage from "./TeacherHomePage";
 
 import StudentCompetencies from "./students/StudentCompetencies";
 import TeacherViewStudent from "./TeacherViewStudent";

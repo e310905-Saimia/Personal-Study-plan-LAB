@@ -4,7 +4,6 @@ import CountUp from "react-countup";
 import { useDispatch, useSelector } from "react-redux";
 import { useEffect } from "react";
 
-// ✅ Recharts imports for graph
 import {
   BarChart,
   Bar,
